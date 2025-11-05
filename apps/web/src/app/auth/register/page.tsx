@@ -41,7 +41,7 @@ export default function RegisterPage() {
           throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
         }
 
-        const { data, error: signupError } = await supabase.auth.signUp({
+        const { error: signupError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
@@ -77,7 +77,7 @@ export default function RegisterPage() {
         const tempEmail = `${formattedPhone.replace(/\D/g, '')}@contractors-mall.local`
 
         // Create account with temp email
-        const { data, error: signupError } = await supabase.auth.signUp({
+        const { error: signupError } = await supabase.auth.signUp({
           email: tempEmail,
           password: formData.password || `temp_${Date.now()}`, // Generate temp password
           options: {
