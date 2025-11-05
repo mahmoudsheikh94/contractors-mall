@@ -5,10 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+type SignupMethod = 'email' | 'phone'
+
 export default function RegisterPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [signupMethod, setSignupMethod] = useState<SignupMethod>('email')
   const [formData, setFormData] = useState({
     // Owner Info
     fullName: '',
@@ -61,18 +64,34 @@ export default function RegisterPage() {
         return
       }
 
+      // Validate phone for phone signup
+      if (signupMethod === 'phone' && !formData.phone) {
+        setError('رقم الهاتف مطلوب')
+        setLoading(false)
+        return
+      }
+
       const supabase = createClient()
+
+      // Determine email to use
+      let emailToUse = formData.email
+      if (signupMethod === 'phone') {
+        // Generate temp email from phone number
+        const phoneDigits = formData.phone.replace(/\D/g, '')
+        emailToUse = `${phoneDigits}@contractors-mall.local`
+      }
 
       // 1. Create user account
       // Profile will be auto-created by database trigger
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
+        email: emailToUse,
         password: formData.password,
         options: {
           data: {
             full_name: formData.fullName,
             phone: formData.phone,
             role: 'supplier_admin', // Trigger will use this to set role
+            signup_method: signupMethod,
           }
         }
       })
@@ -158,6 +177,43 @@ export default function RegisterPage() {
           </p>
         </div>
 
+        {/* Signup Method Toggle */}
+        <div className="mb-6">
+          <div className="flex gap-3 p-1 bg-gray-100 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setSignupMethod('email')}
+              className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
+                signupMethod === 'email'
+                  ? 'bg-white text-primary-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <span className="text-2xl mr-2">📧</span>
+              البريد الإلكتروني
+            </button>
+            <button
+              type="button"
+              onClick={() => setSignupMethod('phone')}
+              className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
+                signupMethod === 'phone'
+                  ? 'bg-white text-primary-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <span className="text-2xl mr-2">📱</span>
+              رقم الهاتف
+            </button>
+          </div>
+          {signupMethod === 'phone' && (
+            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                ✨ <strong>مكافأة:</strong> التسجيل بالهاتف + التحقق = شارتي التحقق (البريد والهاتف) معاً!
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Error Message */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -203,20 +259,22 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  البريد الإلكتروني *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="email@example.com"
-                />
-              </div>
+              {signupMethod === 'email' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    البريد الإلكتروني *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="email@example.com"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

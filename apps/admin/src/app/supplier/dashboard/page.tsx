@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { DashboardTabs } from '@/components/supplier/DashboardTabs'
 import { AnalyticsDashboard } from '@/components/supplier/AnalyticsDashboard'
+import PhoneVerification from '@/components/PhoneVerification'
+import VerificationBadges from '@/components/VerificationBadges'
 
 async function getDashboardStats(supplierId: string) {
   const supabase = await createClient()
@@ -135,6 +137,13 @@ export default async function SupplierDashboard({
     .from('suppliers')
     .select('supplier_id: id, business_name')
     .eq('owner_id', user?.id)
+    .maybeSingle()
+
+  // Get profile with verification status
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email_verified, phone_verified, verification_method, phone')
+    .eq('id', user?.id)
     .maybeSingle()
 
   if (!supplier) {
@@ -399,12 +408,30 @@ export default async function SupplierDashboard({
         </div>
       )}
 
+      {/* Phone Verification Component */}
+      {profile && !profile.phone_verified && profile.phone && (
+        <div className="mb-8">
+          <PhoneVerification />
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          مرحباً بك في لوحة التحكم
-        </h1>
-        <p className="text-gray-600 mt-2">
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900">
+            مرحباً بك في لوحة التحكم
+          </h1>
+          {profile && (
+            <VerificationBadges
+              emailVerified={profile.email_verified}
+              phoneVerified={profile.phone_verified}
+              verificationMethod={profile.verification_method as 'email' | 'phone' | 'both' | null}
+              size="sm"
+              showLabels={false}
+            />
+          )}
+        </div>
+        <p className="text-gray-600">
           {supplier.business_name} - نظرة عامة على أعمالك
         </p>
       </div>
