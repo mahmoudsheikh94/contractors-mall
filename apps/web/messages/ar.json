@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "title": "مول المقاول - سوق مواد البناء الأردني",
+    "description": "منصة رقمية لربط المقاولين بموردي مواد البناء في الأردن"
+  },
+  "home": {
+    "title": "مول المقاول",
+    "subtitle": "كل موادك في كبسة واحدة وتوصيل فوري",
+    "browse": "تصفح المواد",
+    "login": "تسجيل الدخول"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "search": "بحث",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "close": "إغلاق",
+    "open": "فتح",
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "auth": {
+    "phone": "رقم الهاتف",
+    "otp": "رمز التحقق",
+    "sendOtp": "إرسال رمز التحقق",
+    "verifyOtp": "تأكيد الرمز",
+    "resendOtp": "إعادة إرسال الرمز",
+    "logout": "تسجيل الخروج",
+    "welcome": "أهلاً بك"
+  },
+  "products": {
+    "title": "المنتجات",
+    "categories": "الفئات",
+    "price": "السعر",
+    "unit": "الوحدة",
+    "addToCart": "أضف للسلة",
+    "inStock": "متوفر",
+    "outOfStock": "غير متوفر"
+  },
+  "cart": {
+    "title": "سلة المشتريات",
+    "empty": "السلة فارغة",
+    "subtotal": "المجموع الفرعي",
+    "deliveryFee": "رسوم التوصيل",
+    "total": "المجموع",
+    "checkout": "إتمام الطلب",
+    "continueShopping": "متابعة التسوق"
+  },
+  "orders": {
+    "title": "طلباتي",
+    "orderNumber": "رقم الطلب",
+    "date": "التاريخ",
+    "status": "الحالة",
+    "viewDetails": "عرض التفاصيل",
+    "pending": "قيد الانتظار",
+    "confirmed": "مؤكد",
+    "inDelivery": "قيد التوصيل",
+    "delivered": "تم التوصيل",
+    "completed": "مكتمل",
+    "cancelled": "ملغي"
+  },
+  "delivery": {
+    "address": "عنوان التوصيل",
+    "scheduledDate": "تاريخ التوصيل",
+    "vehicle": "المركبة",
+    "zone": "المنطقة",
+    "zoneA": "منطقة أ",
+    "zoneB": "منطقة ب",
+    "confirmDelivery": "تأكيد الاستلام",
+    "uploadPhoto": "رفع صورة",
+    "enterPin": "إدخال رمز PIN"
+  },
+  "suppliers": {
+    "title": "الموردون",
+    "verified": "موثق",
+    "rating": "التقييم",
+    "distance": "المسافة",
+    "viewProducts": "عرض المنتجات",
+    "deliveryArea": "منطقة التوصيل"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "title": "Contractors Mall - Jordan Construction Materials Market",
+    "description": "Digital platform connecting contractors with construction material suppliers in Jordan"
+  },
+  "home": {
+    "title": "Contractors Mall",
+    "subtitle": "All your materials in one click with instant delivery",
+    "browse": "Browse Materials",
+    "login": "Login"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "open": "Open",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "auth": {
+    "phone": "Phone Number",
+    "otp": "Verification Code",
+    "sendOtp": "Send Code",
+    "verifyOtp": "Verify Code",
+    "resendOtp": "Resend Code",
+    "logout": "Logout",
+    "welcome": "Welcome"
+  },
+  "products": {
+    "title": "Products",
+    "categories": "Categories",
+    "price": "Price",
+    "unit": "Unit",
+    "addToCart": "Add to Cart",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Cart is empty",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Delivery Fee",
+    "total": "Total",
+    "checkout": "Checkout",
+    "continueShopping": "Continue Shopping"
+  },
+  "orders": {
+    "title": "My Orders",
+    "orderNumber": "Order Number",
+    "date": "Date",
+    "status": "Status",
+    "viewDetails": "View Details",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "inDelivery": "In Delivery",
+    "delivered": "Delivered",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "delivery": {
+    "address": "Delivery Address",
+    "scheduledDate": "Delivery Date",
+    "vehicle": "Vehicle",
+    "zone": "Zone",
+    "zoneA": "Zone A",
+    "zoneB": "Zone B",
+    "confirmDelivery": "Confirm Receipt",
+    "uploadPhoto": "Upload Photo",
+    "enterPin": "Enter PIN"
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "verified": "Verified",
+    "rating": "Rating",
+    "distance": "Distance",
+    "viewProducts": "View Products",
+    "deliveryArea": "Delivery Area"
+  }
+}

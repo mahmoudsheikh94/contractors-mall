@@ -1,0 +1,37 @@
+# Robots.txt for Contractors Mall Web App
+# Alpha/Beta Phase - Prevent all indexing
+
+User-agent: *
+Disallow: /
+
+# Specifically block sensitive areas
+User-agent: *
+Disallow: /api/
+Disallow: /checkout/
+Disallow: /account/
+Disallow: /orders/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+# Block common crawlers explicitly
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: facebookexternalhit
+Disallow: /
+
+# Sitemap (will be added in production)
+# Sitemap: https://app.contractorsmall.jo/sitemap.xml

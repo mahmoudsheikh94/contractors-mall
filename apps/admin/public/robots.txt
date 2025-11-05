@@ -1,0 +1,36 @@
+# Robots.txt for Contractors Mall Admin Portal
+# Alpha/Beta Phase - Prevent all indexing
+
+User-agent: *
+Disallow: /
+
+# Specifically block sensitive areas
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /supplier/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+# Block common crawlers explicitly
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: facebookexternalhit
+Disallow: /
+
+# Sitemap (will be added in production)
+# Sitemap: https://admin.contractorsmall.jo/sitemap.xml

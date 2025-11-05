@@ -1,0 +1,201 @@
+-- ==========================================
+-- STORAGE BUCKETS SETUP
+-- ==========================================
+
+-- Create storage buckets
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('product_media', 'product_media', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+  ('delivery_proofs', 'delivery_proofs', false, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+  ('dispute_media', 'dispute_media', false, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- STORAGE POLICIES
+-- ==========================================
+
+-- Drop existing policies to make migration idempotent
+DROP POLICY IF EXISTS "Public can view product images" ON storage.objects;
+DROP POLICY IF EXISTS "Suppliers can upload product images" ON storage.objects;
+DROP POLICY IF EXISTS "Suppliers can update their product images" ON storage.objects;
+DROP POLICY IF EXISTS "Suppliers can delete their product images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can manage all product images" ON storage.objects;
+DROP POLICY IF EXISTS "Contractors can view their delivery proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Suppliers can upload delivery proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Suppliers can view their delivery proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can view all delivery proofs" ON storage.objects;
+DROP POLICY IF EXISTS "Dispute parties can view dispute media" ON storage.objects;
+DROP POLICY IF EXISTS "Dispute parties can upload media" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can manage all dispute media" ON storage.objects;
+
+-- Product Media Policies
+-- Public read access
+CREATE POLICY "Public can view product images" ON storage.objects
+  FOR SELECT
+  USING (bucket_id = 'product_media');
+
+-- Suppliers can upload/update their product images
+CREATE POLICY "Suppliers can upload product images" ON storage.objects
+  FOR INSERT
+  WITH CHECK (
+    bucket_id = 'product_media' AND
+    EXISTS (
+      SELECT 1 FROM suppliers s
+      JOIN products p ON p.supplier_id = s.id
+      WHERE s.owner_id = auth.uid()
+      AND (storage.foldername(storage.objects.name))[1] = p.id::text
+    )
+  );
+
+CREATE POLICY "Suppliers can update their product images" ON storage.objects
+  FOR UPDATE
+  USING (
+    bucket_id = 'product_media' AND
+    EXISTS (
+      SELECT 1 FROM suppliers s
+      JOIN products p ON p.supplier_id = s.id
+      WHERE s.owner_id = auth.uid()
+      AND (storage.foldername(storage.objects.name))[1] = p.id::text
+    )
+  );
+
+CREATE POLICY "Suppliers can delete their product images" ON storage.objects
+  FOR DELETE
+  USING (
+    bucket_id = 'product_media' AND
+    EXISTS (
+      SELECT 1 FROM suppliers s
+      JOIN products p ON p.supplier_id = s.id
+      WHERE s.owner_id = auth.uid()
+      AND (storage.foldername(storage.objects.name))[1] = p.id::text
+    )
+  );
+
+-- Admins can manage all product images
+CREATE POLICY "Admins can manage all product images" ON storage.objects
+  FOR ALL
+  USING (
+    bucket_id = 'product_media' AND
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ==========================================
+-- Delivery Proofs Policies
+-- ==========================================
+
+-- Contractors can view delivery proofs for their orders
+CREATE POLICY "Contractors can view their delivery proofs" ON storage.objects
+  FOR SELECT
+  USING (
+    bucket_id = 'delivery_proofs' AND
+    EXISTS (
+      SELECT 1 FROM orders o
+      JOIN deliveries d ON d.order_id = o.id
+      WHERE o.contractor_id = auth.uid()
+      AND (storage.foldername(storage.objects.name))[1] = d.id::text
+    )
+  );
+
+-- Suppliers/drivers can upload delivery proofs for their orders
+CREATE POLICY "Suppliers can upload delivery proofs" ON storage.objects
+  FOR INSERT
+  WITH CHECK (
+    bucket_id = 'delivery_proofs' AND (
+      EXISTS (
+        SELECT 1 FROM orders o
+        JOIN suppliers s ON s.id = o.supplier_id
+        JOIN deliveries d ON d.order_id = o.id
+        WHERE s.owner_id = auth.uid()
+        AND (storage.foldername(storage.objects.name))[1] = d.id::text
+      ) OR
+      EXISTS (
+        SELECT 1 FROM deliveries d
+        WHERE d.driver_id = auth.uid()
+        AND (storage.foldername(storage.objects.name))[1] = d.id::text
+      )
+    )
+  );
+
+-- Suppliers can view delivery proofs for their orders
+CREATE POLICY "Suppliers can view their delivery proofs" ON storage.objects
+  FOR SELECT
+  USING (
+    bucket_id = 'delivery_proofs' AND
+    EXISTS (
+      SELECT 1 FROM orders o
+      JOIN suppliers s ON s.id = o.supplier_id
+      JOIN deliveries d ON d.order_id = o.id
+      WHERE s.owner_id = auth.uid()
+      AND (storage.foldername(storage.objects.name))[1] = d.id::text
+    )
+  );
+
+-- Admins can view all delivery proofs
+CREATE POLICY "Admins can view all delivery proofs" ON storage.objects
+  FOR SELECT
+  USING (
+    bucket_id = 'delivery_proofs' AND
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ==========================================
+-- Dispute Media Policies
+-- ==========================================
+
+-- Parties to a dispute can view dispute media
+CREATE POLICY "Dispute parties can view dispute media" ON storage.objects
+  FOR SELECT
+  USING (
+    bucket_id = 'dispute_media' AND
+    EXISTS (
+      SELECT 1 FROM disputes d
+      JOIN orders o ON o.id = d.order_id
+      LEFT JOIN suppliers s ON s.id = o.supplier_id
+      WHERE (storage.foldername(storage.objects.name))[1] = d.id::text
+      AND (
+        o.contractor_id = auth.uid() OR
+        s.owner_id = auth.uid() OR
+        d.opened_by = auth.uid()
+      )
+    )
+  );
+
+-- Parties can upload dispute media
+CREATE POLICY "Dispute parties can upload media" ON storage.objects
+  FOR INSERT
+  WITH CHECK (
+    bucket_id = 'dispute_media' AND
+    EXISTS (
+      SELECT 1 FROM disputes d
+      JOIN orders o ON o.id = d.order_id
+      LEFT JOIN suppliers s ON s.id = o.supplier_id
+      WHERE (storage.foldername(storage.objects.name))[1] = d.id::text
+      AND (
+        o.contractor_id = auth.uid() OR
+        s.owner_id = auth.uid()
+      )
+    )
+  );
+
+-- Admins can manage all dispute media
+CREATE POLICY "Admins can manage all dispute media" ON storage.objects
+  FOR ALL
+  USING (
+    bucket_id = 'dispute_media' AND
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ==========================================
+-- HELPER FUNCTION FOR FILE URL GENERATION
+-- ==========================================
+
+CREATE OR REPLACE FUNCTION get_storage_url(p_bucket TEXT, p_path TEXT)
+RETURNS TEXT AS $$
+BEGIN
+  RETURN format('%s/storage/v1/object/public/%s/%s',
+    current_setting('app.settings.supabase_url', true),
+    p_bucket,
+    p_path
+  );
+END;
+$$ LANGUAGE plpgsql;
