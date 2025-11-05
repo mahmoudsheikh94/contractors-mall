@@ -109,7 +109,32 @@ export default function RegisterPage() {
       }
 
       // Note: Profile is automatically created by database trigger
-      // We just need to create the supplier record
+      // Wait for profile to be created before proceeding
+      let profileExists = false
+      let retries = 0
+      const maxRetries = 10
+
+      while (!profileExists && retries < maxRetries) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', authData.user.id)
+          .maybeSingle()
+
+        if (profile) {
+          profileExists = true
+        } else {
+          // Wait 500ms before retrying
+          await new Promise(resolve => setTimeout(resolve, 500))
+          retries++
+        }
+      }
+
+      if (!profileExists) {
+        setError('فشل إنشاء ملف المستخدم. يرجى الاتصال بالدعم.')
+        setLoading(false)
+        return
+      }
 
       // 2. Create supplier record
       // Combine address fields into single address string
