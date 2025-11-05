@@ -64,12 +64,8 @@ export function PeakHoursChart({ data, height = 200 }: PeakHoursChartProps) {
               direction: 'rtl',
             }}
             formatter={(value: number) => [value, 'عدد الطلبات']}
-            labelFormatter={(label: string, payload) => {
-              if (payload && payload[0]) {
-                const hour = payload[0].payload.hour
-                return `الساعة ${label}`
-              }
-              return label
+            labelFormatter={(label: string) => {
+              return `الساعة ${label}`
             }}
           />
           <Bar dataKey="orders" radius={[4, 4, 0, 0]}>
