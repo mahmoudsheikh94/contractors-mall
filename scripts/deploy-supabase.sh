@@ -37,32 +37,30 @@ echo ""
 # Push migrations
 echo "📋 Step 3/4: Pushing database migrations..."
 echo "   This will apply all migrations to your cloud database"
-echo "   Answering 'Y' to confirmation prompt..."
 echo ""
 
-# Use timeout to prevent hanging
-timeout 180 bash -c 'echo "Y" | npx supabase db push' || {
+# Run migrations
+if echo "Y" | npx supabase db push; then
+    echo ""
+    echo "✅ All migrations applied successfully!"
+else
     EXIT_CODE=$?
-    if [ $EXIT_CODE -eq 124 ]; then
-        echo "⚠️  Migration push timed out after 3 minutes"
-        echo "   This might indicate a connection issue."
-        echo ""
-        echo "   Please try manually:"
-        echo "   1. npx supabase link --project-ref $PROJECT_REF"
-        echo "   2. npx supabase db push"
-        echo ""
-        echo "   Or check the Supabase dashboard for errors:"
-        echo "   https://supabase.com/dashboard/project/$PROJECT_REF/logs/postgres-logs"
-        exit 1
-    else
-        echo "❌ Migration push failed with exit code: $EXIT_CODE"
-        exit $EXIT_CODE
-    fi
-}
-
-echo ""
-echo "✅ Migrations applied successfully!"
-echo ""
+    echo ""
+    echo "❌ Migration push failed with exit code: $EXIT_CODE"
+    echo ""
+    echo "Common issues:"
+    echo "  - Connection timeout: Check your internet connection"
+    echo "  - SQL errors: Check migration files for syntax errors"
+    echo "  - RLS conflicts: Some policies may already exist"
+    echo ""
+    echo "To debug:"
+    echo "  npx supabase db push --debug"
+    echo ""
+    echo "View logs:"
+    echo "  https://supabase.com/dashboard/project/$PROJECT_REF/logs/postgres-logs"
+    echo ""
+    exit $EXIT_CODE
+fi
 
 # Storage buckets (manual step - provide instructions)
 echo "📋 Step 4/4: Storage Buckets Setup"
