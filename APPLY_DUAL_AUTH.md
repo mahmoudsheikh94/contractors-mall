@@ -64,6 +64,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE INDEX IF NOT EXISTS idx_profiles_phone_verified ON profiles(phone_verified);
 CREATE INDEX IF NOT EXISTS idx_profiles_email_verified ON profiles(email_verified);
 CREATE INDEX IF NOT EXISTS idx_profiles_verification_method ON profiles(verification_method);
+
+-- IMPORTANT: No RLS policies needed - existing profiles policies handle access
 ```
 
 3. **Click "Run"** (or press `Ctrl/Cmd + Enter`)

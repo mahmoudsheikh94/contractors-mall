@@ -111,12 +111,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Add RLS policies for verification functions
--- Only users can verify their own phone
-CREATE POLICY "Users can verify their own phone" ON profiles
-  FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
+-- Note: No additional RLS policies needed for profiles table
+-- The existing RLS policies already handle user access properly
+-- The SECURITY DEFINER functions bypass RLS when needed
 
 -- Create index for faster verification lookups
 CREATE INDEX IF NOT EXISTS idx_profiles_phone_verified ON profiles(phone_verified);
