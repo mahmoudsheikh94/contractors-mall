@@ -142,7 +142,6 @@ export default function RegisterPage() {
               phone: formattedPhone,
               role: 'contractor',
               email_verified: false,
-              phone_verified: false,
             })
 
           if (profileError) {
@@ -152,13 +151,11 @@ export default function RegisterPage() {
         }
 
         setSuccess(true)
-        sessionStorage.setItem('verification_contact', formattedPhone)
-        sessionStorage.setItem('verification_type', 'phone')
 
-        // Redirect to phone verification
+        // Redirect to login page - user needs to verify email via link
         setTimeout(() => {
-          router.push('/auth/verify')
-        }, 1500)
+          router.push('/auth/login')
+        }, 2000)
       }
     } catch (err: any) {
       setError(err.message || 'حدث خطأ في التسجيل')
