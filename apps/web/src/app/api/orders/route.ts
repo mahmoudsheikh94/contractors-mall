@@ -78,6 +78,9 @@ export async function POST(request: Request) {
     const body: CreateOrderRequest = await request.json()
     const { supplierId, items, deliveryAddress, deliverySchedule, vehicleEstimate } = body
 
+    // Explicitly type items to ensure TypeScript uses correct type
+    const typedItems: CreateOrderRequest['items'] = items
+
     // Validate required fields (vehicleEstimate is now optional, but we still need delivery zone and fee)
     if (
       !supplierId ||
@@ -96,7 +99,7 @@ export async function POST(request: Request) {
     }
 
     // Calculate totals
-    const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+    const subtotal = typedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
     const deliveryFee = vehicleEstimate.delivery_fee_jod
     const total = subtotal + deliveryFee
 
@@ -146,7 +149,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Create order items (with product details for order history)
-    const orderItems = items.map((item) => ({
+    const orderItems = typedItems.map((item) => ({
       order_id: order.id,
       product_id: item.productId,
       product_name: item.productName || item.productNameEn || 'Unknown Product', // Use Arabic name, fallback to English
