@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useCart } from '@/hooks/useCart'
 import { Button } from '@contractors-mall/ui'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import EmailVerificationWarning from '@/components/EmailVerificationWarning'
 import type { DeliveryAddress, DeliverySchedule } from '@/types/checkout'
 import type { VehicleEstimate } from '@/types/vehicle'
 import { groupCartItemsBySupplier, cartItemsToEstimateItems } from '@/lib/utils/vehicleEstimate'
@@ -28,6 +30,31 @@ export default function CheckoutReviewPage() {
   const [schedule, setSchedule] = useState<DeliverySchedule | null>(null)
   const [supplierOrders, setSupplierOrders] = useState<SupplierOrder[]>([])
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  const [emailVerified, setEmailVerified] = useState<boolean>(true)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  // Check email verification status
+  useEffect(() => {
+    const checkEmailVerification = async () => {
+      const supabase = createClient()
+
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        setUserEmail(user.email || null)
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email_verified')
+          .eq('id', user.id)
+          .single()
+
+        setEmailVerified(profile?.email_verified || false)
+      }
+    }
+
+    checkEmailVerification()
+  }, [])
 
   // Load checkout data from previous steps
   useEffect(() => {
@@ -137,6 +164,12 @@ export default function CheckoutReviewPage() {
   const handlePlaceOrder = async () => {
     if (!canPlaceOrder() || !address || !schedule) return
 
+    // Client-side check for email verification
+    if (!emailVerified) {
+      alert('يرجى تأكيد بريدك الإلكتروني قبل إتمام الطلب\n\nPlease verify your email address before placing an order')
+      return
+    }
+
     setIsPlacingOrder(true)
 
     try {
@@ -179,6 +212,10 @@ export default function CheckoutReviewPage() {
         const data = await response.json()
 
         if (!response.ok) {
+          // Check for email verification error specifically
+          if (data.error_code === 'EMAIL_NOT_VERIFIED') {
+            throw new Error(data.error || 'يرجى تأكيد بريدك الإلكتروني قبل إتمام الطلب')
+          }
           throw new Error(data.error || 'Failed to create order')
         }
 
@@ -260,6 +297,11 @@ export default function CheckoutReviewPage() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6">
+          {/* Email Verification Warning */}
+          {!emailVerified && (
+            <EmailVerificationWarning email={userEmail} />
+          )}
+
           {/* Delivery Info */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">معلومات التوصيل</h2>

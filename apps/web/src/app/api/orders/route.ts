@@ -51,6 +51,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Check if contractor's email is verified
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email_verified, role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Only contractors need email verification to place orders
+    if (profile.role === 'contractor' && !profile.email_verified) {
+      return NextResponse.json(
+        {
+          error: 'يرجى تأكيد بريدك الإلكتروني قبل إتمام الطلب',
+          error_en: 'Please verify your email address before placing an order',
+          error_code: 'EMAIL_NOT_VERIFIED'
+        },
+        { status: 403 }
+      )
+    }
+
     // Parse request body
     const body: CreateOrderRequest = await request.json()
     const { supplierId, items, deliveryAddress, deliverySchedule, vehicleEstimate } = body
