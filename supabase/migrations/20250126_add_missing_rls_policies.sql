@@ -7,6 +7,10 @@
 -- ==========================================
 -- CATEGORIES POLICIES
 -- ==========================================
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Public can view active categories" ON categories;
+DROP POLICY IF EXISTS "Admins can manage categories" ON categories;
+
 -- Allow everyone to read active categories
 CREATE POLICY "Public can view active categories" ON categories
   FOR SELECT USING (is_active = true);
@@ -20,6 +24,10 @@ CREATE POLICY "Admins can manage categories" ON categories
 -- ==========================================
 -- VEHICLES POLICIES
 -- ==========================================
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Public can view active vehicles" ON vehicles;
+DROP POLICY IF EXISTS "Admins can manage vehicles" ON vehicles;
+
 -- Allow everyone to read active vehicles
 CREATE POLICY "Public can view active vehicles" ON vehicles
   FOR SELECT USING (is_active = true);
@@ -33,6 +41,10 @@ CREATE POLICY "Admins can manage vehicles" ON vehicles
 -- ==========================================
 -- SUPPLIER ZONE FEES POLICIES
 -- ==========================================
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Public can view zone fees for verified suppliers" ON supplier_zone_fees;
+DROP POLICY IF EXISTS "Suppliers can manage their zone fees" ON supplier_zone_fees;
+
 -- Allow everyone to read zone fees for verified suppliers
 CREATE POLICY "Public can view zone fees for verified suppliers" ON supplier_zone_fees
   FOR SELECT USING (

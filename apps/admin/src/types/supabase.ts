@@ -163,13 +163,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "deliveries_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "deliveries_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: true
@@ -229,13 +222,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "disputes_opened_by_fkey"
-            columns: ["opened_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "disputes_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -278,15 +264,7 @@ export type Database = {
           mime_type?: string | null
           uploaded_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "media_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       order_activities: {
         Row: {
@@ -317,13 +295,6 @@ export type Database = {
           order_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "order_activities_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "order_activities_order_id_fkey"
             columns: ["order_id"]
@@ -426,13 +397,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "order_notes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "order_notes_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
@@ -464,13 +428,6 @@ export type Database = {
           tag_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "order_tag_assignments_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "order_tag_assignments_order_id_fkey"
             columns: ["order_id"]
@@ -638,13 +595,6 @@ export type Database = {
           vehicle_type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "orders_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "orders_project_id_fkey"
             columns: ["project_id"]
@@ -839,52 +789,37 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string | null
+          created_at: string
           email: string | null
-          email_verified: boolean | null
-          email_verified_at: string | null
           full_name: string
           id: string
           is_active: boolean | null
           phone: string | null
-          phone_verified: boolean | null
-          phone_verified_at: string | null
-          preferred_language: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-          verification_method: string | null
+          preferred_language: Database["public"]["Enums"]["language"] | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           email?: string | null
-          email_verified?: boolean | null
-          email_verified_at?: string | null
           full_name: string
           id: string
           is_active?: boolean | null
           phone?: string | null
-          phone_verified?: boolean | null
-          phone_verified_at?: string | null
-          preferred_language?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-          verification_method?: string | null
+          preferred_language?: Database["public"]["Enums"]["language"] | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           email?: string | null
-          email_verified?: boolean | null
-          email_verified_at?: string | null
           full_name?: string
           id?: string
           is_active?: boolean | null
           phone?: string | null
-          phone_verified?: boolean | null
-          phone_verified_at?: string | null
-          preferred_language?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string | null
-          verification_method?: string | null
+          preferred_language?: Database["public"]["Enums"]["language"] | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -928,15 +863,7 @@ export type Database = {
           name?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -967,13 +894,6 @@ export type Database = {
           supplier_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "reviews_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "reviews_order_id_fkey"
             columns: ["order_id"]
@@ -1012,15 +932,7 @@ export type Database = {
           updated_by?: string | null
           value?: Json
         }
-        Relationships: [
-          {
-            foreignKeyName: "settings_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       spatial_ref_sys: {
         Row: {
@@ -1179,15 +1091,7 @@ export type Database = {
           wallet_balance?: number | null
           wallet_pending?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "suppliers_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vehicles: {
         Row: {
@@ -1247,13 +1151,6 @@ export type Database = {
           total_spent: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "orders_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "orders_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -1607,6 +1504,10 @@ export type Database = {
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       get_delivery_approval_method: {
         Args: { p_order_total: number }
+        Returns: string
+      }
+      get_storage_url: {
+        Args: { p_bucket: string; p_path: string }
         Returns: string
       }
       gettransactionid: { Args: never; Returns: unknown }
@@ -2245,38 +2146,6 @@ export type Database = {
         }
         Returns: string
       }
-      upsert_profile: {
-        Args: {
-          user_email?: string
-          user_full_name?: string
-          user_id: string
-          user_language?: string
-          user_phone?: string
-          user_role?: string
-        }
-        Returns: {
-          created_at: string | null
-          email: string | null
-          email_verified: boolean | null
-          email_verified_at: string | null
-          full_name: string
-          id: string
-          is_active: boolean | null
-          phone: string | null
-          phone_verified: boolean | null
-          phone_verified_at: string | null
-          preferred_language: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string | null
-          verification_method: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "profiles"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       verify_phone_number: {
         Args: { p_user_id: string; p_verification_code: string }
         Returns: Json
@@ -2285,6 +2154,7 @@ export type Database = {
     Enums: {
       delivery_zone: "zone_a" | "zone_b"
       dispute_status: "opened" | "investigating" | "resolved" | "escalated"
+      language: "ar" | "en"
       order_status:
         | "pending"
         | "confirmed"
@@ -2432,6 +2302,7 @@ export const Constants = {
     Enums: {
       delivery_zone: ["zone_a", "zone_b"],
       dispute_status: ["opened", "investigating", "resolved", "escalated"],
+      language: ["ar", "en"],
       order_status: [
         "pending",
         "confirmed",
