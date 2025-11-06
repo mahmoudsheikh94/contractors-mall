@@ -76,16 +76,13 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body: CreateOrderRequest = await request.json()
-    const { supplierId, items, deliveryAddress, deliverySchedule, vehicleEstimate } = body
-
-    // Explicitly type items to ensure TypeScript uses correct type
-    const typedItems: CreateOrderRequest['items'] = items
+    const { supplierId, deliveryAddress, deliverySchedule, vehicleEstimate } = body
 
     // Validate required fields (vehicleEstimate is now optional, but we still need delivery zone and fee)
     if (
       !supplierId ||
-      !items ||
-      items.length === 0 ||
+      !body.items ||
+      body.items.length === 0 ||
       !deliveryAddress ||
       !deliverySchedule ||
       !vehicleEstimate ||
@@ -99,7 +96,7 @@ export async function POST(request: Request) {
     }
 
     // Calculate totals
-    const subtotal = typedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+    const subtotal = body.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
     const deliveryFee = vehicleEstimate.delivery_fee_jod
     const total = subtotal + deliveryFee
 
@@ -149,7 +146,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Create order items (with product details for order history)
-    const orderItems = typedItems.map((item: CreateOrderRequest['items'][number]) => ({
+    const orderItems = body.items.map((item) => ({
       order_id: order.id,
       product_id: item.productId,
       product_name: item.productName || item.productNameEn || 'Unknown Product', // Use Arabic name, fallback to English
