@@ -141,7 +141,7 @@ export default function RegisterPage() {
             role: 'supplier_admin',
             email_verified: false,
             email_verified_at: null,
-          })
+          } as any) // Type assertion until Supabase types are generated
 
         if (profileError) {
           console.error('Profile creation error:', profileError)

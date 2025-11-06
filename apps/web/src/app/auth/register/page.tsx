@@ -77,7 +77,7 @@ export default function RegisterPage() {
               phone: formData.phone || null,
               role: 'contractor',
               email_verified: false,
-            })
+            } as any) // Type assertion until Supabase types are generated
 
           if (profileError) {
             console.error('Profile creation error:', profileError)
@@ -143,7 +143,7 @@ export default function RegisterPage() {
               role: 'contractor',
               email_verified: false,
               phone_verified: false,
-            })
+            } as any) // Type assertion until Supabase types are generated
 
           if (profileError) {
             console.error('Profile creation error:', profileError)
