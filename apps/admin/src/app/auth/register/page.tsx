@@ -108,11 +108,11 @@ export default function RegisterPage() {
         return
       }
 
-      // Note: Profile is automatically created by database trigger
-      // Wait for profile to be created before proceeding
+      // Note: Try to wait for database trigger to create profile
+      // If trigger doesn't exist, manually create the profile
       let profileExists = false
       let retries = 0
-      const maxRetries = 10
+      const maxRetries = 5  // Reduced retries (2.5 seconds max)
 
       while (!profileExists && retries < maxRetries) {
         const { data: profile } = await supabase
@@ -124,16 +124,31 @@ export default function RegisterPage() {
         if (profile) {
           profileExists = true
         } else {
-          // Wait 500ms before retrying
           await new Promise(resolve => setTimeout(resolve, 500))
           retries++
         }
       }
 
+      // If trigger didn't create profile, create it manually
       if (!profileExists) {
-        setError('فشل إنشاء ملف المستخدم. يرجى الاتصال بالدعم.')
-        setLoading(false)
-        return
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: emailToUse,
+            full_name: formData.fullName,
+            phone: formData.phone,
+            role: 'supplier_admin',
+            email_verified: false,
+            email_verified_at: null,
+          })
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+          setError('فشل إنشاء ملف المستخدم. يرجى الاتصال بالدعم.')
+          setLoading(false)
+          return
+        }
       }
 
       // 2. Create supplier record

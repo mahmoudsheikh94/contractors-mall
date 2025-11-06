@@ -41,7 +41,7 @@ export default function RegisterPage() {
           throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
         }
 
-        const { error: signupError } = await supabase.auth.signUp({
+        const { data: authData, error: signupError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
@@ -55,6 +55,35 @@ export default function RegisterPage() {
         })
 
         if (signupError) throw signupError
+        if (!authData.user) throw new Error('فشل إنشاء الحساب')
+
+        // Wait briefly for trigger, then create profile manually if needed
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', authData.user.id)
+          .maybeSingle()
+
+        if (!existingProfile) {
+          // Trigger didn't work, create profile manually
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              email: formData.email,
+              full_name: formData.fullName,
+              phone: formData.phone || null,
+              role: 'contractor',
+              email_verified: false,
+            })
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError)
+            throw new Error('فشل إنشاء ملف المستخدم')
+          }
+        }
 
         setSuccess(true)
         // For email, user needs to verify via email link
@@ -77,7 +106,7 @@ export default function RegisterPage() {
         const tempEmail = `${formattedPhone.replace(/\D/g, '')}@contractors-mall.local`
 
         // Create account with temp email
-        const { error: signupError } = await supabase.auth.signUp({
+        const { data: authData, error: signupError } = await supabase.auth.signUp({
           email: tempEmail,
           password: formData.password || `temp_${Date.now()}`, // Generate temp password
           options: {
@@ -91,6 +120,36 @@ export default function RegisterPage() {
         })
 
         if (signupError) throw signupError
+        if (!authData.user) throw new Error('فشل إنشاء الحساب')
+
+        // Wait briefly for trigger, then create profile manually if needed
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', authData.user.id)
+          .maybeSingle()
+
+        if (!existingProfile) {
+          // Trigger didn't work, create profile manually
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              email: tempEmail,
+              full_name: formData.fullName,
+              phone: formattedPhone,
+              role: 'contractor',
+              email_verified: false,
+              phone_verified: false,
+            })
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError)
+            throw new Error('فشل إنشاء ملف المستخدم')
+          }
+        }
 
         setSuccess(true)
         sessionStorage.setItem('verification_contact', formattedPhone)
