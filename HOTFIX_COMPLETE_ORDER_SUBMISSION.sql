@@ -326,8 +326,8 @@ CREATE POLICY "Service role full access order_items" ON order_items
 -- Make all NOT NULL columns nullable
 ALTER TABLE order_items ALTER COLUMN product_name DROP NOT NULL;
 ALTER TABLE order_items ALTER COLUMN unit DROP NOT NULL;
-ALTER TABLE order_items ALTER COLUMN unit_price_jod DROP NOT NULL;
-ALTER TABLE order_items ALTER COLUMN total_jod DROP NOT NULL;
+ALTER TABLE order_items ALTER COLUMN unit_price DROP NOT NULL;
+ALTER TABLE order_items ALTER COLUMN total_price DROP NOT NULL;
 
 -- Add comments explaining this is temporary
 COMMENT ON COLUMN order_items.product_name IS
@@ -338,13 +338,13 @@ COMMENT ON COLUMN order_items.unit IS
 'Unit of measurement at time of order (e.g., كيس, طن).
 TEMPORARILY NULLABLE - should contain actual unit for proper order history.';
 
-COMMENT ON COLUMN order_items.unit_price_jod IS
+COMMENT ON COLUMN order_items.unit_price IS
 'Price per unit in JOD at time of order.
 TEMPORARILY NULLABLE - should always contain the actual price.';
 
-COMMENT ON COLUMN order_items.total_jod IS
+COMMENT ON COLUMN order_items.total_price IS
 'Total price for this line item in JOD.
-TEMPORARILY NULLABLE - should always contain quantity * unit_price_jod.';
+TEMPORARILY NULLABLE - should always contain quantity * unit_price.';
 
 -- ============================================================================
 -- SUCCESS MESSAGE
@@ -373,7 +373,7 @@ BEGIN
   RAISE NOTICE '      - Suppliers can SELECT payments for their orders';
   RAISE NOTICE '      - Admins can manage all payments';
   RAISE NOTICE '   7. order_items table RLS policies added (INSERT and SELECT)';
-  RAISE NOTICE '   8. All order_items fields made NULLABLE (product_name, unit, unit_price_jod, total_jod)';
+  RAISE NOTICE '   8. All order_items fields made NULLABLE (product_name, unit, unit_price, total_price)';
   RAISE NOTICE '';
   RAISE NOTICE '🎯 You should now be able to:';
   RAISE NOTICE '   - Submit orders without any errors';
