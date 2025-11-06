@@ -19,6 +19,7 @@ export interface Order {
   delivery_fee_jod: number
   total_jod: number
   vehicle_class_id: string | null
+  vehicle_type: string | null // Vehicle type (pickup_1ton, truck_3_5ton, etc.) - now null as suppliers handle logistics
   delivery_zone: 'zone_a' | 'zone_b' | null
   delivery_address: string
   delivery_latitude: number
@@ -65,6 +66,10 @@ export interface CreateOrderRequest {
   supplierId: string
   items: Array<{
     productId: string
+    productName: string // Product name for order history
+    productNameEn: string // English product name
+    unit: string // Unit of measurement (e.g., "كيس", "طن")
+    unitEn: string // English unit
     quantity: number
     unitPrice: number
   }>

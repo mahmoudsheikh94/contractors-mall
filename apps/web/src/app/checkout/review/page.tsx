@@ -186,6 +186,10 @@ export default function CheckoutReviewPage() {
           supplierId: supplierOrder.supplierId,
           items: supplierOrder.items.map((item) => ({
             productId: item.productId,
+            productName: item.name_ar, // Arabic name for order history
+            productNameEn: item.name_en, // English name
+            unit: item.unit_ar, // Arabic unit
+            unitEn: item.unit_en, // English unit
             quantity: item.quantity,
             unitPrice: item.price_per_unit,
           })),
