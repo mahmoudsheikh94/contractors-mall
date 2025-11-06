@@ -40,10 +40,9 @@ interface VercelDeploymentPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify webhook signature (optional but recommended)
-    const signature = request.headers.get('x-vercel-signature')
-
-    // In production, verify signature with VERCEL_WEBHOOK_SECRET
+    // TODO: Verify webhook signature (optional but recommended)
+    // In production, implement signature verification:
+    // const signature = request.headers.get('x-vercel-signature')
     // const isValid = verifySignature(signature, await request.text())
     // if (!isValid) {
     //   return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })

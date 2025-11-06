@@ -791,6 +791,8 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          email_verified: boolean | null
+          email_verified_at: string | null
           full_name: string
           id: string
           is_active: boolean | null
@@ -802,6 +804,8 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          email_verified?: boolean | null
+          email_verified_at?: string | null
           full_name: string
           id: string
           is_active?: boolean | null
@@ -813,6 +817,8 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          email_verified?: boolean | null
+          email_verified_at?: string | null
           full_name?: string
           id?: string
           is_active?: boolean | null

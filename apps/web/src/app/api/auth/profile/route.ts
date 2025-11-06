@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
       // If it's an RLS policy error, try using the upsert function
       if (error.code === '42501' || error.message?.includes('row-level security')) {
-        const { data: funcResult, error: funcError } = (await supabase
+        const { data: funcResult, error: funcError } = (await (supabase as any)
           .rpc('upsert_profile', {
             user_id: user.id,
             user_email: user.email || null,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
             user_full_name: full_name,
             user_role: role || 'contractor',
             user_language: validLanguage  // Use validated language value
-          } as any)) as { data: any, error: any }
+          })) as { data: any, error: any }
 
         if (funcError) {
           console.error('Upsert function error:', funcError)

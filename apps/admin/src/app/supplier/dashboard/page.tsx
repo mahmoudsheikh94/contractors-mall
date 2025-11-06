@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { DashboardTabs } from '@/components/supplier/DashboardTabs'
 import { AnalyticsDashboard } from '@/components/supplier/AnalyticsDashboard'
-import PhoneVerification from '@/components/PhoneVerification'
 import VerificationBadges from '@/components/VerificationBadges'
 
 async function getDashboardStats(supplierId: string) {
@@ -408,13 +407,6 @@ export default async function SupplierDashboard({
         </div>
       )}
 
-      {/* Phone Verification Component */}
-      {profile && !profile.phone_verified && profile.phone && (
-        <div className="mb-8">
-          <PhoneVerification />
-        </div>
-      )}
-
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -424,8 +416,6 @@ export default async function SupplierDashboard({
           {profile && (
             <VerificationBadges
               emailVerified={profile.email_verified}
-              phoneVerified={profile.phone_verified}
-              verificationMethod={profile.verification_method as 'email' | 'phone' | 'both' | null}
               size="sm"
               showLabels={false}
             />
