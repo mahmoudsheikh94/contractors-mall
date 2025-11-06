@@ -1,6 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_PROJECT_ID",
+    "SUPABASE_ACCESS_TOKEN"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,7 +19,11 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ]
     },
     "lint": {
       "dependsOn": ["^build"]
@@ -22,10 +33,21 @@
     },
     "test": {
       "dependsOn": ["build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ]
     },
     "clean": {
       "cache": false
+    },
+    "generate:types": {
+      "cache": false,
+      "env": [
+        "SUPABASE_PROJECT_ID",
+        "SUPABASE_ACCESS_TOKEN"
+      ]
     }
   }
 }
