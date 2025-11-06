@@ -29,8 +29,8 @@ async function getOrders(
       total_jod,
       delivery_fee_jod,
       created_at,
-      delivery_date,
-      delivery_time_slot,
+      scheduled_delivery_date,
+      scheduled_delivery_time,
       delivery_address,
       profiles!contractor_id (
         full_name,

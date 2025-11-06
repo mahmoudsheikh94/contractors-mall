@@ -59,8 +59,8 @@ export default function OrdersListPage() {
             order_number,
             status,
             total_jod,
-            delivery_date,
-            delivery_time_slot,
+            scheduled_delivery_date,
+            scheduled_delivery_time,
             created_at,
             suppliers (
               business_name,
@@ -81,8 +81,8 @@ export default function OrdersListPage() {
           order_number: order.order_number,
           status: order.status,
           total_jod: order.total_jod,
-          delivery_date: order.delivery_date,
-          delivery_time_slot: order.delivery_time_slot,
+          delivery_date: order.scheduled_delivery_date,
+          delivery_time_slot: order.scheduled_delivery_time,
           created_at: order.created_at,
           supplier: order.suppliers ? {
             business_name: order.suppliers.business_name,
