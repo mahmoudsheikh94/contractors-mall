@@ -152,8 +152,8 @@ export async function POST(request: Request) {
       product_name: item.productName || item.productNameEn || 'Unknown Product', // Use Arabic name, fallback to English
       unit: item.unit || item.unitEn || 'unit', // Use Arabic unit, fallback to English
       quantity: item.quantity,
-      unit_price_jod: item.unitPrice, // Correct column name
-      total_jod: item.unitPrice * item.quantity, // Correct column name
+      unit_price: item.unitPrice, // Database expects unit_price, not unit_price_jod
+      total_price: item.unitPrice * item.quantity, // Database expects total_price, not total_jod
     }))
 
     const { error: itemsError } = await (supabase.from('order_items').insert as any)(orderItems)
