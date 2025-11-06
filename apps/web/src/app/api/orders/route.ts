@@ -131,8 +131,8 @@ export async function POST(request: Request) {
         delivery_phone: deliveryAddress.phone,
         delivery_latitude: deliveryAddress.latitude,
         delivery_longitude: deliveryAddress.longitude,
-        delivery_date: deliverySchedule.date,          // Fixed column name
-        delivery_time_slot: deliverySchedule.time_slot, // Fixed column name
+        scheduled_delivery_date: deliverySchedule.date,     // Correct column name
+        scheduled_delivery_time: deliverySchedule.time_slot, // Correct column name
       })
       .select()
       .single()
