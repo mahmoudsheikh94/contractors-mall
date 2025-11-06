@@ -55,18 +55,18 @@ export default function OrdersListPage() {
         const { data, error: fetchError } = await supabase
           .from('orders')
           .select(`
-            order_id,
+            id,
             order_number,
             status,
             total_jod,
             delivery_date,
             delivery_time_slot,
             created_at,
-            suppliers!inner (
+            suppliers (
               business_name,
               business_name_en
             ),
-            payments!inner (
+            payments (
               status
             )
           `)
@@ -76,22 +76,27 @@ export default function OrdersListPage() {
         if (fetchError) throw fetchError
 
         // Transform data
-        const ordersList: OrderSummary[] = data.map((order: any) => ({
-          order_id: order.order_id,
+        const ordersList: OrderSummary[] = data?.map((order: any) => ({
+          order_id: order.id,
           order_number: order.order_number,
           status: order.status,
           total_jod: order.total_jod,
           delivery_date: order.delivery_date,
           delivery_time_slot: order.delivery_time_slot,
           created_at: order.created_at,
-          supplier: {
+          supplier: order.suppliers ? {
             business_name: order.suppliers.business_name,
             business_name_en: order.suppliers.business_name_en,
+          } : {
+            business_name: 'Unknown Supplier',
+            business_name_en: 'Unknown Supplier',
           },
-          payment: {
+          payment: order.payments ? {
             status: order.payments.status,
+          } : {
+            status: 'pending',
           },
-        }))
+        })) || []
 
         setOrders(ordersList)
       } catch (err) {

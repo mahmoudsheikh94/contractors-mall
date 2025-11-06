@@ -23,7 +23,7 @@ async function getOrders(
   let query = supabase
     .from('orders')
     .select(`
-      order_id,
+      id,
       order_number,
       status,
       total_jod,
@@ -32,7 +32,7 @@ async function getOrders(
       delivery_date,
       delivery_time_slot,
       delivery_address,
-      contractor:contractor_id (
+      profiles!contractor_id (
         full_name,
         phone
       )
@@ -62,10 +62,10 @@ async function getOrders(
     return { orders: [], count: 0 }
   }
 
-  // Fix contractor type (Supabase returns it as array but we want single object)
+  // Fix contractor type (Supabase returns it as profiles but we rename to contractor)
   const orders = data?.map(order => ({
     ...order,
-    contractor: Array.isArray(order.contractor) ? order.contractor[0] : order.contractor
+    contractor: order.profiles || null
   })) || []
 
   return {
@@ -88,7 +88,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   const { data: supplier } = await supabase
     .from('suppliers')
-    .select('supplier_id: id, business_name')
+    .select('id, business_name')
     .eq('owner_id', user.id)
     .maybeSingle()
 
@@ -114,7 +114,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   const currentPage = parseInt(params.page || '1')
   const { orders, count, totalPages } = await getOrders(
-    supplier.supplier_id,
+    supplier.id,
     params.status,
     params.search,
     currentPage
@@ -124,27 +124,27 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const statusCounts = await Promise.all([
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
-      .eq('supplier_id', supplier.supplier_id),
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplier.id),
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
-      .eq('supplier_id', supplier.supplier_id)
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplier.id)
       .eq('status', 'confirmed'),
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
-      .eq('supplier_id', supplier.supplier_id)
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplier.id)
       .eq('status', 'accepted'),
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
-      .eq('supplier_id', supplier.supplier_id)
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplier.id)
       .eq('status', 'in_delivery'),
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
-      .eq('supplier_id', supplier.supplier_id)
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplier.id)
       .eq('status', 'delivered'),
   ])
 

@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     // Note: Supabase doesn't support transactions in the same way as raw SQL,
     // but we can handle errors and rollback manually if needed
 
-    // 1. Create the order (vehicle_class_id is now null - suppliers handle logistics)
+    // 1. Create the order (vehicle_class_id and vehicle_type are now null - suppliers handle logistics)
     const { data: order, error: orderError } = await (supabase
       .from('orders')
       .insert as any)({
@@ -123,12 +123,16 @@ export async function POST(request: Request) {
         delivery_fee_jod: deliveryFee,
         total_jod: total,
         vehicle_class_id: null, // No longer using vehicle estimation
+        vehicle_type: null, // Suppliers handle their own logistics (vehicle selection)
         delivery_zone: vehicleEstimate.delivery_zone,
         delivery_address: deliveryAddress.address,
+        delivery_neighborhood: 'Amman',  // TODO: Get from address breakdown
+        delivery_city: 'Amman',          // TODO: Get from address breakdown
+        delivery_phone: deliveryAddress.phone,
         delivery_latitude: deliveryAddress.latitude,
         delivery_longitude: deliveryAddress.longitude,
-        scheduled_delivery_date: deliverySchedule.date,
-        scheduled_delivery_time: deliverySchedule.time_slot,
+        delivery_date: deliverySchedule.date,          // Fixed column name
+        delivery_time_slot: deliverySchedule.time_slot, // Fixed column name
       })
       .select()
       .single()
@@ -141,13 +145,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // 2. Create order items
+    // 2. Create order items (with product details for order history)
     const orderItems = items.map((item) => ({
       order_id: order.id,
       product_id: item.productId,
+      product_name: item.productName || item.productNameEn || 'Unknown Product', // Use Arabic name, fallback to English
+      unit: item.unit || item.unitEn || 'unit', // Use Arabic unit, fallback to English
       quantity: item.quantity,
-      unit_price: item.unitPrice,
-      total_price: item.unitPrice * item.quantity,
+      unit_price_jod: item.unitPrice, // Correct column name
+      total_jod: item.unitPrice * item.quantity, // Correct column name
     }))
 
     const { error: itemsError } = await (supabase.from('order_items').insert as any)(orderItems)
@@ -162,10 +168,14 @@ export async function POST(request: Request) {
       )
     }
 
-    // 3. Create delivery record
+    // 3. Create delivery record with all required fields
     const deliveryData: any = {
       order_id: order.id,
-      recipient_phone: deliveryAddress.phone,
+      scheduled_date: deliverySchedule.date, // Scheduled delivery date
+      scheduled_time_slot: deliverySchedule.time_slot, // Scheduled time slot
+      address_line: deliveryAddress.address, // Full address string
+      phone: deliveryAddress.phone, // Recipient phone
+      recipient_phone: deliveryAddress.phone, // Also set recipient_phone for backward compatibility
     }
 
     // Generate PIN if order amount >= threshold
@@ -237,7 +247,7 @@ export async function POST(request: Request) {
     await (supabase
       .from('orders')
       .update as any)({ status: 'confirmed' })
-      .eq('id', order.id)
+      .eq('order_id', order.order_id)
 
     // Return the created order and payment info
     const response: CreateOrderResponse = {
