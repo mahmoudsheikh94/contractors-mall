@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Create order items (with product details for order history)
-    const orderItems = typedItems.map((item) => ({
+    const orderItems = typedItems.map((item: CreateOrderRequest['items'][number]) => ({
       order_id: order.id,
       product_id: item.productId,
       product_name: item.productName || item.productNameEn || 'Unknown Product', // Use Arabic name, fallback to English
