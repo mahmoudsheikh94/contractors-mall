@@ -3,15 +3,21 @@
 ## Overview
 This document describes the database schema for Contractors Mall, a bilingual construction materials marketplace for Jordan.
 
+**Last Updated:** November 6, 2025
+**Schema Version:** 2.0 (Post-Phase 2 + Email Verification)
+
 ## Core Tables
 
 ### profiles
 User profiles extending Supabase Auth
 - `id` (UUID, PK): References auth.users
 - `role` (ENUM): contractor|supplier_admin|driver|admin
-- `phone` (TEXT): Unique phone number
+- `email` (TEXT): Primary identifier, synced from auth.users
+- `phone` (TEXT, UNIQUE): Optional phone number for contact
 - `full_name` (TEXT): User's full name
-- `preferred_language` (ENUM): ar|en
+- `email_verified` (BOOLEAN): Email verification status (default: false)
+- `email_verified_at` (TIMESTAMPTZ): When email was verified
+- `preferred_language` (TEXT): 'ar' or 'en' (default: 'ar')
 - `is_active` (BOOLEAN): Account status
 
 ### suppliers
@@ -54,15 +60,21 @@ Supplier product catalog
 ### orders
 Customer orders
 - `id` (UUID, PK)
-- `order_number` (TEXT): Unique order number
+- `order_number` (TEXT): Unique order number (ORD-YYYYMMDD-XXXXX)
 - `contractor_id` (UUID, FK): References profiles
 - `supplier_id` (UUID, FK): References suppliers
-- `status` (ENUM): pending|confirmed|in_delivery|delivered|completed|cancelled
-- `total_jod` (NUMERIC): Total order amount
+- `status` (ENUM): pending|confirmed|accepted|in_delivery|delivered|completed|cancelled|rejected|disputed
+- `subtotal_jod` (NUMERIC): Items subtotal
 - `delivery_fee_jod` (NUMERIC): Calculated delivery fee
+- `total_jod` (NUMERIC): Total order amount (subtotal + delivery)
 - `vehicle_class_id` (UUID, FK): Auto-selected vehicle
 - `delivery_zone` (ENUM): zone_a|zone_b
 - `scheduled_delivery_date` (DATE): Delivery date
+- `scheduled_delivery_time` (TEXT): Time slot
+- `delivery_address` (TEXT): Full delivery address
+- `delivery_latitude/longitude` (NUMERIC): GPS coordinates
+- `rejection_reason` (TEXT): If status = rejected
+- `disputed_at` (TIMESTAMPTZ): When dispute was opened
 
 ### deliveries
 Delivery tracking and proof
@@ -76,12 +88,15 @@ Delivery tracking and proof
 ### payments
 Escrow payment tracking
 - `id` (UUID, PK)
-- `order_id` (UUID, FK): References orders
-- `payment_intent_id` (TEXT): HyperPay checkout ID
-- `status` (ENUM): pending|held|released|refunded|failed
+- `order_id` (UUID, FK): References orders (UNIQUE)
+- `payment_intent_id` (TEXT): PSP checkout ID
+- `payment_method` (TEXT): Payment method used
+- `status` (ENUM): pending|escrow_held|released|refunded|failed|frozen
 - `amount_jod` (NUMERIC): Payment amount
 - `held_at` (TIMESTAMPTZ): Escrow hold time
 - `released_at` (TIMESTAMPTZ): Release time
+- `refunded_at` (TIMESTAMPTZ): Refund time
+- `metadata` (JSONB): Additional payment data
 
 ### disputes
 QC and dispute management
@@ -101,6 +116,100 @@ Platform configuration
   - `delivery_settings`: photo_threshold_jod (120), safety_margin_percent (10)
   - `commission_settings`: commission_percent (10), free_period_days (30)
   - `dispute_settings`: site_visit_threshold_jod (350)
+
+## Phase 2 Enhanced Features Tables
+
+### order_notes
+Internal notes and annotations on orders
+- `id` (UUID, PK)
+- `order_id` (UUID, FK): References orders
+- `note` (TEXT): Note content
+- `created_by` (UUID, FK): References profiles (author)
+- `is_internal` (BOOLEAN): Visible only to admins/suppliers
+- `created_at` (TIMESTAMPTZ)
+
+### order_tags
+Categorization and filtering for orders
+- `id` (UUID, PK)
+- `order_id` (UUID, FK): References orders
+- `tag` (TEXT): Tag name (e.g., "urgent", "bulk", "special")
+- `created_by` (UUID, FK): References profiles
+- `created_at` (TIMESTAMPTZ)
+
+### order_communications
+In-app messaging between contractor and supplier
+- `id` (UUID, PK)
+- `order_id` (UUID, FK): References orders
+- `sender_id` (UUID, FK): References profiles
+- `message` (TEXT): Message content
+- `is_read` (BOOLEAN): Read status
+- `created_at` (TIMESTAMPTZ)
+
+### in_app_notifications
+User notifications system
+- `id` (UUID, PK)
+- `user_id` (UUID, FK): References profiles
+- `type` (TEXT): Notification type
+- `title` (TEXT): Notification title
+- `message` (TEXT): Notification body
+- `is_read` (BOOLEAN): Read status
+- `action_url` (TEXT): Optional deep link
+- `created_at` (TIMESTAMPTZ)
+
+### dispute_communications
+Messaging within dispute resolution workflow
+- `id` (UUID, PK)
+- `dispute_id` (UUID, FK): References disputes
+- `sender_id` (UUID, FK): References profiles
+- `message` (TEXT): Communication content
+- `created_at` (TIMESTAMPTZ)
+
+### dispute_site_visits
+Site visit scheduling and tracking
+- `id` (UUID, PK)
+- `dispute_id` (UUID, FK): References disputes
+- `scheduled_date` (DATE): Scheduled visit date
+- `scheduled_by` (UUID, FK): References profiles (admin)
+- `completed_at` (TIMESTAMPTZ): When visit completed
+- `inspector_id` (UUID, FK): References profiles (driver/admin)
+- `inspector_notes` (TEXT): Findings and observations
+- `photo_urls` (JSONB): Array of photo URLs from visit
+
+### wallet_transactions
+Supplier wallet transaction history
+- `id` (UUID, PK)
+- `supplier_id` (UUID, FK): References suppliers
+- `type` (TEXT): 'credit', 'debit', 'hold', 'release', 'refund'
+- `amount_jod` (NUMERIC): Transaction amount
+- `balance_after` (NUMERIC): Wallet balance after transaction
+- `reference_id` (UUID): Related order/payment ID
+- `description` (TEXT): Transaction description
+- `created_at` (TIMESTAMPTZ)
+
+### contractor_insights
+Analytics and metrics per contractor
+- `id` (UUID, PK)
+- `contractor_id` (UUID, FK): References profiles
+- `total_orders` (INTEGER): Lifetime order count
+- `total_spent` (NUMERIC): Lifetime spending in JOD
+- `average_order_value` (NUMERIC): AOV
+- `favorite_categories` (JSONB): Array of category IDs with counts
+- `favorite_suppliers` (JSONB): Array of supplier IDs with counts
+- `last_order_date` (DATE): Most recent order
+- `updated_at` (TIMESTAMPTZ): Last calculation time
+
+### supplier_profiles
+Extended supplier business metadata
+- `id` (UUID, PK)
+- `supplier_id` (UUID, FK): References suppliers (UNIQUE)
+- `commercial_registration` (TEXT): CR number
+- `tax_id` (TEXT): Tax registration number
+- `bank_account_info` (JSONB): Bank details for payouts
+- `business_hours` (JSONB): Operating hours per day
+- `delivery_capabilities` (JSONB): Special delivery notes
+- `additional_info` (JSONB): Other metadata
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
 
 ## Key Relationships
 
