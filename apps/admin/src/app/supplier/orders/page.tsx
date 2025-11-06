@@ -62,10 +62,21 @@ async function getOrders(
     return { orders: [], count: 0 }
   }
 
-  // Fix contractor type (Supabase returns it as profiles but we rename to contractor)
-  const orders = data?.map(order => ({
-    ...order,
-    contractor: order.profiles || null
+  // Fix contractor type and map column names to match Order interface
+  const orders = data?.map((order: any) => ({
+    order_id: order.id,  // Map id to order_id
+    order_number: order.order_number,
+    status: order.status,
+    total_jod: order.total_jod,
+    delivery_fee_jod: order.delivery_fee_jod,
+    created_at: order.created_at,
+    delivery_date: order.scheduled_delivery_date,  // Map scheduled_delivery_date to delivery_date
+    delivery_time_slot: order.scheduled_delivery_time,  // Map scheduled_delivery_time to delivery_time_slot
+    delivery_address: order.delivery_address,
+    contractor: order.profiles ? {
+      full_name: order.profiles.full_name || '',
+      phone: order.profiles.phone || ''
+    } : null
   })) || []
 
   return {
