@@ -64,12 +64,12 @@ export function OrderActions({ orderId, orderNumber }: OrderActionsProps) {
     setError('')
 
     try {
-      const supabase = createClient()
+      const supabase = createClient() as any
 
       const { error: updateError } = await supabase
         .from('orders')
         .update({
-          status: 'accepted',
+          status: 'confirmed',
           updated_at: new Date().toISOString(),
         })
         .eq('order_id', orderId)
@@ -96,12 +96,12 @@ export function OrderActions({ orderId, orderNumber }: OrderActionsProps) {
     setError('')
 
     try {
-      const supabase = createClient()
+      const supabase = createClient() as any
 
       const { error: updateError } = await supabase
         .from('orders')
         .update({
-          status: 'rejected',
+          status: 'cancelled',
           rejection_reason: rejectionReason.trim(),
           updated_at: new Date().toISOString(),
         })

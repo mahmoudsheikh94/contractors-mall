@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import type { Database } from '@/types/supabase'
+
+type DisputeStatus = Database['public']['Enums']['dispute_status']
 
 interface DisputeQCActionsProps {
   disputeId: string
@@ -27,7 +30,7 @@ export function DisputeQCActions({
   const [qcAction, setQcAction] = useState('')
   const [resolution, setResolution] = useState('')
 
-  async function handleUpdateStatus(newStatus: string) {
+  async function handleUpdateStatus(newStatus: DisputeStatus) {
     if (!confirm(`هل أنت متأكد من تغيير الحالة إلى "${newStatus}"؟`)) return
 
     setLoading(true)
