@@ -78,14 +78,16 @@ export async function POST(request: Request) {
     const body: CreateOrderRequest = await request.json()
     const { supplierId, items, deliveryAddress, deliverySchedule, vehicleEstimate } = body
 
-    // Validate required fields
+    // Validate required fields (vehicleEstimate is now optional, but we still need delivery zone and fee)
     if (
       !supplierId ||
       !items ||
       items.length === 0 ||
       !deliveryAddress ||
       !deliverySchedule ||
-      !vehicleEstimate
+      !vehicleEstimate ||
+      !vehicleEstimate.delivery_zone ||
+      !vehicleEstimate.delivery_fee_jod
     ) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -109,7 +111,7 @@ export async function POST(request: Request) {
     // Note: Supabase doesn't support transactions in the same way as raw SQL,
     // but we can handle errors and rollback manually if needed
 
-    // 1. Create the order
+    // 1. Create the order (vehicle_class_id is now null - suppliers handle logistics)
     const { data: order, error: orderError } = await (supabase
       .from('orders')
       .insert as any)({
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
         subtotal_jod: subtotal,
         delivery_fee_jod: deliveryFee,
         total_jod: total,
-        vehicle_class_id: vehicleEstimate.vehicle_class_id,
+        vehicle_class_id: null, // No longer using vehicle estimation
         delivery_zone: vehicleEstimate.delivery_zone,
         delivery_address: deliveryAddress.address,
         delivery_latitude: deliveryAddress.latitude,

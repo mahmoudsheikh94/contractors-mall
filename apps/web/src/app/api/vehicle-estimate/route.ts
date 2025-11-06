@@ -1,19 +1,31 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { VehicleEstimateRequest, VehicleEstimate } from '@/types/vehicle'
+
+// Simplified request/response types (no longer need items for delivery fee calculation)
+interface DeliveryFeeRequest {
+  supplierId: string
+  deliveryLat: number
+  deliveryLng: number
+}
+
+interface DeliveryFeeEstimate {
+  zone: 'zone_a' | 'zone_b'
+  delivery_fee_jod: number
+  distance_km: number
+}
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
     // Parse request body
-    const body: VehicleEstimateRequest = await request.json()
-    const { supplierId, deliveryLat, deliveryLng, items } = body
+    const body: DeliveryFeeRequest = await request.json()
+    const { supplierId, deliveryLat, deliveryLng } = body
 
     // Validate required fields
-    if (!supplierId || !deliveryLat || !deliveryLng || !items || items.length === 0) {
+    if (!supplierId || !deliveryLat || !deliveryLng) {
       return NextResponse.json(
-        { error: 'Missing required fields: supplierId, deliveryLat, deliveryLng, items' },
+        { error: 'Missing required fields: supplierId, deliveryLat, deliveryLng' },
         { status: 400 }
       )
     }
@@ -26,16 +38,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Call the database function
-    const { data, error } = await (supabase.rpc as any)('fn_estimate_vehicle', {
+    // Call the simplified database function
+    const { data, error } = await (supabase.rpc as any)('fn_calculate_delivery_fee', {
       p_supplier_id: supplierId,
       p_delivery_lat: deliveryLat,
       p_delivery_lng: deliveryLng,
-      p_items_json: items,
     })
 
     if (error) {
-      console.error('Vehicle estimation error:', error)
+      console.error('Delivery fee calculation error:', error)
 
       // Check for specific error messages
       if (error.message?.includes('outside service area')) {
@@ -48,35 +59,45 @@ export async function POST(request: Request) {
         )
       }
 
-      if (error.message?.includes('No suitable vehicle found')) {
+      if (error.message?.includes('not configured')) {
         return NextResponse.json(
           {
-            error: 'No suitable vehicle available for this order',
+            error: 'Supplier has not configured delivery fees for this zone',
             details: error.message
           },
           { status: 400 }
         )
       }
 
+      if (error.message?.includes('not found or not verified')) {
+        return NextResponse.json(
+          {
+            error: 'Supplier not found or not verified',
+            details: error.message
+          },
+          { status: 404 }
+        )
+      }
+
       return NextResponse.json(
-        { error: 'Failed to estimate vehicle', details: error.message },
+        { error: 'Failed to calculate delivery fee', details: error.message },
         { status: 500 }
       )
     }
 
     // The function returns an array with one row
-    const estimate = data?.[0] as VehicleEstimate
+    const estimate = data?.[0] as DeliveryFeeEstimate
 
     if (!estimate) {
       return NextResponse.json(
-        { error: 'No vehicle estimate returned' },
+        { error: 'No delivery fee estimate returned' },
         { status: 500 }
       )
     }
 
     return NextResponse.json({ estimate })
   } catch (error) {
-    console.error('Vehicle estimate API error:', error)
+    console.error('Delivery fee API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -79,7 +79,7 @@ export interface CreateOrderRequest {
     time_slot: string
   }
   vehicleEstimate: {
-    vehicle_class_id: string
+    vehicle_class_id?: string // Optional - no longer using vehicle estimation
     delivery_fee_jod: number
     delivery_zone: 'zone_a' | 'zone_b'
   }

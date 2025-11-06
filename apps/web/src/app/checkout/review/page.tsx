@@ -8,8 +8,14 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import EmailVerificationWarning from '@/components/EmailVerificationWarning'
 import type { DeliveryAddress, DeliverySchedule } from '@/types/checkout'
-import type { VehicleEstimate } from '@/types/vehicle'
-import { groupCartItemsBySupplier, cartItemsToEstimateItems } from '@/lib/utils/vehicleEstimate'
+import { groupCartItemsBySupplier } from '@/lib/utils/vehicleEstimate'
+
+// Simplified delivery fee estimate (no longer using vehicle estimation)
+interface DeliveryFeeEstimate {
+  zone: 'zone_a' | 'zone_b'
+  delivery_fee_jod: number
+  distance_km: number
+}
 
 interface SupplierOrder {
   supplierId: string
@@ -17,7 +23,7 @@ interface SupplierOrder {
   supplierNameEn: string
   items: any[]
   subtotal: number
-  vehicleEstimate: VehicleEstimate | null
+  deliveryEstimate: DeliveryFeeEstimate | null
   estimateLoading: boolean
   estimateError: string | null
 }
@@ -81,17 +87,15 @@ export default function CheckoutReviewPage() {
         (sum, item) => sum + item.price_per_unit * item.quantity,
         0
       ),
-      vehicleEstimate: null,
+      deliveryEstimate: null,
       estimateLoading: true,
       estimateError: null,
     }))
 
     setSupplierOrders(orders)
 
-    // Fetch vehicle estimates for each supplier
+    // Fetch delivery fee estimates for each supplier (no longer based on vehicle capacity)
     orders.forEach((order, index) => {
-      const estimateItems = cartItemsToEstimateItems(order.items)
-
       fetch('/api/vehicle-estimate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +103,6 @@ export default function CheckoutReviewPage() {
           supplierId: order.supplierId,
           deliveryLat: address.latitude,
           deliveryLng: address.longitude,
-          items: estimateItems,
         }),
       })
         .then((res) => res.json())
@@ -108,7 +111,7 @@ export default function CheckoutReviewPage() {
             setSupplierOrders((prev) =>
               prev.map((o, i) =>
                 i === index
-                  ? { ...o, vehicleEstimate: data.estimate, estimateLoading: false }
+                  ? { ...o, deliveryEstimate: data.estimate, estimateLoading: false }
                   : o
               )
             )
@@ -127,7 +130,7 @@ export default function CheckoutReviewPage() {
           }
         })
         .catch((error) => {
-          console.error('Vehicle estimate error:', error)
+          console.error('Delivery fee estimate error:', error)
           setSupplierOrders((prev) =>
             prev.map((o, i) =>
               i === index
@@ -142,14 +145,14 @@ export default function CheckoutReviewPage() {
   const getTotalAmount = () => {
     return supplierOrders.reduce(
       (sum, order) =>
-        sum + order.subtotal + (order.vehicleEstimate?.delivery_fee_jod || 0),
+        sum + order.subtotal + (order.deliveryEstimate?.delivery_fee_jod || 0),
       0
     )
   }
 
   const getTotalDeliveryFees = () => {
     return supplierOrders.reduce(
-      (sum, order) => sum + (order.vehicleEstimate?.delivery_fee_jod || 0),
+      (sum, order) => sum + (order.deliveryEstimate?.delivery_fee_jod || 0),
       0
     )
   }
@@ -157,7 +160,7 @@ export default function CheckoutReviewPage() {
   const canPlaceOrder = () => {
     return (
       supplierOrders.length > 0 &&
-      supplierOrders.every((o) => o.vehicleEstimate && !o.estimateLoading && !o.estimateError)
+      supplierOrders.every((o) => o.deliveryEstimate && !o.estimateLoading && !o.estimateError)
     )
   }
 
@@ -177,7 +180,7 @@ export default function CheckoutReviewPage() {
 
       // Create an order for each supplier
       for (const supplierOrder of supplierOrders) {
-        if (!supplierOrder.vehicleEstimate) continue
+        if (!supplierOrder.deliveryEstimate) continue
 
         const orderRequest = {
           supplierId: supplierOrder.supplierId,
@@ -197,9 +200,8 @@ export default function CheckoutReviewPage() {
             time_slot: schedule.time_slot,
           },
           vehicleEstimate: {
-            vehicle_class_id: supplierOrder.vehicleEstimate.vehicle_class_id,
-            delivery_fee_jod: supplierOrder.vehicleEstimate.delivery_fee_jod,
-            delivery_zone: supplierOrder.vehicleEstimate.zone,
+            delivery_fee_jod: supplierOrder.deliveryEstimate.delivery_fee_jod,
+            delivery_zone: supplierOrder.deliveryEstimate.zone,
           },
         }
 
@@ -382,7 +384,7 @@ export default function CheckoutReviewPage() {
                   ))}
                 </div>
 
-                {/* Vehicle Estimate */}
+                {/* Delivery Fee Estimate */}
                 {order.estimateLoading && (
                   <div className="bg-gray-50 rounded-lg p-4 text-center">
                     <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-primary-600 border-r-transparent" />
@@ -396,36 +398,41 @@ export default function CheckoutReviewPage() {
                   </div>
                 )}
 
-                {order.vehicleEstimate && (
+                {order.deliveryEstimate && (
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <svg
-                        className="h-5 w-5 text-gray-600 mt-0.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                        />
-                      </svg>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900 mb-1">
-                          {order.vehicleEstimate.vehicle_name_ar}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          المسافة: {order.vehicleEstimate.distance_km.toFixed(1)} كم •{' '}
-                          {order.vehicleEstimate.zone === 'zone_a'
-                            ? 'منطقة أ'
-                            : 'منطقة ب'}
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <svg
+                          className="h-5 w-5 text-gray-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {order.deliveryEstimate.zone === 'zone_a' ? 'منطقة أ' : 'منطقة ب'}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            المسافة: {order.deliveryEstimate.distance_km.toFixed(1)} كم
+                          </p>
+                        </div>
                       </div>
                       <div className="text-left">
                         <p className="text-sm font-medium text-gray-900">
-                          {order.vehicleEstimate.delivery_fee_jod.toFixed(2)} د.أ
+                          {order.deliveryEstimate.delivery_fee_jod.toFixed(2)} د.أ
                         </p>
                         <p className="text-xs text-gray-600">رسوم التوصيل</p>
                       </div>
@@ -443,14 +450,14 @@ export default function CheckoutReviewPage() {
                 <div className="mt-2 flex justify-between">
                   <span className="text-sm text-gray-600">رسوم التوصيل:</span>
                   <span className="text-sm text-gray-900">
-                    {order.vehicleEstimate?.delivery_fee_jod.toFixed(2) || '-'} د.أ
+                    {order.deliveryEstimate?.delivery_fee_jod.toFixed(2) || '-'} د.أ
                   </span>
                 </div>
                 <div className="mt-2 pt-2 border-t flex justify-between">
                   <span className="font-medium text-gray-900">إجمالي هذا الطلب:</span>
                   <span className="font-medium text-primary-600">
                     {(
-                      order.subtotal + (order.vehicleEstimate?.delivery_fee_jod || 0)
+                      order.subtotal + (order.deliveryEstimate?.delivery_fee_jod || 0)
                     ).toFixed(2)}{' '}
                     د.أ
                   </span>
