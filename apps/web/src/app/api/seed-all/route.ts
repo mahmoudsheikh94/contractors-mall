@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export async function POST() {
   try {
-    const supabase = await createClient()
+    // Use service role client to bypass RLS for seeding
+    const supabase = createServiceRoleClient()
     const results: any = {
       suppliers: 0,
       categories: 0,
@@ -144,8 +145,6 @@ export async function POST() {
         name_ar: 'مواد البناء الأساسية',
         name_en: 'Basic Construction Materials',
         slug: 'basic-construction',
-        description_ar: 'الإسمنت، الحديد، الطوب والخرسانة',
-        description_en: 'Cement, steel, bricks and concrete',
         display_order: 1,
         is_active: true,
       },
@@ -154,8 +153,6 @@ export async function POST() {
         name_ar: 'مواد التشطيب',
         name_en: 'Finishing Materials',
         slug: 'finishing',
-        description_ar: 'البلاط، السيراميك، الدهانات والجبس',
-        description_en: 'Tiles, ceramics, paints and plaster',
         display_order: 2,
         is_active: true,
       },
@@ -164,8 +161,6 @@ export async function POST() {
         name_ar: 'الأدوات الصحية والكهربائية',
         name_en: 'Plumbing & Electrical',
         slug: 'plumbing-electrical',
-        description_ar: 'أنابيب، أسلاك، مفاتيح وأدوات صحية',
-        description_en: 'Pipes, wires, switches and plumbing fixtures',
         display_order: 3,
         is_active: true,
       },
@@ -174,8 +169,6 @@ export async function POST() {
         name_ar: 'الأخشاب والمعادن',
         name_en: 'Wood & Metals',
         slug: 'wood-metals',
-        description_ar: 'أخشاب، ألومنيوم، حديد مشغول',
-        description_en: 'Timber, aluminum, wrought iron',
         display_order: 4,
         is_active: true,
       },
@@ -356,7 +349,7 @@ export async function POST() {
 
     const { data: insertedProducts, error: productsError } = await supabase
       .from('products')
-      .upsert(products, { onConflict: 'sku' })
+      .upsert(products, { onConflict: 'supplier_id,sku' })
       .select()
 
     if (productsError) {
