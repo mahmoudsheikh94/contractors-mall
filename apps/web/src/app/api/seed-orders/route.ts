@@ -218,11 +218,11 @@ export async function POST() {
         scheduled_delivery_time: '14:00-17:00',
       },
       {
-        // Order 3: On the way order
+        // Order 3: In delivery order
         order_number: `ORD-2025-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         contractor_id: contractor1Id,
         supplier_id: supplier2Id,
-        status: 'on_the_way',
+        status: 'in_delivery',
         subtotal_jod: 90.00,
         delivery_fee_jod: 8.00,
         total_jod: 98.00,
@@ -277,11 +277,11 @@ export async function POST() {
         scheduled_delivery_time: '08:00-11:00',
       },
       {
-        // Order 6: Disputed order
+        // Order 6: Cancelled order (with notes about dispute)
         order_number: `ORD-2024-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         contractor_id: contractor1Id,
         supplier_id: supplier3Id,
-        status: 'disputed',
+        status: 'cancelled',
         subtotal_jod: 380.00,
         delivery_fee_jod: 15.00,
         total_jod: 395.00,
@@ -294,8 +294,7 @@ export async function POST() {
         delivery_city: 'عمان',
         scheduled_delivery_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         scheduled_delivery_time: '14:00-17:00',
-        disputed_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        dispute_reason: 'كمية خاطئة - تم توصيل 30 كيس بدلاً من 50',
+        notes: 'ملغي بسبب خلاف: كمية خاطئة - تم توصيل 30 كيس بدلاً من 50',
       },
     ]
 
