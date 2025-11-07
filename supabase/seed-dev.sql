@@ -93,7 +93,7 @@ INSERT INTO categories (id, parent_id, name_ar, name_en, slug, icon_name, displa
 -- ==========================================
 -- Note: These IDs would normally come from Supabase Auth
 -- For testing, we'll create placeholder auth users and profiles
-DO $
+DO $$
 DECLARE
   supplier1_id UUID := 'a1111111-0000-0000-0000-000000000001';
   supplier2_id UUID := 'a2222222-0000-0000-0000-000000000002';
@@ -344,12 +344,12 @@ BEGIN
      'لوح إضاءة LED للأسقف المستعارة 40 واط', 'LED ceiling panel 40W for false ceilings', 'حبة', 'piece',
      18.00, 2, 0.036, 1, true);
 
-END $;
+END $$;
 
 -- ==========================================
 -- DISPLAY SEED SUMMARY
 -- ==========================================
-DO $
+DO $$
 DECLARE
   v_supplier_count INTEGER;
   v_product_count INTEGER;
@@ -387,4 +387,4 @@ BEGIN
   3. khaled@tijara.jo / TestPassword123!
   ════════════════════════════════════════════════════════════════
   ', 3, 4, v_category_count, v_supplier_count, v_product_count;
-END $;
+END $$;
