@@ -15,7 +15,7 @@ export async function POST() {
     const supplier3Id = 'd3333333-3333-3333-3333-333333333333'
 
     // Check if suppliers exist
-    const { data: suppliers, error: supplierError } = await supabase
+    const { data: suppliers } = await supabase
       .from('suppliers')
       .select('id')
       .in('id', [supplier1Id, supplier2Id, supplier3Id])
@@ -101,7 +101,7 @@ export async function POST() {
       ])
 
     // Create test orders
-    const orders = [
+    const orders: any[] = [
       {
         // Order 1: Pending order
         order_number: `ORD-2025-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
@@ -114,7 +114,7 @@ export async function POST() {
         total_jod: 460.00,
         vehicle_type: 'pickup_1t',
         vehicle_class_id: '11111111-1111-1111-1111-111111111111',
-        delivery_zone: 'zone_a',
+        delivery_zone: 'zone_a' as const,
         delivery_address: 'شارع الجامعة الأردنية، عمان',
         delivery_latitude: 31.9539,
         delivery_longitude: 35.9106,
