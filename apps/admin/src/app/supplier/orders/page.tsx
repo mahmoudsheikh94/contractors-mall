@@ -32,7 +32,8 @@ async function getOrders(
       scheduled_delivery_date,
       scheduled_delivery_time,
       delivery_address,
-      profiles!contractor_id (
+      contractor_id,
+      profiles:contractor_id (
         full_name,
         phone
       )
@@ -59,8 +60,11 @@ async function getOrders(
 
   if (error) {
     console.error('Error fetching orders:', error)
-    return { orders: [], count: 0 }
+    console.error('Query details:', { supplierId, status, search, page })
+    return { orders: [], count: 0, totalPages: 0 }
   }
+
+  console.log('Fetched orders count:', data?.length, 'Total count:', count)
 
   // Fix contractor type and map column names to match Order interface
   const orders = data?.map((order: any) => ({
