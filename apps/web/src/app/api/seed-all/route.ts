@@ -118,14 +118,15 @@ export async function POST() {
 
     // Step 3: Create zone fees
     const zoneFees = [
-      { supplier_id: supplier1Id, zone: 'zone_a', base_fee_jod: 10.00 },
-      { supplier_id: supplier1Id, zone: 'zone_b', base_fee_jod: 15.00 },
-      { supplier_id: supplier2Id, zone: 'zone_a', base_fee_jod: 8.00 },
-      { supplier_id: supplier2Id, zone: 'zone_b', base_fee_jod: 12.00 },
-      { supplier_id: supplier3Id, zone: 'zone_a', base_fee_jod: 12.00 },
-      { supplier_id: supplier3Id, zone: 'zone_b', base_fee_jod: 18.00 },
+      { supplier_id: supplier1Id, zone: 'zone_a' as const, base_fee_jod: 10.00 },
+      { supplier_id: supplier1Id, zone: 'zone_b' as const, base_fee_jod: 15.00 },
+      { supplier_id: supplier2Id, zone: 'zone_a' as const, base_fee_jod: 8.00 },
+      { supplier_id: supplier2Id, zone: 'zone_b' as const, base_fee_jod: 12.00 },
+      { supplier_id: supplier3Id, zone: 'zone_a' as const, base_fee_jod: 12.00 },
+      { supplier_id: supplier3Id, zone: 'zone_b' as const, base_fee_jod: 18.00 },
     ]
 
+    // @ts-ignore - Supabase types not yet updated after vehicle_class_id removal migration
     const { data: insertedZoneFees, error: zoneFeesError } = await supabase
       .from('supplier_zone_fees')
       .upsert(zoneFees, { onConflict: 'supplier_id,zone' })
