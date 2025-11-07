@@ -1,75 +1,150 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export async function POST() {
   try {
-    const supabase = await createClient()
+    // Use service role client to bypass RLS for seeding
+    const supabase = createServiceRoleClient()
 
-    // Test user IDs
-    const contractor1Id = 'b1111111-0000-0000-0000-000000000001'
-    const contractor2Id = 'b2222222-0000-0000-0000-000000000002'
-    const contractor3Id = 'b3333333-0000-0000-0000-000000000003'
+    // We'll create contractor auth users and get their IDs
+    let contractor1Id: string = ''
+    let contractor2Id: string = ''
+    let contractor3Id: string = ''
 
-    const supplier1Id = 'd1111111-1111-1111-1111-111111111111'
-    const supplier2Id = 'd2222222-2222-2222-2222-222222222222'
-    const supplier3Id = 'd3333333-3333-3333-3333-333333333333'
-
-    // Check if suppliers exist
+    // Get supplier IDs from seed-all (they should exist already)
     const { data: suppliers } = await supabase
       .from('suppliers')
       .select('id')
-      .in('id', [supplier1Id, supplier2Id, supplier3Id])
+      .limit(3)
 
     if (!suppliers || suppliers.length === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No suppliers found. Please run the main seed script first.'
+        message: 'No suppliers found. Please run the seed-all endpoint first.'
       }, { status: 400 })
     }
 
-    // Create test contractors if they don't exist
-    const { data: existingProfiles } = await supabase
-      .from('profiles')
-      .select('id')
-      .in('id', [contractor1Id, contractor2Id, contractor3Id])
+    const supplier1Id = suppliers[0]?.id
+    const supplier2Id = suppliers[1]?.id || suppliers[0]?.id
+    const supplier3Id = suppliers[2]?.id || suppliers[0]?.id
 
-    if (!existingProfiles || existingProfiles.length === 0) {
-      await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: contractor1Id,
-            role: 'contractor',
-            phone: '+962795551111',
-            full_name: 'سامر المقاول',
-            email: 'contractor1@test.jo',
-            preferred_language: 'ar',
-          },
-          {
-            id: contractor2Id,
-            role: 'contractor',
-            phone: '+962795552222',
-            full_name: 'عمر البناء',
-            email: 'contractor2@test.jo',
-            preferred_language: 'ar',
-          },
-          {
-            id: contractor3Id,
-            role: 'contractor',
-            phone: '+962795553333',
-            full_name: 'ياسر الإنشاءات',
-            email: 'contractor3@test.jo',
-            preferred_language: 'en',
-          },
-        ])
+    // Create contractor auth users
+    const contractorUsers = [
+      {
+        email: 'contractor1@test.jo',
+        password: 'Test123456!',
+        name: 'سامر المقاول',
+        phone: '+962795551111',
+      },
+      {
+        email: 'contractor2@test.jo',
+        password: 'Test123456!',
+        name: 'عمر البناء',
+        phone: '+962795552222',
+      },
+      {
+        email: 'contractor3@test.jo',
+        password: 'Test123456!',
+        name: 'ياسر الإنشاءات',
+        phone: '+962795553333',
+      },
+    ]
+
+    const contractorIds: string[] = []
+
+    for (const userData of contractorUsers) {
+      // Check if user exists by email
+      const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers()
+
+      if (listError) {
+        console.error('Error listing users:', listError)
+        continue
+      }
+
+      const existingUser = existingUsers.users.find(u => u.email === userData.email)
+
+      if (existingUser) {
+        contractorIds.push(existingUser.id)
+      } else {
+        // Create new user
+        const { data: newUser, error: authError } = await supabase.auth.admin.createUser({
+          user_metadata: { full_name: userData.name },
+          email: userData.email,
+          password: userData.password,
+          email_confirm: true,
+        })
+
+        if (authError) {
+          console.error(`Auth user error for ${userData.email}:`, authError)
+          return NextResponse.json({
+            success: false,
+            message: `Failed to create auth user: ${authError.message}`
+          }, { status: 500 })
+        }
+
+        if (newUser?.user) {
+          contractorIds.push(newUser.user.id)
+        }
+      }
     }
 
-    // Create test projects
+    contractor1Id = contractorIds[0]
+    contractor2Id = contractorIds[1]
+    contractor3Id = contractorIds[2]
+
+    if (!contractor1Id || !contractor2Id || !contractor3Id) {
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to create contractor auth users'
+      }, { status: 500 })
+    }
+
+    // Create contractor profiles
+    const contractorProfiles = [
+      {
+        id: contractor1Id,
+        role: 'contractor' as const,
+        phone: contractorUsers[0].phone,
+        full_name: contractorUsers[0].name,
+        email: contractorUsers[0].email,
+        preferred_language: 'ar' as const,
+      },
+      {
+        id: contractor2Id,
+        role: 'contractor' as const,
+        phone: contractorUsers[1].phone,
+        full_name: contractorUsers[1].name,
+        email: contractorUsers[1].email,
+        preferred_language: 'ar' as const,
+      },
+      {
+        id: contractor3Id,
+        role: 'contractor' as const,
+        phone: contractorUsers[2].phone,
+        full_name: contractorUsers[2].name,
+        email: contractorUsers[2].email,
+        preferred_language: 'en' as const,
+      },
+    ]
+
+    const { error: profilesError } = await supabase
+      .from('profiles')
+      .upsert(contractorProfiles, { onConflict: 'id' })
+
+    if (profilesError) {
+      console.error('Error creating contractor profiles:', profilesError)
+    }
+
+    // Create test projects with valid UUIDs (replacing 'p' with 'e')
+    const project1Id = 'e1111111-0000-0000-0000-000000000001'
+    const project2Id = 'e2222222-0000-0000-0000-000000000002'
+    const project3Id = 'e3333333-0000-0000-0000-000000000003'
+
     await supabase
       .from('projects')
-      .insert([
+      .upsert([
         {
-          id: 'p1111111-0000-0000-0000-000000000001',
+          id: project1Id,
           contractor_id: contractor1Id,
           name: 'فيلا السالمية',
           address: 'عمان - دابوق',
@@ -79,7 +154,7 @@ export async function POST() {
           notes: 'مشروع فيلا سكنية',
         },
         {
-          id: 'p2222222-0000-0000-0000-000000000002',
+          id: project2Id,
           contractor_id: contractor1Id,
           name: 'عمارة الأردن',
           address: 'عمان - الصويفية',
@@ -89,7 +164,7 @@ export async function POST() {
           notes: 'عمارة سكنية 4 طوابق',
         },
         {
-          id: 'p3333333-0000-0000-0000-000000000003',
+          id: project3Id,
           contractor_id: contractor2Id,
           name: 'مجمع تجاري',
           address: 'الزرقاء',
@@ -98,7 +173,7 @@ export async function POST() {
           budget_jod: 80000,
           notes: 'مجمع تجاري صغير',
         },
-      ])
+      ], { onConflict: 'id' })
 
     // Create test orders
     const orders: any[] = [
@@ -107,13 +182,12 @@ export async function POST() {
         order_number: `ORD-2025-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         contractor_id: contractor1Id,
         supplier_id: supplier1Id,
-        project_id: 'p1111111-0000-0000-0000-000000000001',
+        project_id: project1Id,
         status: 'pending',
         subtotal_jod: 450.00,
         delivery_fee_jod: 10.00,
         total_jod: 460.00,
         vehicle_type: 'pickup_1t',
-        vehicle_class_id: '11111111-1111-1111-1111-111111111111',
         delivery_zone: 'zone_a' as const,
         delivery_address: 'شارع الجامعة الأردنية، عمان',
         delivery_latitude: 31.9539,
@@ -134,7 +208,6 @@ export async function POST() {
         delivery_fee_jod: 15.00,
         total_jod: 1265.00,
         vehicle_type: 'truck_3.5t',
-        vehicle_class_id: '22222222-2222-2222-2222-222222222222',
         delivery_zone: 'zone_b',
         delivery_address: 'المنطقة الصناعية، الزرقاء',
         delivery_latitude: 32.0709,
@@ -154,7 +227,6 @@ export async function POST() {
         delivery_fee_jod: 8.00,
         total_jod: 98.00,
         vehicle_type: 'pickup_1t',
-        vehicle_class_id: '11111111-1111-1111-1111-111111111111',
         delivery_zone: 'zone_a',
         delivery_address: 'عبدون، عمان',
         delivery_latitude: 31.9539,
@@ -169,13 +241,12 @@ export async function POST() {
         order_number: `ORD-2025-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         contractor_id: contractor3Id,
         supplier_id: supplier2Id,
-        project_id: 'p3333333-0000-0000-0000-000000000003',
+        project_id: project3Id,
         status: 'delivered',
         subtotal_jod: 145.00,
         delivery_fee_jod: 10.00,
         total_jod: 155.00,
         vehicle_type: 'pickup_1t',
-        vehicle_class_id: '11111111-1111-1111-1111-111111111111',
         delivery_zone: 'zone_a',
         delivery_address: 'شارع المطار، ماركا',
         delivery_latitude: 31.9722,
@@ -196,7 +267,6 @@ export async function POST() {
         delivery_fee_jod: 22.00,
         total_jod: 2522.00,
         vehicle_type: 'flatbed_5t',
-        vehicle_class_id: '33333333-3333-3333-3333-333333333333',
         delivery_zone: 'zone_b',
         delivery_address: 'العقبة - المنطقة الصناعية',
         delivery_latitude: 29.5321,
@@ -216,7 +286,6 @@ export async function POST() {
         delivery_fee_jod: 15.00,
         total_jod: 395.00,
         vehicle_type: 'truck_3.5t',
-        vehicle_class_id: '22222222-2222-2222-2222-222222222222',
         delivery_zone: 'zone_a',
         delivery_address: 'الدوار السابع، عمان',
         delivery_latitude: 31.9539,
