@@ -20,27 +20,27 @@ export async function POST() {
     const supplierProfiles = [
       {
         id: supplier1Id,
-        role: 'supplier_admin',
+        role: 'supplier_admin' as const,
         phone: '+962795554444',
         full_name: 'مدير شركة الموّاد',
         email: 'supplier1@contractors.jo',
-        preferred_language: 'ar',
+        preferred_language: 'ar' as const,
       },
       {
         id: supplier2Id,
-        role: 'supplier_admin',
+        role: 'supplier_admin' as const,
         phone: '+962795555555',
         full_name: 'مدير شركة البناء الحديث',
         email: 'supplier2@contractors.jo',
-        preferred_language: 'ar',
+        preferred_language: 'ar' as const,
       },
       {
         id: supplier3Id,
-        role: 'supplier_admin',
+        role: 'supplier_admin' as const,
         phone: '+962795556666',
         full_name: 'مدير شركة الإنشاءات الممتازة',
         email: 'supplier3@contractors.jo',
-        preferred_language: 'ar',
+        preferred_language: 'ar' as const,
       },
     ]
 
