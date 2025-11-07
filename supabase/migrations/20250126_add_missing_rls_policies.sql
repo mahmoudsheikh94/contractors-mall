@@ -75,7 +75,7 @@ CREATE POLICY "Admins can manage all zone fees" ON supplier_zone_fees
 -- VERIFICATION QUERIES
 -- ==========================================
 -- Check that policies were created successfully
-DO $
+DO $$
 DECLARE
   v_categories_count INTEGER;
   v_vehicles_count INTEGER;
@@ -114,7 +114,7 @@ BEGIN
   - Delivery fee display (zone fees now readable)
   ════════════════════════════════════════════════════════════════
   ', v_categories_count, v_vehicles_count, v_zone_fees_count;
-END $;
+END $$;
 
 -- ==========================================
 -- COMMENTS

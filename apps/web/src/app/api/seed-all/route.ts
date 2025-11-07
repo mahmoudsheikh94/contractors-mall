@@ -126,7 +126,6 @@ export async function POST() {
       { supplier_id: supplier3Id, zone: 'zone_b' as const, base_fee_jod: 18.00 },
     ]
 
-    // @ts-ignore - Supabase types not yet updated after vehicle_class_id removal migration
     const { data: insertedZoneFees, error: zoneFeesError } = await supabase
       .from('supplier_zone_fees')
       .upsert(zoneFees, { onConflict: 'supplier_id,zone' })
