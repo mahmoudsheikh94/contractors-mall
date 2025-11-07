@@ -971,7 +971,6 @@ export type Database = {
           id: string
           supplier_id: string
           updated_at: string | null
-          vehicle_class_id: string
           zone: Database["public"]["Enums"]["delivery_zone"]
         }
         Insert: {
@@ -980,7 +979,6 @@ export type Database = {
           id?: string
           supplier_id: string
           updated_at?: string | null
-          vehicle_class_id: string
           zone: Database["public"]["Enums"]["delivery_zone"]
         }
         Update: {
@@ -989,7 +987,6 @@ export type Database = {
           id?: string
           supplier_id?: string
           updated_at?: string | null
-          vehicle_class_id?: string
           zone?: Database["public"]["Enums"]["delivery_zone"]
         }
         Relationships: [
@@ -998,13 +995,6 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supplier_zone_fees_vehicle_class_id_fkey"
-            columns: ["vehicle_class_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
