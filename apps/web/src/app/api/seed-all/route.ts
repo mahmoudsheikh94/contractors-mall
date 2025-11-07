@@ -13,11 +13,84 @@ export async function POST() {
       errors: []
     }
 
-    // Step 1: Create test supplier profiles
-    const supplier1Id = 'd1111111-1111-1111-1111-111111111111'
-    const supplier2Id = 'd2222222-2222-2222-2222-222222222222'
-    const supplier3Id = 'd3333333-3333-3333-3333-333333333333'
+    // Step 1: Create test supplier auth users first
+    // We'll store the actual user IDs after creation
+    let supplier1Id: string = ''
+    let supplier2Id: string = ''
+    let supplier3Id: string = ''
 
+    // Define test users
+    const authUsers = [
+      {
+        email: 'supplier1@contractors.jo',
+        password: 'Test123456!', // Default test password
+        name: 'مدير شركة الموّاد',
+      },
+      {
+        email: 'supplier2@contractors.jo',
+        password: 'Test123456!',
+        name: 'مدير شركة البناء الحديث',
+      },
+      {
+        email: 'supplier3@contractors.jo',
+        password: 'Test123456!',
+        name: 'مدير شركة الإنشاءات الممتازة',
+      },
+    ]
+
+    // Create or get auth users
+    const userIds: string[] = []
+
+    for (const userData of authUsers) {
+      // First check if user exists by email
+      const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers()
+
+      if (listError) {
+        results.errors.push(`Error listing users: ${listError.message}`)
+        continue
+      }
+
+      const existingUser = existingUsers.users.find(u => u.email === userData.email)
+
+      if (existingUser) {
+        // User already exists, use their ID
+        userIds.push(existingUser.id)
+      } else {
+        // Create new user
+        const { data: newUser, error: authError } = await supabase.auth.admin.createUser({
+          user_metadata: { full_name: userData.name },
+          email: userData.email,
+          password: userData.password,
+          email_confirm: true, // Auto-confirm email for test users
+        })
+
+        if (authError) {
+          results.errors.push(`Auth user error for ${userData.email}: ${authError.message}`)
+          userIds.push('') // Push empty string to maintain array alignment
+        } else if (newUser?.user) {
+          userIds.push(newUser.user.id)
+        } else {
+          results.errors.push(`Failed to create user for ${userData.email}`)
+          userIds.push('')
+        }
+      }
+    }
+
+    // Assign the user IDs
+    supplier1Id = userIds[0] || 'd1111111-1111-1111-1111-111111111111' // Fallback ID if creation failed
+    supplier2Id = userIds[1] || 'd2222222-2222-2222-2222-222222222222'
+    supplier3Id = userIds[2] || 'd3333333-3333-3333-3333-333333333333'
+
+    // Step 2: Skip if we failed to create any users
+    if (!supplier1Id || !supplier2Id || !supplier3Id) {
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to create auth users. Please check Supabase auth settings.',
+        results,
+      }, { status: 500 })
+    }
+
+    // Step 3: Create test supplier profiles
     const supplierProfiles = [
       {
         id: supplier1Id,
@@ -54,7 +127,7 @@ export async function POST() {
       results.errors.push(`Profiles error: ${profilesError.message}`)
     }
 
-    // Step 2: Create suppliers
+    // Step 4: Create suppliers
     const suppliers = [
       {
         id: supplier1Id,
@@ -117,7 +190,7 @@ export async function POST() {
       results.suppliers = insertedSuppliers?.length || 0
     }
 
-    // Step 3: Create zone fees
+    // Step 5: Create zone fees
     const zoneFees = [
       { supplier_id: supplier1Id, zone: 'zone_a' as const, base_fee_jod: 10.00 },
       { supplier_id: supplier1Id, zone: 'zone_b' as const, base_fee_jod: 15.00 },
@@ -138,7 +211,7 @@ export async function POST() {
       results.zoneFees = insertedZoneFees?.length || 0
     }
 
-    // Step 4: Create categories
+    // Step 6: Create categories
     const categories = [
       {
         id: 'c1111111-1111-1111-1111-111111111111',
@@ -185,7 +258,7 @@ export async function POST() {
       results.categories = insertedCategories?.length || 0
     }
 
-    // Step 5: Create products
+    // Step 7: Create products
     const products = [
       // Supplier 1 products
       {
