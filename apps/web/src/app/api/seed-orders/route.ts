@@ -140,7 +140,7 @@ export async function POST() {
     const project2Id = 'e2222222-0000-0000-0000-000000000002'
     const project3Id = 'e3333333-0000-0000-0000-000000000003'
 
-    await supabase
+    const { error: projectsError } = await supabase
       .from('projects')
       .upsert([
         {
@@ -148,32 +148,34 @@ export async function POST() {
           contractor_id: contractor1Id,
           name: 'فيلا السالمية',
           address: 'عمان - دابوق',
-          start_date: '2024-01-01',
-          end_date: '2024-12-31',
-          budget_jod: 50000,
-          notes: 'مشروع فيلا سكنية',
+          budget_estimate: 50000,
+          description: 'مشروع فيلا سكنية',
+          is_active: true,
         },
         {
           id: project2Id,
           contractor_id: contractor1Id,
           name: 'عمارة الأردن',
           address: 'عمان - الصويفية',
-          start_date: '2024-03-01',
-          end_date: '2025-03-01',
-          budget_jod: 150000,
-          notes: 'عمارة سكنية 4 طوابق',
+          budget_estimate: 150000,
+          description: 'عمارة سكنية 4 طوابق',
+          is_active: true,
         },
         {
           id: project3Id,
           contractor_id: contractor2Id,
           name: 'مجمع تجاري',
           address: 'الزرقاء',
-          start_date: '2024-02-01',
-          end_date: '2024-10-01',
-          budget_jod: 80000,
-          notes: 'مجمع تجاري صغير',
+          budget_estimate: 80000,
+          description: 'مجمع تجاري صغير',
+          is_active: true,
         },
       ], { onConflict: 'id' })
+
+    if (projectsError) {
+      console.error('Error creating projects:', projectsError)
+      // Continue without project IDs - orders can still be created without projects
+    }
 
     // Create test orders
     const orders: any[] = [
@@ -182,7 +184,7 @@ export async function POST() {
         order_number: `ORD-2025-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         contractor_id: contractor1Id,
         supplier_id: supplier1Id,
-        project_id: project1Id,
+        ...(projectsError ? {} : { project_id: project1Id }),
         status: 'pending',
         subtotal_jod: 450.00,
         delivery_fee_jod: 10.00,
@@ -241,7 +243,7 @@ export async function POST() {
         order_number: `ORD-2025-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         contractor_id: contractor3Id,
         supplier_id: supplier2Id,
-        project_id: project3Id,
+        ...(projectsError ? {} : { project_id: project3Id }),
         status: 'delivered',
         subtotal_jod: 145.00,
         delivery_fee_jod: 10.00,
