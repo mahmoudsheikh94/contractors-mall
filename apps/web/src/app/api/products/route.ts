@@ -66,10 +66,21 @@ export async function GET(request: Request) {
       )
     }
 
+    console.log('📦 Products API Debug:')
+    console.log('  - Total products from DB:', products?.length || 0)
+    console.log('  - Filters:', { supplierId, categoryId, search })
+
     // Filter out products from unverified suppliers
     const verifiedProducts = products?.filter((product: any) =>
       product.supplier?.is_verified === true
     ) || []
+
+    console.log('  - Products after verification filter:', verifiedProducts.length)
+    console.log('  - Sample supplier verification:', products?.slice(0, 3).map((p: any) => ({
+      product: p.name_ar,
+      supplier: p.supplier?.business_name,
+      verified: p.supplier?.is_verified
+    })))
 
     return NextResponse.json({
       products: verifiedProducts,

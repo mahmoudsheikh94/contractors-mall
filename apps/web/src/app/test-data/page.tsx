@@ -4,14 +4,16 @@ import { useState } from 'react'
 
 export default function TestDataPage() {
   const [loading, setLoading] = useState(false)
+  const [ordersLoading, setOrdersLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [ordersResult, setOrdersResult] = useState<any>(null)
 
-  const seedTestOrders = async () => {
+  const seedAll = async () => {
     setLoading(true)
     setResult(null)
 
     try {
-      const response = await fetch('/api/seed-orders', {
+      const response = await fetch('/api/seed-all', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -23,11 +25,36 @@ export default function TestDataPage() {
     } catch (error) {
       setResult({
         success: false,
-        message: 'Failed to seed test orders',
+        message: 'Failed to seed data',
         error: error instanceof Error ? error.message : 'Unknown error'
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const seedTestOrders = async () => {
+    setOrdersLoading(true)
+    setOrdersResult(null)
+
+    try {
+      const response = await fetch('/api/seed-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+      setOrdersResult(data)
+    } catch (error) {
+      setOrdersResult({
+        success: false,
+        message: 'Failed to seed test orders',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setOrdersLoading(false)
     }
   }
 
@@ -37,66 +64,150 @@ export default function TestDataPage() {
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">إنشاء بيانات اختبار</h1>
           <p className="text-gray-600 mb-8">
-            هذه الصفحة لإنشاء طلبات اختبارية لتطوير وتجربة النظام
+            هذه الصفحة لإنشاء بيانات اختبارية لتطوير وتجربة النظام
           </p>
 
-          <div className="space-y-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="font-semibold text-yellow-900 mb-2">تنبيه مهم</h3>
-              <p className="text-yellow-700 text-sm">
-                تأكد من تشغيل السيد الأساسي (seed-dev.sql) أولاً لإنشاء الموردين والمنتجات المطلوبة
-              </p>
+          <div className="space-y-6">
+            {/* Step 1: Seed Everything */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center font-bold">
+                  1
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    إنشاء البيانات الأساسية
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    إنشاء الموردين، التصنيفات، والمنتجات (قم بهذه الخطوة أولاً)
+                  </p>
+
+                  <button
+                    onClick={seedAll}
+                    disabled={loading}
+                    className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-colors ${
+                      loading
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-primary-600 hover:bg-primary-700'
+                    }`}
+                  >
+                    {loading ? 'جاري الإنشاء...' : 'إنشاء الموردين والمنتجات'}
+                  </button>
+                </div>
+              </div>
+
+              {result && (
+                <div className={`mt-4 p-4 rounded-lg ${
+                  result.success
+                    ? 'bg-green-50 border border-green-200'
+                    : 'bg-red-50 border border-red-200'
+                }`}>
+                  <h4 className={`font-semibold mb-2 ${
+                    result.success ? 'text-green-900' : 'text-red-900'
+                  }`}>
+                    {result.success ? '✓ نجحت العملية' : '✗ فشلت العملية'}
+                  </h4>
+                  <p className={result.success ? 'text-green-700' : 'text-red-700'}>
+                    {result.message}
+                  </p>
+
+                  {result.results && (
+                    <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                      <div className="bg-white p-2 rounded">
+                        <div className="text-gray-600">موردين</div>
+                        <div className="text-lg font-bold text-green-700">{result.results.suppliers}</div>
+                      </div>
+                      <div className="bg-white p-2 rounded">
+                        <div className="text-gray-600">تصنيفات</div>
+                        <div className="text-lg font-bold text-green-700">{result.results.categories}</div>
+                      </div>
+                      <div className="bg-white p-2 rounded">
+                        <div className="text-gray-600">منتجات</div>
+                        <div className="text-lg font-bold text-green-700">{result.results.products}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {result.results?.errors && result.results.errors.length > 0 && (
+                    <div className="mt-3">
+                      <div className="font-semibold text-red-900 mb-1">أخطاء:</div>
+                      <ul className="space-y-1">
+                        {result.results.errors.map((err: string, idx: number) => (
+                          <li key={idx} className="text-sm text-red-700">• {err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <button
-              onClick={seedTestOrders}
-              disabled={loading}
-              className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-colors ${
-                loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-primary-600 hover:bg-primary-700'
-              }`}
-            >
-              {loading ? 'جاري الإنشاء...' : 'إنشاء طلبات اختبارية'}
-            </button>
+            {/* Step 2: Seed Orders */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold">
+                  2
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    إنشاء طلبات اختبارية
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    إنشاء طلبات تجريبية بحالات مختلفة (قم بالخطوة 1 أولاً)
+                  </p>
 
-            {result && (
-              <div className={`mt-6 p-4 rounded-lg ${
-                result.success
-                  ? 'bg-green-50 border border-green-200'
-                  : 'bg-red-50 border border-red-200'
-              }`}>
-                <h3 className={`font-semibold mb-2 ${
-                  result.success ? 'text-green-900' : 'text-red-900'
-                }`}>
-                  {result.success ? '✓ نجحت العملية' : '✗ فشلت العملية'}
-                </h3>
-                <p className={result.success ? 'text-green-700' : 'text-red-700'}>
-                  {result.message}
-                </p>
-
-                {result.orders && result.orders.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-semibold text-green-900 mb-2">
-                      الطلبات المُنشأة:
-                    </h4>
-                    <ul className="space-y-1">
-                      {result.orders.map((order: any) => (
-                        <li key={order.id} className="text-sm text-green-700">
-                          • {order.order_number} - {order.status} - {order.total_jod} د.أ
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {result.error && (
-                  <pre className="mt-2 p-2 bg-red-100 rounded text-xs text-red-800 overflow-x-auto">
-                    {JSON.stringify(result.error, null, 2)}
-                  </pre>
-                )}
+                  <button
+                    onClick={seedTestOrders}
+                    disabled={ordersLoading}
+                    className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-colors ${
+                      ordersLoading
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {ordersLoading ? 'جاري الإنشاء...' : 'إنشاء طلبات اختبارية'}
+                  </button>
+                </div>
               </div>
-            )}
+
+              {ordersResult && (
+                <div className={`mt-4 p-4 rounded-lg ${
+                  ordersResult.success
+                    ? 'bg-green-50 border border-green-200'
+                    : 'bg-red-50 border border-red-200'
+                }`}>
+                  <h4 className={`font-semibold mb-2 ${
+                    ordersResult.success ? 'text-green-900' : 'text-red-900'
+                  }`}>
+                    {ordersResult.success ? '✓ نجحت العملية' : '✗ فشلت العملية'}
+                  </h4>
+                  <p className={ordersResult.success ? 'text-green-700' : 'text-red-700'}>
+                    {ordersResult.message}
+                  </p>
+
+                  {ordersResult.orders && ordersResult.orders.length > 0 && (
+                    <div className="mt-4">
+                      <h5 className="font-semibold text-green-900 mb-2">
+                        الطلبات المُنشأة:
+                      </h5>
+                      <ul className="space-y-1">
+                        {ordersResult.orders.map((order: any) => (
+                          <li key={order.id} className="text-sm text-green-700">
+                            • {order.order_number} - {order.status} - {order.total_jod} د.أ
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {ordersResult.error && (
+                    <pre className="mt-2 p-2 bg-red-100 rounded text-xs text-red-800 overflow-x-auto">
+                      {JSON.stringify(ordersResult.error, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-12 pt-8 border-t">
