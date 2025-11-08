@@ -20,14 +20,7 @@ export async function GET(request: Request) {
         supplier_zone_fees (
           id,
           zone,
-          vehicle_class_id,
-          base_fee_jod,
-          vehicles (
-            id,
-            name_ar,
-            name_en,
-            class_code
-          )
+          base_fee_jod
         )
       `)
       .eq('is_verified', true)
