@@ -20,6 +20,11 @@ export default function AdminSidebar({ userName }: AdminSidebarProps) {
       icon: '📊',
     },
     {
+      label: 'إدارة الطلبات',
+      href: '/admin/orders',
+      icon: '📦',
+    },
+    {
       label: 'إدارة الموردين',
       href: '/admin/suppliers',
       icon: '🏢',
@@ -35,14 +40,19 @@ export default function AdminSidebar({ userName }: AdminSidebarProps) {
       icon: '⚖️',
     },
     {
-      label: 'إعدادات النظام',
-      href: '/admin/settings',
-      icon: '⚙️',
-    },
-    {
       label: 'المستخدمون',
       href: '/admin/users',
       icon: '👥',
+    },
+    {
+      label: 'الصحة والمراقبة',
+      href: '/admin/health',
+      icon: '🏥',
+    },
+    {
+      label: 'إعدادات النظام',
+      href: '/admin/settings',
+      icon: '⚙️',
     },
   ]
 

@@ -99,9 +99,53 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run unit tests
-        run: pnpm test
-        continue-on-error: true # Allow to continue since tests might not be set up yet
+      - name: Run unit tests with coverage
+        run: pnpm test:coverage
+        env:
+          CI: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Enforce coverage thresholds
+        run: |
+          # Check if coverage meets minimum threshold (70%)
+          node -e "
+            const coverage = require('./coverage/coverage-summary.json');
+            const total = coverage.total;
+            const branches = total.branches.pct;
+            const functions = total.functions.pct;
+            const lines = total.lines.pct;
+            const statements = total.statements.pct;
+
+            console.log('Coverage Summary:');
+            console.log('  Branches:', branches.toFixed(2) + '%');
+            console.log('  Functions:', functions.toFixed(2) + '%');
+            console.log('  Lines:', lines.toFixed(2) + '%');
+            console.log('  Statements:', statements.toFixed(2) + '%');
+
+            const threshold = 70;
+            const failed = [];
+
+            if (branches < threshold) failed.push('branches');
+            if (functions < threshold) failed.push('functions');
+            if (lines < threshold) failed.push('lines');
+            if (statements < threshold) failed.push('statements');
+
+            if (failed.length > 0) {
+              console.error('❌ Coverage threshold not met for:', failed.join(', '));
+              console.error('Minimum required: ' + threshold + '%');
+              process.exit(1);
+            }
+
+            console.log('✅ All coverage thresholds met!');
+          "
 
   # Security Scan
   security:
@@ -111,9 +155,101 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Run security audit
         run: pnpm audit --audit-level=high
-        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        uses: snyk/actions/node@master
+        continue-on-error: true # Snyk may not be configured yet
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # E2E Tests
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          TEST_CONTRACTOR_EMAIL: ${{ secrets.TEST_CONTRACTOR_EMAIL }}
+          TEST_SUPPLIER_EMAIL: ${{ secrets.TEST_SUPPLIER_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-results
+          path: apps/web/test-results/
+          retention-days: 7
+
+  # Performance Check
+  performance:
+    name: Performance Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build for production
+        run: pnpm build:web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            http://localhost:3000
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          budgetPath: ./lighthouse-budget.json
+          configPath: ./lighthouserc.json
 
   # All checks passed
   all-checks:
@@ -125,8 +261,14 @@ jobs:
       - name: Check results
         run: |
           if [ "${{ needs.quality.result }}" != "success" ] || \
-             [ "${{ needs.build.result }}" != "success" ]; then
-            echo "Required checks failed"
+             [ "${{ needs.build.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.security.result }}" != "success" ]; then
+            echo "❌ Required checks failed"
+            echo "Quality: ${{ needs.quality.result }}"
+            echo "Build: ${{ needs.build.result }}"
+            echo "Test: ${{ needs.test.result }}"
+            echo "Security: ${{ needs.security.result }}"
             exit 1
           fi
-          echo "All required checks passed!"
+          echo "✅ All required checks passed!"
