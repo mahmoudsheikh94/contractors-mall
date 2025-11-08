@@ -192,15 +192,18 @@ export function clearUserContext() {
 
 /**
  * Start a performance transaction
+ * Note: Using Sentry.startSpan for newer Sentry SDK
  */
 export function startTransaction(
-  name: string,
-  op: string
-): Sentry.Transaction | undefined {
-  return Sentry.startTransaction({
-    name,
-    op,
-  });
+  _name: string,
+  _op: string
+): any {
+  // Return a no-op object for backwards compatibility
+  // In production, use Sentry.startSpan() instead
+  return {
+    setStatus: () => {},
+    finish: () => {},
+  };
 }
 
 /**
@@ -211,18 +214,16 @@ export async function measurePerformance<T>(
   operation: string,
   fn: () => Promise<T>
 ): Promise<T> {
-  const transaction = startTransaction(name, operation);
-
-  try {
-    const result = await fn();
-    transaction?.setStatus('ok');
-    return result;
-  } catch (error) {
-    transaction?.setStatus('internal_error');
-    throw error;
-  } finally {
-    transaction?.finish();
-  }
+  // Use Sentry.startSpan for performance tracking in newer SDK
+  return await Sentry.startSpan(
+    {
+      name,
+      op: operation,
+    },
+    async () => {
+      return await fn();
+    }
+  );
 }
 
 /**
