@@ -79,7 +79,8 @@ BEGIN
   SELECT base_fee_jod
   INTO v_delivery_fee
   FROM supplier_zone_fees
-  WHERE supplier_id = p_supplier_id AND zone = v_zone;
+  WHERE supplier_zone_fees.supplier_id = p_supplier_id
+    AND supplier_zone_fees.zone = v_zone;
 
   IF v_delivery_fee IS NULL THEN
     RAISE EXCEPTION 'Delivery fee not configured for supplier % in zone %', p_supplier_id, v_zone;

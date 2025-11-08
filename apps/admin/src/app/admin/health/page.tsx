@@ -72,16 +72,16 @@ export default function HealthMonitoringPage() {
       };
 
       // 2. Get table statistics
-      const { data: tableStats } = await supabase.rpc('get_table_stats');
+      const { data: tableStats } = await (supabase.rpc as any)('get_table_stats');
 
       // 3. Get RLS policy health
-      const { data: rlsHealth } = await supabase.rpc('check_rls_health');
+      const { data: rlsHealth } = await (supabase.rpc as any)('check_rls_health');
 
       // 4. Get performance metrics
-      const { data: perfMetrics } = await supabase.rpc('get_performance_metrics');
+      const { data: perfMetrics } = await (supabase.rpc as any)('get_performance_metrics');
 
       // 5. Get recent errors from logs
-      const { data: recentErrors } = await supabase
+      const { data: recentErrors } = await (supabase as any)
         .from('system_logs')
         .select('*')
         .eq('level', 'error')
