@@ -12,12 +12,12 @@
  * - Actions (contact supplier, report issue)
  */
 
-import { use, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 interface OrderDetailsPageProps {
-  params: Promise<{ orderId: string }>
+  params: { orderId: string }
 }
 
 type OrderStatus = 'pending' | 'confirmed' | 'accepted' | 'in_delivery' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
@@ -71,7 +71,6 @@ interface OrderDetails {
 }
 
 export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
-  const resolvedParams = use(params)
   const [order, setOrder] = useState<OrderDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -129,7 +128,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               )
             )
           `)
-          .eq('id', resolvedParams.orderId)
+          .eq('id', params.orderId)
           .single()) as { data: any | null, error: any }
 
         if (fetchError) throw fetchError
@@ -191,7 +190,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
     }
 
     fetchOrderDetails()
-  }, [resolvedParams.orderId])
+  }, [params.orderId])
 
   if (loading) {
     return (
