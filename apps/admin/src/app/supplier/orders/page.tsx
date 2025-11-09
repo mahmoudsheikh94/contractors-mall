@@ -59,19 +59,22 @@ async function getOrders(
   const { data, count, error } = await query
 
   // Enhanced RLS diagnostic logging
+  // Get current user for diagnostics
+  const { data: { user } } = await supabase.auth.getUser()
+
   // Check current user's profile and role
   const { data: currentUserProfile } = await supabase
     .from('profiles')
     .select('id, email, full_name, role')
-    .eq('id', user.id)
+    .eq('id', user?.id)
     .single()
 
   console.log('\n========================================')
   console.log('🔍 DIAGNOSTIC: Order Query Results')
   console.log('========================================')
   console.log('Current user:', {
-    id: user.id,
-    email: user.email,
+    id: user?.id,
+    email: user?.email,
     profile_role: currentUserProfile?.role,
     profile_exists: !!currentUserProfile
   })
