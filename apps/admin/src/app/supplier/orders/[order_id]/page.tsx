@@ -43,7 +43,7 @@ async function getOrderDetails(orderId: string, supplierId: string) {
         products!product_id (
           name_ar,
           name_en,
-          unit
+          unit_ar
         )
       )
     `)
@@ -199,10 +199,10 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                         {item.products?.name_ar || item.product_name}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        الكمية: {item.quantity} {item.products?.unit || 'وحدة'}
+                        الكمية: {item.quantity} {item.products?.unit_ar || 'وحدة'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        السعر: {item.unit_price_jod.toFixed(2)} د.أ / {item.products?.unit || 'وحدة'}
+                        السعر: {item.unit_price_jod.toFixed(2)} د.أ / {item.products?.unit_ar || 'وحدة'}
                       </p>
                     </div>
                     <div className="text-left">
