@@ -66,10 +66,21 @@ async function getOrders(
 
   console.log('Fetched orders count:', data?.length, 'Total count:', count)
 
+  // DEBUG: Log raw data to understand structure
+  if (data && data.length > 0) {
+    console.log('=== DEBUG: First order raw data ===')
+    console.log('Full order object:', JSON.stringify(data[0], null, 2))
+    console.log('order.profiles value:', data[0].profiles)
+    console.log('order.profiles type:', typeof data[0].profiles)
+    console.log('Is array?', Array.isArray(data[0].profiles))
+  }
+
   // Fix contractor type and map column names to match Order interface
   const orders = data?.map((order: any) => {
     // Supabase returns foreign key joins as arrays, even for one-to-one relationships
     const contractorData = Array.isArray(order.profiles) ? order.profiles[0] : order.profiles
+
+    console.log('Processing order:', order.order_number, 'contractorData:', contractorData)
 
     return {
       order_id: order.id,  // Map id to order_id
