@@ -33,7 +33,7 @@ async function getOrders(
       scheduled_delivery_time,
       delivery_address,
       contractor_id,
-      profiles:contractor_id (
+      profiles!contractor_id (
         full_name,
         phone
       )

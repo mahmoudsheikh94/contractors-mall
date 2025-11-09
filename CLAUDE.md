@@ -207,7 +207,11 @@ Engineering Principles (ALWAYS follow)
 	•	CI must run typecheck/lint/tests on every PR.
 	13.	Migrations/Seeds: Deterministic. Seed default vehicles, settings, one supplier example.
 	14.	No Dead Code: Remove scaffolds not used. Keep repo clean.
-	15.	Documentation: Update /docs when contracts or schemas change. Self-document complex functions with JSDoc.
+	15.	Documentation:
+	•	**ALWAYS** update TECHNICAL_MEMORY.md when database schema changes, major features are added/removed, or new APIs are implemented.
+	•	Update /docs when contracts or schemas change.
+	•	Self-document complex functions with JSDoc.
+	•	TECHNICAL_MEMORY.md is the single source of truth for actual implementation state - keep it current!
 
 ⸻
 
@@ -252,7 +256,7 @@ Workflow (incremental, fail-fast)
 	7.	Harden tests, perf, logging.
 	8.	Polish i18n/RTL, UX, empty-states, error-states.
 
-At each step: keep PRs small, update docs when schemas/contracts change, and run CI.
+At each step: keep PRs small, **update TECHNICAL_MEMORY.md when schemas/features/APIs change**, update /docs when contracts change, and run CI.
 
 ⸻
 
