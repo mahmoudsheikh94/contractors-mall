@@ -1,17 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Input } from '@contractors-mall/ui'
 
-type SignupMethod = 'email' | 'phone'
-
 export default function RegisterPage() {
-  const router = useRouter()
   const supabase = createClient()
-  const [signupMethod, setSignupMethod] = useState<SignupMethod>('email')
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -35,128 +30,56 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      if (signupMethod === 'email') {
-        // Email + Password signup
-        if (formData.password.length < 8) {
-          throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
-        }
-
-        const { data: authData, error: signupError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: formData.fullName,
-              phone: formData.phone || null,
-              role: 'contractor',
-              signup_method: 'email',
-            }
-          }
-        })
-
-        if (signupError) throw signupError
-        if (!authData.user) throw new Error('فشل إنشاء الحساب')
-
-        // Wait briefly for trigger, then create profile manually if needed
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', authData.user.id)
-          .maybeSingle()
-
-        if (!existingProfile) {
-          // Trigger didn't work, create profile manually
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authData.user.id,
-              email: formData.email,
-              full_name: formData.fullName,
-              phone: formData.phone || null,
-              role: 'contractor',
-              email_verified: false,
-            })
-
-          if (profileError) {
-            console.error('Profile creation error:', profileError)
-            throw new Error('فشل إنشاء ملف المستخدم')
-          }
-        }
-
-        setSuccess(true)
-        // For email, user needs to verify via email link
-      } else {
-        // Phone OTP signup
-        if (!formData.phone) {
-          throw new Error('رقم الهاتف مطلوب')
-        }
-
-        // Format phone number for Jordan
-        let formattedPhone = formData.phone.replace(/\D/g, '')
-        if (formattedPhone.startsWith('0')) {
-          formattedPhone = '962' + formattedPhone.substring(1)
-        } else if (!formattedPhone.startsWith('962')) {
-          formattedPhone = '962' + formattedPhone
-        }
-        formattedPhone = '+' + formattedPhone
-
-        // Generate temp email from phone
-        const tempEmail = `${formattedPhone.replace(/\D/g, '')}@contractors-mall.local`
-
-        // Create account with temp email
-        const { data: authData, error: signupError } = await supabase.auth.signUp({
-          email: tempEmail,
-          password: formData.password || `temp_${Date.now()}`, // Generate temp password
-          options: {
-            data: {
-              full_name: formData.fullName,
-              phone: formattedPhone,
-              role: 'contractor',
-              signup_method: 'phone',
-            }
-          }
-        })
-
-        if (signupError) throw signupError
-        if (!authData.user) throw new Error('فشل إنشاء الحساب')
-
-        // Wait briefly for trigger, then create profile manually if needed
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', authData.user.id)
-          .maybeSingle()
-
-        if (!existingProfile) {
-          // Trigger didn't work, create profile manually
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authData.user.id,
-              email: tempEmail,
-              full_name: formData.fullName,
-              phone: formattedPhone,
-              role: 'contractor',
-              email_verified: false,
-            })
-
-          if (profileError) {
-            console.error('Profile creation error:', profileError)
-            throw new Error('فشل إنشاء ملف المستخدم')
-          }
-        }
-
-        setSuccess(true)
-
-        // Redirect to login page - user needs to verify email via link
-        setTimeout(() => {
-          router.push('/auth/login')
-        }, 2000)
+      // Email + Password signup
+      if (formData.password.length < 8) {
+        throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
       }
+
+      const { data: authData, error: signupError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            phone: formData.phone || null,
+            role: 'contractor',
+            signup_method: 'email',
+          }
+        }
+      })
+
+      if (signupError) throw signupError
+      if (!authData.user) throw new Error('فشل إنشاء الحساب')
+
+      // Wait briefly for trigger, then create profile manually if needed
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authData.user.id)
+        .maybeSingle()
+
+      if (!existingProfile) {
+        // Trigger didn't work, create profile manually
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: formData.email,
+            full_name: formData.fullName,
+            phone: formData.phone || null,
+            role: 'contractor',
+            email_verified: false,
+          })
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+          throw new Error('فشل إنشاء ملف المستخدم')
+        }
+      }
+
+      setSuccess(true)
     } catch (err: any) {
       setError(err.message || 'حدث خطأ في التسجيل')
     } finally {
@@ -183,42 +106,6 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Signup Method Toggle */}
-        <div className="flex gap-3 p-1 bg-gray-100 rounded-lg">
-          <button
-            type="button"
-            onClick={() => setSignupMethod('email')}
-            className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-              signupMethod === 'email'
-                ? 'bg-white text-primary-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span className="text-2xl ml-2">📧</span>
-            البريد الإلكتروني
-          </button>
-          <button
-            type="button"
-            onClick={() => setSignupMethod('phone')}
-            className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
-              signupMethod === 'phone'
-                ? 'bg-white text-primary-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <span className="text-2xl ml-2">📱</span>
-            رقم الهاتف
-          </button>
-        </div>
-
-        {signupMethod === 'phone' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
-              ✨ <strong>مكافأة:</strong> التسجيل بالهاتف + التحقق = شارتي التحقق (البريد والهاتف) معاً!
-            </p>
-          </div>
-        )}
-
         {/* Registration Form */}
         <form className="mt-8 space-y-6" onSubmit={handleRegister}>
           <div className="space-y-4">
@@ -239,16 +126,15 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Phone (always shown) */}
+            {/* Phone (optional) */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                رقم الهاتف *
+                رقم الهاتف (اختياري)
               </label>
               <Input
                 id="phone"
                 name="phone"
                 type="tel"
-                required
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="07xxxxxxxx"
@@ -257,45 +143,41 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Email (only for email signup) */}
-            {signupMethod === 'email' && (
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  البريد الإلكتروني *
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="email@example.com"
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  dir="ltr"
-                />
-              </div>
-            )}
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                البريد الإلكتروني *
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="email@example.com"
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                dir="ltr"
+              />
+            </div>
 
-            {/* Password (only for email signup) */}
-            {signupMethod === 'email' && (
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  كلمة المرور *
-                </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="8 أحرف على الأقل"
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                />
-              </div>
-            )}
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                كلمة المرور *
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                minLength={8}
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="8 أحرف على الأقل"
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
           </div>
 
           {/* Terms */}
@@ -324,15 +206,11 @@ export default function RegisterPage() {
               <div className="flex">
                 <div className="mr-3">
                   <h3 className="text-sm font-medium text-green-800">
-                    {signupMethod === 'email'
-                      ? 'تحقق من بريدك الإلكتروني واضغط على الرابط لإكمال التسجيل'
-                      : 'تم إنشاء الحساب! سيتم تحويلك للتحقق من رقم هاتفك...'}
+                    تحقق من بريدك الإلكتروني واضغط على الرابط لإكمال التسجيل
                   </h3>
-                  {signupMethod === 'email' && (
-                    <p className="mt-2 text-xs text-green-700">
-                      تأكد من التحقق من مجلد البريد غير المرغوب (Spam) إذا لم تجد الرسالة
-                    </p>
-                  )}
+                  <p className="mt-2 text-xs text-green-700">
+                    تأكد من التحقق من مجلد البريد غير المرغوب (Spam) إذا لم تجد الرسالة
+                  </p>
                 </div>
               </div>
             </div>
@@ -354,11 +232,7 @@ export default function RegisterPage() {
 
           {/* Info */}
           <div className="text-center text-sm text-gray-600">
-            <p>
-              {signupMethod === 'email'
-                ? 'سيتم إرسال رابط التحقق إلى بريدك الإلكتروني'
-                : 'سيتم تحويلك للتحقق من رقم هاتفك'}
-            </p>
+            <p>سيتم إرسال رابط التحقق إلى بريدك الإلكتروني</p>
           </div>
         </form>
       </div>
