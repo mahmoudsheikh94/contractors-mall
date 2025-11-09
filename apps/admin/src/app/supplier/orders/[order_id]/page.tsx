@@ -129,7 +129,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
         {/* Order Tags */}
         <div className="mt-4">
-          <OrderTags orderId={order.order_id} />
+          <OrderTags orderId={order.id} />
         </div>
       </div>
 
@@ -145,7 +145,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
               <p className="text-yellow-700 mb-4">
                 يرجى مراجعة تفاصيل الطلب واتخاذ القرار المناسب
               </p>
-              <OrderActions orderId={order.order_id} orderNumber={order.order_number} />
+              <OrderActions orderId={order.id} orderNumber={order.order_number} />
             </div>
           )}
 
@@ -238,7 +238,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
           {/* Enhanced Order Details */}
           <OrderDetailsEditor
-            orderId={order.order_id}
+            orderId={order.id}
             initialValues={{
               delivery_instructions: order.delivery_instructions,
               special_requests: order.special_requests,
@@ -255,13 +255,13 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           )}
 
           {/* Order Notes */}
-          <OrderNotes orderId={order.order_id} currentUserId={user.id} />
+          <OrderNotes orderId={order.id} currentUserId={user.id} />
 
           {/* Order Chat */}
-          <OrderChat orderId={order.order_id} currentUserId={user.id} currentUserType="supplier" />
+          <OrderChat orderId={order.id} currentUserId={user.id} currentUserType="supplier" />
 
           {/* Activity Timeline */}
-          <OrderActivityTimeline orderId={order.order_id} />
+          <OrderActivityTimeline orderId={order.id} />
         </div>
 
         {/* Sidebar - Right Column */}
