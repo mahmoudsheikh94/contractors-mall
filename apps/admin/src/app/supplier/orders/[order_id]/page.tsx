@@ -21,7 +21,7 @@ async function getOrderDetails(orderId: string, supplierId: string) {
     .from('orders')
     .select(`
       *,
-      contractor!contractor_id (
+      profiles!contractor_id (
         id,
         full_name,
         phone,
@@ -46,9 +46,15 @@ async function getOrderDetails(orderId: string, supplierId: string) {
     .single()
 
   if (error) {
-    console.error('Error fetching order:', error)
+    console.error('Error fetching order details:', error)
+    console.error('Order ID:', orderId)
+    console.error('Supplier ID:', supplierId)
+    console.error('Error code:', error.code)
+    console.error('Error message:', error.message)
     return null
   }
+
+  console.log('✅ Order details fetched successfully:', order.order_number)
 
   return order
 }
@@ -274,26 +280,26 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
             <div className="p-6 space-y-4">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">الاسم</h3>
-                <p className="text-gray-900">{order.contractor?.full_name}</p>
+                <p className="text-gray-900">{order.profiles?.full_name || 'غير محدد'}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">الهاتف</h3>
                 <a
-                  href={`tel:${order.contractor?.phone}`}
+                  href={`tel:${order.profiles?.phone}`}
                   className="text-primary-600 hover:text-primary-700 font-medium"
                   dir="ltr"
                 >
-                  {order.contractor?.phone}
+                  {order.profiles?.phone || 'غير محدد'}
                 </a>
               </div>
-              {order.contractor?.email && (
+              {order.profiles?.email && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-1">البريد الإلكتروني</h3>
                   <a
-                    href={`mailto:${order.contractor?.email}`}
+                    href={`mailto:${order.profiles?.email}`}
                     className="text-primary-600 hover:text-primary-700 text-sm"
                   >
-                    {order.contractor?.email}
+                    {order.profiles?.email}
                   </a>
                 </div>
               )}
