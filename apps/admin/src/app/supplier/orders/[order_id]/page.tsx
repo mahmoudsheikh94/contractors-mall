@@ -241,7 +241,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-1">التاريخ والوقت</h3>
                 <p className="text-gray-900">
-                  {new Date(order.delivery_date).toLocaleDateString('ar-JO', {
+                  {new Date(order.scheduled_delivery_date).toLocaleDateString('ar-JO', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -249,7 +249,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                   })}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  {getTimeSlotLabel(order.delivery_time_slot)}
+                  {getTimeSlotLabel(order.scheduled_delivery_time)}
                 </p>
               </div>
 
