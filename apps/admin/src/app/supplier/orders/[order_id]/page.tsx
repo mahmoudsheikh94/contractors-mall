@@ -17,6 +17,12 @@ interface OrderDetailsPageProps {
 async function getOrderDetails(orderId: string, supplierId: string) {
   const supabase = await createClient()
 
+  console.log('\n========================================')
+  console.log('🔍 FETCHING ORDER DETAILS')
+  console.log('========================================')
+  console.log('Order ID from URL:', orderId)
+  console.log('Supplier ID:', supplierId)
+
   const { data: order, error } = await supabase
     .from('orders')
     .select(`
@@ -46,15 +52,39 @@ async function getOrderDetails(orderId: string, supplierId: string) {
     .single()
 
   if (error) {
-    console.error('Error fetching order details:', error)
+    console.error('❌ Error fetching order details:', error)
     console.error('Order ID:', orderId)
     console.error('Supplier ID:', supplierId)
     console.error('Error code:', error.code)
     console.error('Error message:', error.message)
+    console.error('Error details:', error.details)
+    console.error('Error hint:', error.hint)
+
+    // Try fetching without supplier_id constraint to see if order exists
+    const { data: orderCheck, error: checkError } = await supabase
+      .from('orders')
+      .select('id, order_number, supplier_id')
+      .eq('id', orderId)
+      .single()
+
+    if (orderCheck) {
+      console.error('⚠️ Order EXISTS but supplier_id mismatch!')
+      console.error('Order supplier_id:', orderCheck.supplier_id)
+      console.error('Current supplier_id:', supplierId)
+    } else {
+      console.error('❌ Order does NOT exist in database with ID:', orderId)
+    }
+
+    console.log('========================================\n')
     return null
   }
 
-  console.log('✅ Order details fetched successfully:', order.order_number)
+  console.log('✅ Order details fetched successfully!')
+  console.log('Order number:', order.order_number)
+  console.log('Order ID:', order.id)
+  console.log('Contractor data:', order.profiles)
+  console.log('Order items count:', order.order_items?.length)
+  console.log('========================================\n')
 
   return order
 }
