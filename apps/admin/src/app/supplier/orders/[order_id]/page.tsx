@@ -199,15 +199,15 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                         {item.products?.name_ar || item.product_name}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        الكمية: {item.quantity} {item.products?.unit_ar || 'وحدة'}
+                        الكمية: {item.quantity ?? 0} {item.products?.unit_ar || 'وحدة'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        السعر: {item.unit_price_jod.toFixed(2)} د.أ / {item.products?.unit_ar || 'وحدة'}
+                        السعر: {(item.unit_price_jod ?? 0).toFixed(2)} د.أ / {item.products?.unit_ar || 'وحدة'}
                       </p>
                     </div>
                     <div className="text-left">
                       <p className="font-semibold text-gray-900">
-                        {item.total_jod.toFixed(2)} د.أ
+                        {(item.total_jod ?? 0).toFixed(2)} د.أ
                       </p>
                     </div>
                   </div>
@@ -218,15 +218,15 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
               <div className="mt-6 pt-6 border-t space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">المجموع الفرعي:</span>
-                  <span className="font-medium">{subtotal.toFixed(2)} د.أ</span>
+                  <span className="font-medium">{(subtotal ?? 0).toFixed(2)} د.أ</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">رسوم التوصيل:</span>
-                  <span className="font-medium">{order.delivery_fee_jod.toFixed(2)} د.أ</span>
+                  <span className="font-medium">{(order.delivery_fee_jod ?? 0).toFixed(2)} د.أ</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>المجموع الكلي:</span>
-                  <span className="text-primary-600">{order.total_jod.toFixed(2)} د.أ</span>
+                  <span className="text-primary-600">{(order.total_jod ?? 0).toFixed(2)} د.أ</span>
                 </div>
               </div>
             </div>
