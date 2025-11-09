@@ -240,8 +240,8 @@ export default function CheckoutReviewPage() {
         `تم إنشاء ${createdOrders.length} طلب بنجاح! تم حجز المبلغ وسيتم تحويله للموردين بعد التوصيل.\n\n${createdOrders.length} order(s) created successfully! Payment has been held in escrow and will be released to suppliers after delivery.`
       )
 
-      // Navigate to orders page (will be created later)
-      router.push('/products')
+      // Navigate to orders page
+      router.push('/orders')
     } catch (error) {
       console.error('Order creation error:', error)
       alert(`حدث خطأ أثناء إنشاء الطلب:\n${error instanceof Error ? error.message : 'Unknown error'}`)
