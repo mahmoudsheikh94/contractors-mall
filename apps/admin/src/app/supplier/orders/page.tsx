@@ -58,21 +58,70 @@ async function getOrders(
 
   const { data, count, error } = await query
 
+  // Enhanced RLS diagnostic logging
+  // Check current user's profile and role
+  const { data: currentUserProfile } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, role')
+    .eq('id', user.id)
+    .single()
+
+  console.log('\n========================================')
+  console.log('🔍 DIAGNOSTIC: Order Query Results')
+  console.log('========================================')
+  console.log('Current user:', {
+    id: user.id,
+    email: user.email,
+    profile_role: currentUserProfile?.role,
+    profile_exists: !!currentUserProfile
+  })
+  console.log('Supplier ID:', supplierId)
+  console.log('Query status:', error ? '❌ ERROR' : '✅ SUCCESS')
+
   if (error) {
-    console.error('Error fetching orders:', error)
+    console.error('❌ Error fetching orders:', error)
+    console.error('Error code:', error.code)
+    console.error('Error message:', error.message)
+    console.error('Error details:', error.details)
     console.error('Query details:', { supplierId, status, search, page })
     return { orders: [], count: 0, totalPages: 0 }
   }
 
-  console.log('Fetched orders count:', data?.length, 'Total count:', count)
+  console.log('✅ Fetched orders count:', data?.length, 'Total count:', count)
+
+  // Check if user can access profiles directly (RLS test)
+  const { data: testProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, full_name, role')
+    .limit(1)
+
+  console.log('\n🔐 RLS Test: Direct profiles query')
+  console.log('Can access profiles table:', profileError ? '❌ NO' : '✅ YES')
+  if (profileError) {
+    console.error('Profiles error:', profileError.message)
+  } else {
+    console.log('Sample profile:', testProfile?.[0])
+  }
 
   // DEBUG: Log raw data to understand structure
   if (data && data.length > 0) {
-    console.log('=== DEBUG: First order raw data ===')
-    console.log('Full order object:', JSON.stringify(data[0], null, 2))
-    console.log('order.profiles value:', data[0].profiles)
-    console.log('order.profiles type:', typeof data[0].profiles)
+    console.log('\n📋 First order raw data analysis:')
+    console.log('────────────────────────────────────────')
+    console.log('Order number:', data[0].order_number)
+    console.log('Contractor ID:', data[0].contractor_id)
+    console.log('Profiles field value:', data[0].profiles)
+    console.log('Profiles type:', typeof data[0].profiles)
     console.log('Is array?', Array.isArray(data[0].profiles))
+    console.log('Is null?', data[0].profiles === null)
+    console.log('Is undefined?', data[0].profiles === undefined)
+    if (data[0].profiles) {
+      console.log('Profiles keys:', Object.keys(data[0].profiles))
+    }
+    console.log('Full order JSON:', JSON.stringify(data[0], null, 2))
+    console.log('========================================\n')
+  } else {
+    console.log('⚠️ No orders found')
+    console.log('========================================\n')
   }
 
   // Fix contractor type and map column names to match Order interface
