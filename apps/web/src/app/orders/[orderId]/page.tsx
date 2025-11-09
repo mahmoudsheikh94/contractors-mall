@@ -65,7 +65,7 @@ interface OrderDetails {
   payment: {
     status: string
     amount_jod: number
-    transaction_id: string | null
+    payment_intent_id: string | null
   } | null
   order_items: OrderItem[]
 }
@@ -114,7 +114,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             payments (
               status,
               amount_jod,
-              transaction_id
+              payment_intent_id
             ),
             order_items (
               order_item_id,
@@ -165,7 +165,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
           payment: data.payments ? {
             status: (data.payments as any).status,
             amount_jod: (data.payments as any).amount_jod,
-            transaction_id: (data.payments as any).transaction_id,
+            payment_intent_id: (data.payments as any).payment_intent_id,
           } : null,
           order_items: (data.order_items as any[]).map((item: any) => ({
             order_item_id: item.order_item_id,
@@ -386,10 +386,10 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                 <span className="font-semibold">{(order.payment.amount_jod ?? 0).toFixed(2)} د.أ</span>
               </div>
 
-              {order.payment.transaction_id && (
+              {order.payment.payment_intent_id && (
                 <div className="flex justify-between py-2">
                   <span className="text-gray-600">رقم المعاملة</span>
-                  <span className="font-mono text-sm">{order.payment.transaction_id}</span>
+                  <span className="font-mono text-sm">{order.payment.payment_intent_id}</span>
                 </div>
               )}
             </div>
