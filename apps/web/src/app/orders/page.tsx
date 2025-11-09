@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-type OrderStatus = 'confirmed' | 'accepted' | 'in_delivery' | 'delivered' | 'completed' | 'rejected' | 'disputed'
+type OrderStatus = 'pending' | 'confirmed' | 'accepted' | 'in_delivery' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
 
 interface OrderSummary {
   order_id: string
@@ -111,11 +111,11 @@ export default function OrdersListPage() {
   }, [])
 
   const activeOrders = orders.filter(order =>
-    ['confirmed', 'accepted', 'in_delivery', 'delivered'].includes(order.status)
+    ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered'].includes(order.status)
   )
 
   const pastOrders = orders.filter(order =>
-    ['completed', 'rejected', 'disputed'].includes(order.status)
+    ['completed', 'rejected', 'disputed', 'cancelled'].includes(order.status)
   )
 
   const displayedOrders = activeTab === 'active' ? activeOrders : pastOrders
@@ -327,6 +327,12 @@ function OrderCard({ order }: { order: OrderSummary }) {
  */
 function getStatusConfig(status: OrderStatus) {
   const configs = {
+    pending: {
+      label: 'قيد الانتظار',
+      icon: '⏳',
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-800',
+    },
     confirmed: {
       label: 'مؤكد',
       icon: '✓',
@@ -363,6 +369,12 @@ function getStatusConfig(status: OrderStatus) {
       bgColor: 'bg-red-100',
       textColor: 'text-red-800',
     },
+    cancelled: {
+      label: 'ملغي',
+      icon: '✗',
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-800',
+    },
     disputed: {
       label: 'متنازع عليه',
       icon: '⚠️',
@@ -371,7 +383,7 @@ function getStatusConfig(status: OrderStatus) {
     },
   }
 
-  return configs[status] || configs.confirmed
+  return configs[status] || configs.pending
 }
 
 /**
@@ -380,6 +392,7 @@ function getStatusConfig(status: OrderStatus) {
 function getPaymentStatusLabel(status: string) {
   const labels: Record<string, string> = {
     pending: 'قيد الانتظار',
+    held: 'محجوز في الضمان',
     escrow_held: 'محجوز في الضمان',
     released: 'تم التحويل',
     refunded: 'مسترد',
