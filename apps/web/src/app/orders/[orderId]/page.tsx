@@ -20,7 +20,7 @@ interface OrderDetailsPageProps {
   params: Promise<{ orderId: string }>
 }
 
-type OrderStatus = 'confirmed' | 'accepted' | 'in_delivery' | 'delivered' | 'completed' | 'rejected' | 'disputed'
+type OrderStatus = 'pending' | 'confirmed' | 'accepted' | 'in_delivery' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
 
 interface OrderItem {
   order_item_id: string
@@ -28,9 +28,9 @@ interface OrderItem {
   unit_price_jod: number
   subtotal_jod: number
   product: {
-    product_name: string
-    product_name_en: string
-    unit: string
+    name_ar: string
+    name_en: string
+    unit_ar: string
   }
 }
 
@@ -39,12 +39,12 @@ interface OrderDetails {
   order_number: string
   status: OrderStatus
   total_jod: number
-  delivery_date: string
-  delivery_time_slot: string
+  scheduled_delivery_date: string
+  scheduled_delivery_time: string
   delivery_fee_jod: number
   created_at: string
   supplier: {
-    supplier_id: string
+    id: string
     business_name: string
     business_name_en: string
     phone: string
@@ -61,12 +61,12 @@ interface OrderDetails {
     floor_number: string | null
     apartment_number: string | null
     phone: string
-  }
+  } | null
   payment: {
     status: string
     amount_jod: number
     transaction_id: string | null
-  }
+  } | null
   order_items: OrderItem[]
 }
 
@@ -85,22 +85,22 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
         const { data, error: fetchError } = (await supabase
           .from('orders')
           .select(`
-            order_id,
+            id,
             order_number,
             status,
             total_jod,
-            delivery_date,
-            delivery_time_slot,
+            scheduled_delivery_date,
+            scheduled_delivery_time,
             delivery_fee_jod,
             created_at,
-            suppliers!inner (
-              supplier_id,
+            suppliers (
+              id,
               business_name,
               business_name_en,
               phone,
               email
             ),
-            deliveries!inner (
+            deliveries (
               delivery_pin,
               scheduled_date,
               scheduled_time_slot,
@@ -112,46 +112,46 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               apartment_number,
               phone
             ),
-            payments!inner (
+            payments (
               status,
               amount_jod,
               transaction_id
             ),
-            order_items!inner (
+            order_items (
               order_item_id,
               quantity,
               unit_price_jod,
               subtotal_jod,
-              products!inner (
-                product_name,
-                product_name_en,
-                unit
+              products (
+                name_ar,
+                name_en,
+                unit_ar
               )
             )
           `)
-          .eq('order_id', resolvedParams.orderId)
+          .eq('id', resolvedParams.orderId)
           .single()) as { data: any | null, error: any }
 
         if (fetchError) throw fetchError
 
         // Transform the data
         const orderDetails: OrderDetails = {
-          order_id: data.order_id,
+          order_id: data.id,
           order_number: data.order_number,
           status: data.status,
           total_jod: data.total_jod,
-          delivery_date: data.delivery_date,
-          delivery_time_slot: data.delivery_time_slot,
+          scheduled_delivery_date: data.scheduled_delivery_date,
+          scheduled_delivery_time: data.scheduled_delivery_time,
           delivery_fee_jod: data.delivery_fee_jod,
           created_at: data.created_at,
           supplier: {
-            supplier_id: (data.suppliers as any).supplier_id,
+            id: (data.suppliers as any).id,
             business_name: (data.suppliers as any).business_name,
             business_name_en: (data.suppliers as any).business_name_en,
             phone: (data.suppliers as any).phone,
             email: (data.suppliers as any).email,
           },
-          delivery: {
+          delivery: data.deliveries ? {
             delivery_pin: (data.deliveries as any).delivery_pin,
             scheduled_date: (data.deliveries as any).scheduled_date,
             scheduled_time_slot: (data.deliveries as any).scheduled_time_slot,
@@ -162,21 +162,21 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             floor_number: (data.deliveries as any).floor_number,
             apartment_number: (data.deliveries as any).apartment_number,
             phone: (data.deliveries as any).phone,
-          },
-          payment: {
+          } : null,
+          payment: data.payments ? {
             status: (data.payments as any).status,
             amount_jod: (data.payments as any).amount_jod,
             transaction_id: (data.payments as any).transaction_id,
-          },
+          } : null,
           order_items: (data.order_items as any[]).map((item: any) => ({
             order_item_id: item.order_item_id,
             quantity: item.quantity,
             unit_price_jod: item.unit_price_jod,
             subtotal_jod: item.subtotal_jod,
             product: {
-              product_name: item.products.product_name,
-              product_name_en: item.products.product_name_en,
-              unit: item.products.unit,
+              name_ar: item.products.name_ar,
+              name_en: item.products.name_en,
+              unit_ar: item.products.unit_ar,
             },
           })),
         }
@@ -226,7 +226,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
     morning: 'صباحاً (8:00 - 12:00)',
     afternoon: 'ظهراً (12:00 - 4:00)',
     evening: 'مساءً (4:00 - 8:00)',
-  }[order.delivery_time_slot] || order.delivery_time_slot
+  }[order.scheduled_delivery_time] || order.scheduled_delivery_time
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -272,64 +272,66 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
         )}
 
         {/* Delivery Details */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">تفاصيل التوصيل</h2>
+        {order.delivery && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">تفاصيل التوصيل</h2>
 
-          <div className="space-y-3">
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">التاريخ</span>
-              <span className="font-semibold">{formatDate(order.delivery.scheduled_date)}</span>
-            </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">الفترة الزمنية</span>
-              <span className="font-semibold">{timeSlotDisplay}</span>
-            </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">العنوان</span>
-              <span className="font-semibold text-left">
-                {order.delivery.address_line}
-                {order.delivery.building_number && `, مبنى ${order.delivery.building_number}`}
-                {order.delivery.floor_number && `, طابق ${order.delivery.floor_number}`}
-                {order.delivery.apartment_number && `, شقة ${order.delivery.apartment_number}`}
-              </span>
-            </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">المنطقة</span>
-              <span className="font-semibold">{order.delivery.neighborhood}</span>
-            </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">المدينة</span>
-              <span className="font-semibold">{order.delivery.city}</span>
-            </div>
-
-            <div className="flex justify-between py-2">
-              <span className="text-gray-600">رقم الهاتف</span>
-              <span className="font-semibold" dir="ltr">{order.delivery.phone}</span>
-            </div>
-          </div>
-
-          {/* Delivery PIN (if applicable) */}
-          {order.delivery.delivery_pin && order.status !== 'completed' && (
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2 flex items-center">
-                <span className="text-2xl ml-2">🔢</span>
-                رمز التحقق (PIN)
-              </h3>
-              <div className="bg-white rounded-lg p-4 text-center mb-3">
-                <div className="text-4xl font-mono font-bold text-blue-600 tracking-widest">
-                  {order.delivery.delivery_pin}
-                </div>
+            <div className="space-y-3">
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">التاريخ</span>
+                <span className="font-semibold">{formatDate(order.delivery.scheduled_date)}</span>
               </div>
-              <p className="text-blue-800 text-sm">
-                ⚠️ احتفظ بهذا الرمز سرياً. قم بمشاركته مع السائق عند استلام الطلب فقط.
-              </p>
+
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">الفترة الزمنية</span>
+                <span className="font-semibold">{timeSlotDisplay}</span>
+              </div>
+
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">العنوان</span>
+                <span className="font-semibold text-left">
+                  {order.delivery.address_line}
+                  {order.delivery.building_number && `, مبنى ${order.delivery.building_number}`}
+                  {order.delivery.floor_number && `, طابق ${order.delivery.floor_number}`}
+                  {order.delivery.apartment_number && `, شقة ${order.delivery.apartment_number}`}
+                </span>
+              </div>
+
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">المنطقة</span>
+                <span className="font-semibold">{order.delivery.neighborhood}</span>
+              </div>
+
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">المدينة</span>
+                <span className="font-semibold">{order.delivery.city}</span>
+              </div>
+
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">رقم الهاتف</span>
+                <span className="font-semibold" dir="ltr">{order.delivery.phone}</span>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Delivery PIN (if applicable) */}
+            {order.delivery.delivery_pin && order.status !== 'completed' && (
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2 flex items-center">
+                  <span className="text-2xl ml-2">🔢</span>
+                  رمز التحقق (PIN)
+                </h3>
+                <div className="bg-white rounded-lg p-4 text-center mb-3">
+                  <div className="text-4xl font-mono font-bold text-blue-600 tracking-widest">
+                    {order.delivery.delivery_pin}
+                  </div>
+                </div>
+                <p className="text-blue-800 text-sm">
+                  ⚠️ احتفظ بهذا الرمز سرياً. قم بمشاركته مع السائق عند استلام الطلب فقط.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Order Items */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -339,13 +341,13 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             {order.order_items.map((item) => (
               <div key={item.order_item_id} className="flex justify-between py-3 border-b">
                 <div>
-                  <div className="font-semibold text-gray-900">{item.product.product_name}</div>
+                  <div className="font-semibold text-gray-900">{item.product.name_ar}</div>
                   <div className="text-sm text-gray-600">
-                    {item.quantity} {item.product.unit} × {item.unit_price_jod.toFixed(2)} د.أ
+                    {item.quantity} {item.product.unit_ar} × {(item.unit_price_jod ?? 0).toFixed(2)} د.أ
                   </div>
                 </div>
                 <div className="font-semibold text-gray-900">
-                  {item.subtotal_jod.toFixed(2)} د.أ
+                  {(item.subtotal_jod ?? 0).toFixed(2)} د.أ
                 </div>
               </div>
             ))}
@@ -368,38 +370,40 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
         </div>
 
         {/* Payment Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">معلومات الدفع</h2>
+        {order.payment && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">معلومات الدفع</h2>
 
-          <div className="space-y-3">
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">حالة الدفع</span>
-              <span className="font-semibold">
-                <PaymentStatusBadge status={order.payment.status} />
-              </span>
+            <div className="space-y-3">
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">حالة الدفع</span>
+                <span className="font-semibold">
+                  <PaymentStatusBadge status={order.payment.status} />
+                </span>
+              </div>
+
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">المبلغ المدفوع</span>
+                <span className="font-semibold">{(order.payment.amount_jod ?? 0).toFixed(2)} د.أ</span>
+              </div>
+
+              {order.payment.transaction_id && (
+                <div className="flex justify-between py-2">
+                  <span className="text-gray-600">رقم المعاملة</span>
+                  <span className="font-mono text-sm">{order.payment.transaction_id}</span>
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">المبلغ المدفوع</span>
-              <span className="font-semibold">{order.payment.amount_jod.toFixed(2)} د.أ</span>
-            </div>
-
-            {order.payment.transaction_id && (
-              <div className="flex justify-between py-2">
-                <span className="text-gray-600">رقم المعاملة</span>
-                <span className="font-mono text-sm">{order.payment.transaction_id}</span>
+            {order.payment.status === 'escrow_held' && (
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-green-800 text-sm">
+                  💳 المبلغ محجوز في حساب الضمان. سيتم تحويل المبلغ للمورد تلقائياً بعد تأكيد استلام الطلب.
+                </p>
               </div>
             )}
           </div>
-
-          {order.payment.status === 'escrow_held' && (
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 text-sm">
-                💳 المبلغ محجوز في حساب الضمان. سيتم تحويل المبلغ للمورد تلقائياً بعد تأكيد استلام الطلب.
-              </p>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Supplier Information */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -460,7 +464,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               <span className="text-primary-600 ml-2">•</span>
               <span>يرجى التأكد من وجود مساحة كافية للتفريغ</span>
             </li>
-            {order.delivery.delivery_pin && (
+            {order.delivery?.delivery_pin && (
               <li className="flex items-start">
                 <span className="text-primary-600 ml-2">•</span>
                 <span>لا تشارك رمز التحقق (PIN) إلا مع السائق عند الاستلام</span>
@@ -486,6 +490,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
  */
 function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const configs = {
+    pending: { label: 'قيد الانتظار', bgColor: 'bg-gray-100', textColor: 'text-gray-800' },
     confirmed: { label: 'مؤكد', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
     accepted: { label: 'قبِل من المورد', bgColor: 'bg-green-100', textColor: 'text-green-800' },
     in_delivery: { label: 'قيد التوصيل', bgColor: 'bg-purple-100', textColor: 'text-purple-800' },
@@ -493,9 +498,10 @@ function OrderStatusBadge({ status }: { status: OrderStatus }) {
     completed: { label: 'مكتمل', bgColor: 'bg-green-100', textColor: 'text-green-800' },
     rejected: { label: 'مرفوض', bgColor: 'bg-red-100', textColor: 'text-red-800' },
     disputed: { label: 'متنازع عليه', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800' },
+    cancelled: { label: 'ملغي', bgColor: 'bg-gray-100', textColor: 'text-gray-800' },
   }
 
-  const config = configs[status] || configs.confirmed
+  const config = configs[status] || configs.pending
 
   return (
     <span className={`px-4 py-2 rounded-full text-sm font-semibold ${config.bgColor} ${config.textColor}`}>
@@ -510,6 +516,7 @@ function OrderStatusBadge({ status }: { status: OrderStatus }) {
 function PaymentStatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; color: string }> = {
     pending: { label: 'قيد الانتظار', color: 'text-yellow-600' },
+    held: { label: 'محجوز في الضمان', color: 'text-green-600' },
     escrow_held: { label: 'محجوز في الضمان', color: 'text-green-600' },
     released: { label: 'تم التحويل', color: 'text-blue-600' },
     refunded: { label: 'مسترد', color: 'text-gray-600' },
@@ -526,6 +533,7 @@ function PaymentStatusBadge({ status }: { status: string }) {
  */
 function DeliveryTimeline({ status }: { status: OrderStatus }) {
   const steps = [
+    { key: 'pending', label: 'قيد الانتظار', icon: '⏳' },
     { key: 'confirmed', label: 'تم تأكيد الطلب', icon: '✓' },
     { key: 'accepted', label: 'قبِل من المورد', icon: '✓' },
     { key: 'in_delivery', label: 'قيد التوصيل (السائق في الطريق)', icon: '🚚' },
@@ -533,7 +541,7 @@ function DeliveryTimeline({ status }: { status: OrderStatus }) {
     { key: 'completed', label: 'مكتمل', icon: '✓' },
   ]
 
-  const statusOrder = ['confirmed', 'accepted', 'in_delivery', 'delivered', 'completed']
+  const statusOrder = ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered', 'completed']
   const currentIndex = statusOrder.indexOf(status)
 
   return (
