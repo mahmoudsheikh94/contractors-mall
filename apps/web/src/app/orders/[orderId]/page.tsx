@@ -23,10 +23,10 @@ interface OrderDetailsPageProps {
 type OrderStatus = 'pending' | 'confirmed' | 'accepted' | 'in_delivery' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
 
 interface OrderItem {
-  order_item_id: string
+  item_id: string
   quantity: number
   unit_price_jod: number
-  subtotal_jod: number
+  total_jod: number
   product: {
     name_ar: string
     name_en: string
@@ -117,10 +117,10 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               payment_intent_id
             ),
             order_items (
-              order_item_id,
+              item_id,
               quantity,
               unit_price_jod,
-              subtotal_jod,
+              total_jod,
               products (
                 name_ar,
                 name_en,
@@ -168,10 +168,10 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             payment_intent_id: (data.payments as any).payment_intent_id,
           } : null,
           order_items: (data.order_items as any[]).map((item: any) => ({
-            order_item_id: item.order_item_id,
+            item_id: item.item_id,
             quantity: item.quantity,
             unit_price_jod: item.unit_price_jod,
-            subtotal_jod: item.subtotal_jod,
+            total_jod: item.total_jod,
             product: {
               name_ar: item.products.name_ar,
               name_en: item.products.name_en,
@@ -338,7 +338,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
 
           <div className="space-y-3 mb-6">
             {order.order_items.map((item) => (
-              <div key={item.order_item_id} className="flex justify-between py-3 border-b">
+              <div key={item.item_id} className="flex justify-between py-3 border-b">
                 <div>
                   <div className="font-semibold text-gray-900">{item.product.name_ar}</div>
                   <div className="text-sm text-gray-600">
@@ -346,7 +346,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                   </div>
                 </div>
                 <div className="font-semibold text-gray-900">
-                  {(item.subtotal_jod ?? 0).toFixed(2)} د.أ
+                  {(item.total_jod ?? 0).toFixed(2)} د.أ
                 </div>
               </div>
             ))}
