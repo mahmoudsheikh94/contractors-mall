@@ -21,7 +21,7 @@ async function getOrderDetails(orderId: string, supplierId: string) {
     .from('orders')
     .select(`
       *,
-      contractor:contractor_id (
+      contractor!contractor_id (
         id,
         full_name,
         phone,
@@ -34,7 +34,7 @@ async function getOrderDetails(orderId: string, supplierId: string) {
         quantity,
         unit_price_jod,
         total_jod,
-        product:product_id (
+        product!product_id (
           name_ar,
           name_en,
           unit
@@ -66,7 +66,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
   const { data: supplier } = await supabase
     .from('suppliers')
-    .select('supplier_id: id, business_name')
+    .select('id, business_name')
     .eq('owner_id', user.id)
     .maybeSingle()
 
@@ -90,7 +90,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
     )
   }
 
-  const order = await getOrderDetails(order_id, supplier.supplier_id)
+  const order = await getOrderDetails(order_id, supplier.id)
 
   if (!order) {
     return (
