@@ -5,7 +5,7 @@ import { Button } from '@contractors-mall/ui'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white" dir="rtl">
       {/* Hero Section */}
       <main className="flex min-h-screen flex-col items-center justify-center p-6 sm:p-24">
         <div className="text-center max-w-4xl">
