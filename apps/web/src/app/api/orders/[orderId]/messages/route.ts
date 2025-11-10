@@ -84,8 +84,8 @@ export async function GET(
 
     // Mark messages as read if user is not the sender
     const unreadMessageIds = messages
-      ?.filter(m => !m.is_read && m.sender_id !== user.id)
-      .map(m => m.id) || []
+      ?.filter((m: any) => !m.is_read && m.sender_id !== user.id)
+      .map((m: any) => m.id) || []
 
     if (unreadMessageIds.length > 0) {
       await (supabase as any)
