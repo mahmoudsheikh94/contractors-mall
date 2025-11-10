@@ -13,20 +13,6 @@ type OrderStatus =
   | 'rejected'
   | 'disputed'
 
-type PaymentStatus =
-  | 'pending'
-  | 'escrow_held'
-  | 'released'
-  | 'refunded'
-  | 'failed'
-  | 'frozen'
-
-type DisputeStatus =
-  | 'opened'
-  | 'investigating'
-  | 'resolved'
-  | 'escalated'
-
 interface DeliveryConfirmation {
   delivery_id: string
   supplier_confirmed: boolean
