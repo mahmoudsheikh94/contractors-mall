@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { OrderActions } from './OrderActions'
+import { StartDeliveryButton } from './StartDeliveryButton'
 import { OrderTimeline as OrderActivityTimeline } from '@/components/supplier/orders/OrderTimeline'
 import { OrderNotes } from '@/components/supplier/orders/OrderNotes'
 import { OrderDetailsEditor } from '@/components/supplier/orders/OrderDetailsEditor'
@@ -172,8 +173,8 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content - Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Action Buttons (for confirmed status) */}
-          {order.status === 'confirmed' && (
+          {/* Action Buttons (for pending status) */}
+          {order.status === 'pending' && (
             <div id="actions" className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-900 mb-4">
                 إجراء مطلوب: قبول أو رفض الطلب
@@ -182,6 +183,19 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                 يرجى مراجعة تفاصيل الطلب واتخاذ القرار المناسب
               </p>
               <OrderActions orderId={order.id} orderNumber={order.order_number} />
+            </div>
+          )}
+
+          {/* Start Delivery Button (for confirmed status) */}
+          {order.status === 'confirmed' && (
+            <div id="start-delivery" className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-blue-900 mb-4">
+                جاهز للتوصيل؟
+              </h3>
+              <p className="text-blue-700 mb-4">
+                عندما تكون جاهزاً لبدء التوصيل، انقر على الزر أدناه لإعلام العميل بأن طلبه في الطريق إليه
+              </p>
+              <StartDeliveryButton orderId={order.id} orderNumber={order.order_number} />
             </div>
           )}
 
@@ -353,13 +367,14 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
 function OrderStatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; className: string }> = {
-    confirmed: { label: 'جديد - معلق', className: 'bg-blue-100 text-blue-800 border border-blue-200' },
+    pending: { label: 'معلق - في انتظار القبول', className: 'bg-yellow-100 text-yellow-800 border border-yellow-200' },
+    confirmed: { label: 'مقبول من المورد', className: 'bg-green-100 text-green-800 border border-green-200' },
     accepted: { label: 'مقبول', className: 'bg-green-100 text-green-800 border border-green-200' },
     in_delivery: { label: 'قيد التوصيل', className: 'bg-purple-100 text-purple-800 border border-purple-200' },
     delivered: { label: 'تم التوصيل', className: 'bg-indigo-100 text-indigo-800 border border-indigo-200' },
     completed: { label: 'مكتمل', className: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },
     rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-800 border border-red-200' },
-    disputed: { label: 'متنازع عليه', className: 'bg-yellow-100 text-yellow-800 border border-yellow-200' },
+    disputed: { label: 'متنازع عليه', className: 'bg-orange-100 text-orange-800 border border-orange-200' },
   }
 
   const config = configs[status] || { label: status, className: 'bg-gray-100 text-gray-800' }

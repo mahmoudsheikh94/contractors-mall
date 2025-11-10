@@ -91,40 +91,50 @@ export async function POST(request: Request) {
       )
     }
 
-    // Update order status
+    // Update order status to awaiting contractor confirmation
+    // NOTE: Payment will NOT be released until contractor also confirms
     const { error: orderError } = await supabase
       .from('orders')
       .update({
-        status: 'delivered',
+        status: 'awaiting_contractor_confirmation',
         updated_at: now,
       })
       .eq('id', delivery.order_id)
 
     if (orderError) {
       console.error('Error updating order:', orderError)
-      // Don't fail the request - delivery is already confirmed
+      // Don't fail the request - delivery is already confirmed by supplier
     }
 
-    // Release payment from escrow
-    const { error: paymentError } = await supabase
-      .from('payments')
+    // Mark supplier as confirmed (dual confirmation system)
+    const { error: confirmError } = await supabase
+      .from('deliveries')
       .update({
-        status: 'released',
-        released_at: now,
-        updated_at: now,
+        supplier_confirmed: true,
+        supplier_confirmed_at: now,
       })
-      .eq('order_id', delivery.order_id)
-      .eq('status', 'escrow_held')
+      .eq('id', deliveryId)
 
-    if (paymentError) {
-      console.error('Error releasing payment:', paymentError)
-      // Don't fail the request - delivery is already confirmed
-      // Payment can be released manually if needed
+    if (confirmError) {
+      console.error('Error marking supplier confirmation:', confirmError)
+      // Don't fail - the PIN verification already succeeded
     }
+
+    // TODO: Send notification to contractor to confirm delivery
+    // await NotificationService.notifySupplierConfirmedDelivery(delivery.order_id)
+
+    // NOTE: Payment release will happen when contractor confirms delivery
+    // Payment is NOT released here - we need dual confirmation
 
     return NextResponse.json({
       success: true,
-      message: 'تم تأكيد التوصيل بنجاح',
+      message: 'تم تأكيد التوصيل من جانبك بنجاح. في انتظار تأكيد العميل لاستلام الطلب.',
+      data: {
+        order_id: delivery.order_id,
+        status: 'awaiting_contractor_confirmation',
+        supplier_confirmed: true,
+        contractor_confirmed: false,
+      },
     })
   } catch (error) {
     console.error('Error in verify-pin:', error)
