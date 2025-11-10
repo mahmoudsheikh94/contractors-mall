@@ -13,6 +13,12 @@ type OrderStatus =
   | 'rejected'
   | 'disputed'
 
+interface DeliveryConfirmation {
+  delivery_id: string
+  supplier_confirmed: boolean
+  contractor_confirmed: boolean
+}
+
 /**
  * POST /api/orders/[orderId]/confirm-delivery
  *
@@ -105,18 +111,21 @@ export async function POST(
     }
 
     // Get delivery record and verify supplier confirmed first
-    const { data: delivery, error: deliveryError } = await supabase
+    const { data: deliveryData, error: deliveryError } = await supabase
       .from('deliveries')
       .select('delivery_id, supplier_confirmed, contractor_confirmed')
       .eq('order_id', orderId)
       .single()
 
-    if (deliveryError || !delivery) {
+    if (deliveryError || !deliveryData) {
       return NextResponse.json(
         { error: 'Delivery record not found' },
         { status: 404 }
       )
     }
+
+    // Type assertion for delivery with new confirmation columns
+    const delivery = deliveryData as unknown as DeliveryConfirmation
 
     if (!delivery.supplier_confirmed) {
       return NextResponse.json(
