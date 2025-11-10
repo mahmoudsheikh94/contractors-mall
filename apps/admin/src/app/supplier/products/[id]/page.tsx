@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { PageHeader } from '@/components/layout/PageHeader'
 
 async function getProduct(productId: string) {
   const supabase = await createClient()
@@ -68,30 +69,19 @@ export default async function ProductDetailPage({
   return (
     <div>
       {/* Page Header */}
-      <div className="mb-8">
-        <Link
-          href="/supplier/products"
-          className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-4"
-        >
-          ← العودة للمنتجات
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {product.name_ar}
-            </h1>
-            <p className="text-gray-600 mt-2">
-              SKU: {product.sku}
-            </p>
-          </div>
-          <Link
-            href={`/supplier/products/${product.id}/edit`}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-          >
-            تعديل المنتج
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={product.name_ar}
+        subtitle={`SKU: ${product.sku}`}
+        breadcrumbs={[
+          { label: 'لوحة التحكم', href: '/supplier/dashboard' },
+          { label: 'المنتجات', href: '/supplier/products' },
+          { label: product.name_ar },
+        ]}
+        primaryAction={{
+          label: 'تعديل المنتج',
+          href: `/supplier/products/${product.id}/edit`,
+        }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}

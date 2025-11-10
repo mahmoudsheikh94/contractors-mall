@@ -8,6 +8,7 @@ import { OrderNotes } from '@/components/supplier/orders/OrderNotes'
 import { OrderDetailsEditor } from '@/components/supplier/orders/OrderDetailsEditor'
 import { OrderTags } from '@/components/supplier/orders/OrderTags'
 import { OrderChat } from '@/components/supplier/orders/OrderChat'
+import { PageHeader } from '@/components/layout/PageHeader'
 
 interface OrderDetailsPageProps {
   params: Promise<{
@@ -145,30 +146,18 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
   return (
     <div>
       {/* Header with Back Link */}
-      <div className="mb-6">
-        <Link
-          href="/supplier/orders"
-          className="text-primary-600 hover:text-primary-700 mb-4 inline-flex items-center gap-2"
-        >
-          ← العودة إلى الطلبات
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              طلب #{order.order_number}
-            </h1>
-            <p className="text-gray-600 mt-2">
-              تاريخ الطلب: {new Date(order.created_at).toLocaleString('ar-JO')}
-            </p>
-          </div>
-          <OrderStatusBadge status={order.status} />
-        </div>
-
-        {/* Order Tags */}
-        <div className="mt-4">
-          <OrderTags orderId={order.id} />
-        </div>
-      </div>
+      <PageHeader
+        title={`طلب #${order.order_number}`}
+        subtitle={`تاريخ الطلب: ${new Date(order.created_at).toLocaleString('ar-JO')}`}
+        breadcrumbs={[
+          { label: 'لوحة التحكم', href: '/supplier/dashboard' },
+          { label: 'الطلبات', href: '/supplier/orders' },
+          { label: `طلب #${order.order_number}` },
+        ]}
+        metadata={<OrderStatusBadge status={order.status} />}
+      >
+        <OrderTags orderId={order.id} />
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content - Left Column */}

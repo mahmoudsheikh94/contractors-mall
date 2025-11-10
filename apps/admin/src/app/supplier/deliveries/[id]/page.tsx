@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DeliveryConfirmation } from './DeliveryConfirmation'
+import { PageHeader } from '@/components/layout/PageHeader'
+import Link from 'next/link'
 
 async function getDeliveryDetails(deliveryId: string) {
   const supabase = await createClient()
@@ -56,12 +58,12 @@ export default async function DeliveryDetailPage({
         <p className="text-gray-600 mb-6">
           لم نتمكن من العثور على بيانات التوصيل المطلوبة
         </p>
-        <a
+        <Link
           href="/supplier/deliveries"
           className="inline-block bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 font-semibold"
         >
           العودة للتوصيلات
-        </a>
+        </Link>
       </div>
     )
   }
@@ -75,20 +77,15 @@ export default async function DeliveryDetailPage({
   return (
     <div>
       {/* Page Header */}
-      <div className="mb-8">
-        <a
-          href="/supplier/deliveries"
-          className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-4"
-        >
-          ← العودة للتوصيلات
-        </a>
-        <h1 className="text-3xl font-bold text-gray-900">
-          تفاصيل التوصيل
-        </h1>
-        <p className="text-gray-600 mt-2">
-          طلب #{order.order_number}
-        </p>
-      </div>
+      <PageHeader
+        title="تفاصيل التوصيل"
+        subtitle={`طلب #${order.order_number}`}
+        breadcrumbs={[
+          { label: 'لوحة التحكم', href: '/supplier/dashboard' },
+          { label: 'التوصيل', href: '/supplier/deliveries' },
+          { label: `توصيل #${delivery.delivery_id.slice(0, 8)}...` },
+        ]}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
