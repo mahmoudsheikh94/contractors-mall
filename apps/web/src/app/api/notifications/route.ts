@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query
-    let query = supabase
-      .from('in_app_notifications')
+    let query = (supabase
+      .from('in_app_notifications') as any)
       .select('*', { count: 'exact' })
       .eq('user_id', user.id)
 
@@ -50,8 +50,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get unread count
-    const { count: unreadCount } = await supabase
-      .from('in_app_notifications')
+    const { count: unreadCount } = await (supabase
+      .from('in_app_notifications') as any)
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('is_read', false)
@@ -95,8 +95,8 @@ export async function PATCH(request: NextRequest) {
 
     if (markAll) {
       // Mark all notifications as read
-      const { error: updateError } = await supabase
-        .from('in_app_notifications')
+      const { error: updateError } = await (supabase
+        .from('in_app_notifications') as any)
         .update({
           is_read: true,
           read_at: new Date().toISOString()
@@ -113,8 +113,8 @@ export async function PATCH(request: NextRequest) {
       }
     } else if (notificationIds && notificationIds.length > 0) {
       // Mark specific notifications as read
-      const { error: updateError } = await supabase
-        .from('in_app_notifications')
+      const { error: updateError } = await (supabase
+        .from('in_app_notifications') as any)
         .update({
           is_read: true,
           read_at: new Date().toISOString()
