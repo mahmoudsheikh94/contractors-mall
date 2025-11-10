@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import SupplierSidebar from '@/components/SupplierSidebar'
 import { ResendEmailButton } from '@/components/ResendEmailButton'
-import { NotificationPanel } from '@/components/NotificationPanel'
+import { SupplierLayoutClient } from '@/components/layout/SupplierLayoutClient'
 
 export default async function SupplierLayout({
   children,
@@ -75,57 +74,37 @@ export default async function SupplierLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
-      <div className="flex h-screen">
-        {/* Sidebar */}
-        <SupplierSidebar
-          businessName={supplier.business_name}
-          userName={profile.full_name}
-        />
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-8 py-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {supplier.business_name}
-              </h2>
-              <NotificationPanel />
-            </div>
-          </div>
-
-          {/* Email Verification Warning Banner */}
-          {!profile.email_verified && (
-            <div className="bg-yellow-50 border-b-2 border-yellow-200 px-8 py-4">
-              <div className="flex items-start gap-4">
-                <div className="text-3xl">⚠️</div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-yellow-900 mb-1">
-                    يرجى تأكيد بريدك الإلكتروني
-                  </h3>
-                  <p className="text-sm text-yellow-800 mb-3">
-                    لتتمكن من قبول الطلبات وإدارة أعمالك بالكامل، يرجى تأكيد بريدك الإلكتروني من خلال الرابط المرسل إليك.
-                  </p>
-                  <div className="flex gap-3">
-                    <ResendEmailButton />
-                    <a
-                      href={`mailto:${user.email}`}
-                      className="text-sm text-yellow-700 hover:text-yellow-800 px-4 py-2 rounded-lg hover:bg-yellow-100 transition-colors font-medium"
-                    >
-                      فتح البريد الإلكتروني
-                    </a>
-                  </div>
-                </div>
+    <SupplierLayoutClient
+      businessName={supplier.business_name}
+      userName={profile.full_name}
+    >
+      {/* Email Verification Warning Banner */}
+      {!profile.email_verified && (
+        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="text-3xl">⚠️</div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-yellow-900 mb-1">
+                يرجى تأكيد بريدك الإلكتروني
+              </h3>
+              <p className="text-sm text-yellow-800 mb-3">
+                لتتمكن من قبول الطلبات وإدارة أعمالك بالكامل، يرجى تأكيد بريدك الإلكتروني من خلال الرابط المرسل إليك.
+              </p>
+              <div className="flex gap-3">
+                <ResendEmailButton />
+                <a
+                  href={`mailto:${user.email}`}
+                  className="text-sm text-yellow-700 hover:text-yellow-800 px-4 py-2 rounded-lg hover:bg-yellow-100 transition-colors font-medium"
+                >
+                  فتح البريد الإلكتروني
+                </a>
               </div>
             </div>
-          )}
-
-          <div className="p-8">
-            {children}
           </div>
-        </main>
-      </div>
-    </div>
+        </div>
+      )}
+
+      {children}
+    </SupplierLayoutClient>
   )
 }
