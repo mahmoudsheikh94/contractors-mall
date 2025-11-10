@@ -472,7 +472,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
         {/* Order Chat */}
         {userId && (
           <div className="mb-6">
-            <OrderChat orderId={order.order_id} currentUserId={userId} currentUserType="contractor" />
+            <OrderChat orderId={order.order_id} currentUserId={userId} />
           </div>
         )}
 

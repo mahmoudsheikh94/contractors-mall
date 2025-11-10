@@ -26,10 +26,9 @@ interface Message {
 interface OrderChatProps {
   orderId: string
   currentUserId: string
-  currentUserType: 'contractor' | 'supplier'
 }
 
-export function OrderChat({ orderId, currentUserId, currentUserType }: OrderChatProps) {
+export function OrderChat({ orderId, currentUserId }: OrderChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -152,7 +151,6 @@ export function OrderChat({ orderId, currentUserId, currentUserType }: OrderChat
                 key={msg.id}
                 message={msg}
                 isOwn={msg.sender_id === currentUserId}
-                currentUserType={currentUserType}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -201,12 +199,10 @@ export function OrderChat({ orderId, currentUserId, currentUserType }: OrderChat
 
 function MessageBubble({
   message,
-  isOwn,
-  currentUserType
+  isOwn
 }: {
   message: Message
   isOwn: boolean
-  currentUserType: string
 }) {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
