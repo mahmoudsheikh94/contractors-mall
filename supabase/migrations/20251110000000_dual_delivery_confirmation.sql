@@ -119,7 +119,7 @@ WHERE completed_at IS NOT NULL;
 -- View to easily see delivery confirmation status
 CREATE OR REPLACE VIEW delivery_confirmation_status AS
 SELECT
-    d.id as delivery_id,
+    d.delivery_id,
     d.order_id,
     o.order_number,
     o.status as order_status,
