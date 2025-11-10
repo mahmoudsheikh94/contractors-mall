@@ -44,7 +44,7 @@ export default async function DashboardPage() {
 
   // Count active orders (client-side filter)
   const activeStatuses = ['pending', 'confirmed', 'accepted', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered']
-  const activeOrdersCount = allOrders?.filter(o => activeStatuses.includes(o.status)).length || 0
+  const activeOrdersCount = allOrders?.filter(o => o.status && activeStatuses.includes(o.status)).length || 0
   console.log('Active orders count:', activeOrdersCount)
 
   // Get recent orders
