@@ -191,7 +191,7 @@ export async function POST(
         .from('disputes')
         .select('id, status')
         .eq('order_id', orderId)
-        .in('status', ['pending', 'investigating', 'site_visit_scheduled'])
+        .in('status', ['opened', 'investigating', 'escalated'])
         .maybeSingle()
 
       let paymentReleased = false
