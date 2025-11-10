@@ -107,7 +107,7 @@ export async function POST(
     // Get delivery record and verify supplier confirmed first
     const { data: delivery, error: deliveryError } = await supabase
       .from('deliveries')
-      .select('id, supplier_confirmed, contractor_confirmed')
+      .select('delivery_id, supplier_confirmed, contractor_confirmed')
       .eq('order_id', orderId)
       .single()
 
@@ -153,7 +153,7 @@ export async function POST(
           completed_at: now,
           updated_at: now,
         })
-        .eq('id', delivery.id)
+        .eq('delivery_id', delivery.delivery_id)
 
       if (confirmError) {
         console.error('Error marking contractor confirmation:', confirmError)
