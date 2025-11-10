@@ -13,6 +13,20 @@ type OrderStatus =
   | 'rejected'
   | 'disputed'
 
+type PaymentStatus =
+  | 'pending'
+  | 'escrow_held'
+  | 'released'
+  | 'refunded'
+  | 'failed'
+  | 'frozen'
+
+type DisputeStatus =
+  | 'opened'
+  | 'investigating'
+  | 'resolved'
+  | 'escalated'
+
 interface DeliveryConfirmation {
   delivery_id: string
   supplier_confirmed: boolean
@@ -191,7 +205,7 @@ export async function POST(
         .from('disputes')
         .select('id, status')
         .eq('order_id', orderId)
-        .in('status', ['opened', 'investigating', 'escalated'])
+        .in('status', ['opened', 'investigating', 'escalated'] as DisputeStatus[])
         .maybeSingle()
 
       let paymentReleased = false
@@ -201,12 +215,12 @@ export async function POST(
         const { error: paymentError } = await supabase
           .from('payments')
           .update({
-            status: 'released',
+            status: 'released' as PaymentStatus,
             released_at: now,
             updated_at: now,
           })
           .eq('order_id', orderId)
-          .eq('status', 'escrow_held')
+          .eq('status', 'escrow_held' as PaymentStatus)
 
         if (paymentError) {
           console.error('Error releasing payment:', paymentError)
@@ -268,7 +282,7 @@ export async function POST(
           reported_by: user.id,
           issue_type: 'delivery_issue',
           description: issues,
-          status: 'pending',
+          status: 'opened' as DisputeStatus,
         })
         .select()
         .single()
@@ -294,7 +308,7 @@ export async function POST(
       await supabase
         .from('payments')
         .update({
-          status: 'frozen',
+          status: 'frozen' as PaymentStatus,
           frozen_at: now,
           updated_at: now,
         })
