@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * POST /api/orders/[id]/confirm-delivery
+ * POST /api/orders/[orderId]/confirm-delivery
  *
  * Contractor confirms receipt of delivery (dual confirmation system).
  * This is the second confirmation - supplier must have confirmed first.
@@ -27,11 +27,11 @@ import { NextRequest, NextResponse } from 'next/server'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { orderId: string } }
 ) {
   try {
     const supabase = await createClient()
-    const orderId = params.id
+    const orderId = params.orderId
 
     // Parse request body
     const body = await request.json()

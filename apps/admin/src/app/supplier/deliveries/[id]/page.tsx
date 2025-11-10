@@ -19,7 +19,7 @@ async function getDeliveryDetails(deliveryId: string) {
         delivery_notes
       )
     `)
-    .eq('delivery_id', deliveryId)
+    .eq('id', deliveryId)
     .single()
 
   if (error) {
@@ -33,7 +33,7 @@ async function getDeliveryDetails(deliveryId: string) {
 export default async function DeliveryDetailPage({
   params,
 }: {
-  params: { delivery_id: string }
+  params: { id: string }
 }) {
   const supabase = await createClient()
 
@@ -44,7 +44,7 @@ export default async function DeliveryDetailPage({
     redirect('/auth/login')
   }
 
-  const delivery = await getDeliveryDetails(params.delivery_id)
+  const delivery = await getDeliveryDetails(params.id)
 
   if (!delivery) {
     return (

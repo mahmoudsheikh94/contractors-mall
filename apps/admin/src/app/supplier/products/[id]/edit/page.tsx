@@ -34,7 +34,7 @@ async function getCategories() {
 export default async function EditProductPage({
   params,
 }: {
-  params: { product_id: string }
+  params: { id: string }
 }) {
   const supabase = await createClient()
 
@@ -59,7 +59,7 @@ export default async function EditProductPage({
     )
   }
 
-  const product = await getProduct(params.product_id)
+  const product = await getProduct(params.id)
 
   if (!product) {
     return (

@@ -29,7 +29,7 @@ async function getProduct(productId: string) {
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { product_id: string }
+  params: { id: string }
 }) {
   const supabase = await createClient()
 
@@ -40,7 +40,7 @@ export default async function ProductDetailPage({
     redirect('/auth/login')
   }
 
-  const product = await getProduct(params.product_id)
+  const product = await getProduct(params.id)
 
   if (!product) {
     return (

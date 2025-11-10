@@ -11,7 +11,7 @@ import { OrderChat } from '@/components/supplier/orders/OrderChat'
 
 interface OrderDetailsPageProps {
   params: Promise<{
-    order_id: string
+    id: string
   }>
 }
 
@@ -92,7 +92,7 @@ async function getOrderDetails(orderId: string, supplierId: string) {
 
 export default async function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   const supabase = await createClient()
-  const { order_id } = await params
+  const { id: order_id } = await params
 
   // Get current user and supplier info
   const { data: { user } } = await supabase.auth.getUser()
