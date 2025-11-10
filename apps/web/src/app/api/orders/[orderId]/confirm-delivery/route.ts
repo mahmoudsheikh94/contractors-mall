@@ -1,6 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'accepted'
+  | 'in_delivery'
+  | 'awaiting_contractor_confirmation'
+  | 'delivered'
+  | 'completed'
+  | 'cancelled'
+  | 'rejected'
+  | 'disputed'
+
 /**
  * POST /api/orders/[orderId]/confirm-delivery
  *
@@ -70,6 +82,9 @@ export async function POST(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
+    // Type assertion for order status
+    const orderStatus = order.status as OrderStatus
+
     // Verify contractor ownership
     if (order.contractor_id !== user.id) {
       return NextResponse.json(
@@ -79,11 +94,11 @@ export async function POST(
     }
 
     // Validate order status
-    if (order.status !== 'awaiting_contractor_confirmation') {
+    if (orderStatus !== 'awaiting_contractor_confirmation') {
       return NextResponse.json(
         {
           error: 'Invalid order status',
-          message: `Order must be awaiting your confirmation. Current status: ${order.status}`,
+          message: `Order must be awaiting your confirmation. Current status: ${orderStatus}`,
         },
         { status: 400 }
       )
