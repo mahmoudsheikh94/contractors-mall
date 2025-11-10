@@ -58,7 +58,7 @@ export async function GET(
           full_name
         )
       `)
-      .eq('id', orderId)
+      .eq('order_id', orderId)
       .order('created_at', { ascending: false })
 
     if (notesError) {

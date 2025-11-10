@@ -3,6 +3,18 @@
 -- Date: 2025-10-31
 -- Purpose: Update existing database to match Order Management UI requirements
 -- ============================================
+--
+-- NAMING CONVENTION TRANSFORMATION:
+-- This migration ensures all tables follow the standard convention:
+-- - Primary keys: 'id' (not 'order_id', 'payment_id', etc.)
+-- - Foreign keys: '{table}_id' (e.g., order_id, supplier_id)
+--
+-- The renaming blocks (DO $$ ... END $$) check if columns need to be
+-- renamed from 'id' → '{table}_id' or vice versa depending on context.
+-- After this migration, ALL primary keys are named 'id'.
+--
+-- See docs/DATABASE_CONVENTIONS.md for full convention details.
+-- ============================================
 
 -- This migration transforms your existing database structure to match
 -- the requirements of the new Order Management UI (Phase 5B)

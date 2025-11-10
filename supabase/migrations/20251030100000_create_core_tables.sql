@@ -3,6 +3,18 @@
 -- Date: 2025-10-30
 -- Purpose: Ensure all core tables exist before applying Phase 4 updates
 -- ============================================
+--
+-- NAMING CONVENTION:
+-- - All primary keys are named 'id'
+-- - All foreign keys are named '{table}_id' (e.g., order_id, supplier_id)
+-- - This follows industry standard (Rails, Django, Laravel, Supabase)
+-- - See docs/DATABASE_CONVENTIONS.md for full details
+--
+-- NOTE: This migration originally created tables with {table}_id as PKs
+-- (e.g., order_id, payment_id). These were later transformed to use 'id'
+-- via migration 20251031100000_transform_to_new_schema.sql
+-- The current schema uses 'id' for all primary keys.
+-- ============================================
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

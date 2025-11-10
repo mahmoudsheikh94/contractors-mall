@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const { data: delivery, error: fetchError } = await supabase
       .from('deliveries')
       .select('*, order:orders!inner(*)')
-      .eq('delivery_id', deliveryId)
+      .eq('id', deliveryId)
       .single()
 
     if (fetchError || !delivery) {
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         completed_at: now,
         updated_at: now,
       })
-      .eq('delivery_id', deliveryId)
+      .eq('id', deliveryId)
 
     if (updateError) {
       console.error('Error updating delivery:', updateError)
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         status: 'delivered',
         updated_at: now,
       })
-      .eq('order_id', delivery.order_id)
+      .eq('id', delivery.order_id)
 
     if (orderError) {
       console.error('Error updating order:', orderError)

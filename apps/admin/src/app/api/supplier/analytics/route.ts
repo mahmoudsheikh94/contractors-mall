@@ -44,22 +44,23 @@ export async function GET(request: NextRequest) {
     const { data: orders } = (await supabase
       .from('orders')
       .select(`
-        order_id,
+        id,
         order_number,
         total_jod,
         status,
         created_at,
         contractor_id,
         payments!inner (
-          payment_id,
+          id,
           amount_jod,
           status
         ),
         deliveries (
-          delivery_id,
+          id,
           status
         ),
         order_items (
+          id,
           product_id,
           quantity,
           price_per_unit,

@@ -3,8 +3,16 @@
 ## Overview
 This document describes the database schema for Contractors Mall, a bilingual construction materials marketplace for Jordan.
 
-**Last Updated:** November 6, 2025
+**Last Updated:** November 10, 2025
 **Schema Version:** 2.0 (Post-Phase 2 + Email Verification)
+
+## 🔑 Naming Conventions
+
+**IMPORTANT:** All tables in this schema follow the industry-standard naming convention:
+- **Primary keys:** Always named `id`
+- **Foreign keys:** Always named `{table}_id` (e.g., `supplier_id`, `order_id`)
+
+📖 **For detailed convention rules and examples, see:** [DATABASE_CONVENTIONS.md](./DATABASE_CONVENTIONS.md)
 
 ## Core Tables
 

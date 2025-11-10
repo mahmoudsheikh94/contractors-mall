@@ -57,9 +57,10 @@ contractors-mall/
 │   ├── functions/    # Edge Functions (Deno)
 │   └── seed.sql      # Seed data
 └── docs/
-    ├── PRD.md        # Product requirements
-    ├── DATA_MODEL.md # Database schema
-    └── API_CONTRACTS.md # API documentation
+    ├── PRD.md                  # Product requirements
+    ├── DATA_MODEL.md           # Database schema
+    ├── DATABASE_CONVENTIONS.md # DB naming conventions ⭐
+    └── API_CONTRACTS.md        # API documentation
 ```
 
 ## 🏗️ Architecture

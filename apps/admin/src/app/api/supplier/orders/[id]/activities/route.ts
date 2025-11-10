@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Fetch activities with creator info
-    const { data: activities, error: activitiesError } = await supabase
+    const { data: activities, error: activitiesError} = await supabase
       .from('order_activities')
       .select(`
         id,
@@ -58,7 +58,7 @@ export async function GET(
           full_name
         )
       `)
-      .eq('id', orderId)
+      .eq('order_id', orderId)
       .order('created_at', { ascending: false })
 
     if (activitiesError) {
