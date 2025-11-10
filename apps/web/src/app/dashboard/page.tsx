@@ -31,14 +31,20 @@ export default async function DashboardPage() {
   }
 
   // Get active orders count
-  const { count: activeOrdersCount } = await supabase
+  const { count: activeOrdersCount, error: activeOrdersError } = await supabase
     .from('orders')
     .select('*', { count: 'exact', head: true })
     .eq('contractor_id', user.id)
     .in('status', ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered'] as any)
 
+  // Debug logging
+  if (activeOrdersError) {
+    console.error('Error fetching active orders count:', activeOrdersError)
+  }
+  console.log('Active orders count for contractor:', user.id, '=', activeOrdersCount)
+
   // Get recent orders
-  const { data: recentOrders } = await supabase
+  const { data: recentOrders, error: recentOrdersError } = await supabase
     .from('orders')
     .select(`
       id,
@@ -55,6 +61,15 @@ export default async function DashboardPage() {
     .eq('contractor_id', user.id)
     .order('created_at', { ascending: false })
     .limit(5)
+
+  // Debug logging
+  if (recentOrdersError) {
+    console.error('Error fetching recent orders:', recentOrdersError)
+  }
+  console.log('Recent orders count:', recentOrders?.length || 0)
+  if (recentOrders && recentOrders.length > 0) {
+    console.log('First order:', recentOrders[0])
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
