@@ -265,9 +265,9 @@ export async function POST(
         .from('disputes')
         .insert({
           order_id: orderId,
-          reported_by: user.id,
-          issue_type: 'delivery_issue',
-          description: issues,
+          opened_by: user.id,
+          reason: issues,
+          description: null,
           status: 'opened' as any,
         })
         .select()
