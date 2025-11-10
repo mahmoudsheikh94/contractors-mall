@@ -53,7 +53,7 @@ export async function GET(
     }
 
     // Fetch messages with sender info and attachments
-    const { data: messages, error: messagesError, count } = await supabase
+    const { data: messages, error: messagesError, count } = await (supabase as any)
       .from('messages')
       .select(`
         *,
@@ -88,14 +88,14 @@ export async function GET(
       .map(m => m.id) || []
 
     if (unreadMessageIds.length > 0) {
-      await supabase
+      await (supabase as any)
         .from('messages')
         .update({ is_read: true, read_at: new Date().toISOString() })
         .in('id', unreadMessageIds)
     }
 
     // Get unread count for this order (for the current user)
-    const { count: unreadCount } = await supabase
+    const { count: unreadCount } = await (supabase as any)
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('order_id', orderId)
@@ -195,7 +195,7 @@ export async function POST(
     else if (userProfile.role === 'driver') senderType = 'driver'
 
     // Create message
-    const { data: newMessage, error: insertError } = await (supabase
+    const { data: newMessage, error: insertError } = await ((supabase as any)
       .from('messages')
       .insert as any)({
       order_id: orderId,
@@ -232,7 +232,7 @@ export async function POST(
         file_size_bytes: att.size
       }))
 
-      const { error: attachmentError } = await (supabase
+      const { error: attachmentError } = await ((supabase as any)
         .from('message_attachments')
         .insert as any)(attachmentRecords)
 
@@ -241,7 +241,7 @@ export async function POST(
         // Don't fail the whole message if attachments fail
       } else {
         // Fetch attachments for the response
-        const { data: messageAttachments } = await supabase
+        const { data: messageAttachments } = await (supabase as any)
           .from('message_attachments')
           .select('*')
           .eq('message_id', newMessage.id)
@@ -253,7 +253,7 @@ export async function POST(
     // Create notification for the recipient
     const recipientId = isContractor ? supplier?.owner_id : order.contractor_id
     if (recipientId) {
-      await (supabase
+      await ((supabase as any)
         .from('in_app_notifications')
         .insert as any)({
         user_id: recipientId,
@@ -269,7 +269,7 @@ export async function POST(
       })
 
       // Add to email queue for notification
-      await (supabase
+      await ((supabase as any)
         .from('email_queue')
         .insert as any)({
         recipient_email: isContractor ? supplier?.owner_id : order.contractor_id, // Would need to fetch email
