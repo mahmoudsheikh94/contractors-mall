@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { CartProvider } from '@/contexts/CartContext'
 import { CartDrawer } from '@/components/CartDrawer'
+import { TopBar } from '@/components/TopBar'
+import { BottomNav } from '@/components/BottomNav'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -23,7 +25,11 @@ export default function RootLayout({
     <html lang={locale} dir="rtl">
       <body className={`${inter.variable} font-sans font-arabic`}>
         <CartProvider>
-          {children}
+          <TopBar />
+          <main className="pb-16 lg:pb-0">
+            {children}
+          </main>
+          <BottomNav />
           <CartDrawer />
         </CartProvider>
       </body>

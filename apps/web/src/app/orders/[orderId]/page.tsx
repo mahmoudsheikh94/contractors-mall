@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { OrderChat } from '@/components/OrderChat'
 
 interface OrderDetailsPageProps {
   params: { orderId: string }
@@ -73,11 +74,18 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDisputeForm, setShowDisputeForm] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchOrderDetails() {
       try {
         const supabase = createClient()
+
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUserId(user.id)
+        }
 
         const { data, error: fetchError } = (await supabase
           .from('orders')
@@ -460,6 +468,13 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             </button>
           )}
         </div>
+
+        {/* Order Chat */}
+        {userId && (
+          <div className="mb-6">
+            <OrderChat orderId={order.order_id} currentUserId={userId} currentUserType="contractor" />
+          </div>
+        )}
 
         {/* Important Notes */}
         <div className="bg-gray-100 rounded-lg p-6">
