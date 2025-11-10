@@ -227,7 +227,7 @@ function MessageBubble({
 
   const getSenderLabel = () => {
     if (isOwn) return 'أنت'
-    return message.sender.full_name
+    return message.sender?.full_name || 'مستخدم غير معروف'
   }
 
   const getSenderBadge = () => {

@@ -20,10 +20,10 @@ CREATE TABLE IF NOT EXISTS contractor_communications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_contractor_communications_contractor ON contractor_communications(contractor_id);
-CREATE INDEX idx_contractor_communications_supplier ON contractor_communications(supplier_id);
-CREATE INDEX idx_contractor_communications_order ON contractor_communications(order_id);
-CREATE INDEX idx_contractor_communications_created ON contractor_communications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contractor_communications_contractor ON contractor_communications(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_communications_supplier ON contractor_communications(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_communications_order ON contractor_communications(order_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_communications_created ON contractor_communications(created_at DESC);
 
 -- ==========================================
 -- 2. MESSAGES SYSTEM (Phase 2D Part 1)
@@ -50,11 +50,11 @@ CREATE TABLE IF NOT EXISTS message_attachments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_messages_order ON messages(order_id);
-CREATE INDEX idx_messages_sender ON messages(sender_id);
-CREATE INDEX idx_messages_created ON messages(created_at DESC);
-CREATE INDEX idx_messages_unread ON messages(is_read, order_id) WHERE is_read = FALSE;
-CREATE INDEX idx_message_attachments_message ON message_attachments(message_id);
+CREATE INDEX IF NOT EXISTS idx_messages_order ON messages(order_id);
+CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_unread ON messages(is_read, order_id) WHERE is_read = FALSE;
+CREATE INDEX IF NOT EXISTS idx_message_attachments_message ON message_attachments(message_id);
 
 -- ==========================================
 -- 3. NOTIFICATION SYSTEM (Phase 2D Parts 2-3)
@@ -108,11 +108,11 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_notification_preferences_user ON notification_preferences(user_id);
-CREATE INDEX idx_email_queue_status ON email_queue(status, created_at) WHERE status = 'pending';
-CREATE INDEX idx_email_queue_created ON email_queue(created_at DESC);
-CREATE INDEX idx_in_app_notifications_user ON in_app_notifications(user_id, is_read);
-CREATE INDEX idx_in_app_notifications_created ON in_app_notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_user ON notification_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_queue_status ON email_queue(status, created_at) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_email_queue_created ON email_queue(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_in_app_notifications_user ON in_app_notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_in_app_notifications_created ON in_app_notifications(created_at DESC);
 
 -- ==========================================
 -- 4. CONTRACTOR INSIGHTS VIEW (Phase 2C Part 6)
