@@ -35,7 +35,7 @@ export default async function DashboardPage() {
     .from('orders')
     .select('*', { count: 'exact', head: true })
     .eq('contractor_id', user.id)
-    .in('status', ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered'])
+    .in('status', ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered'] as any)
 
   // Get recent orders
   const { data: recentOrders } = await supabase
