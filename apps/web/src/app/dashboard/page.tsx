@@ -30,6 +30,32 @@ export default async function DashboardPage() {
     redirect('/supplier/dashboard')
   }
 
+  // Get active orders count
+  const { count: activeOrdersCount } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('contractor_id', user.id)
+    .in('status', ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered'])
+
+  // Get recent orders
+  const { data: recentOrders } = await supabase
+    .from('orders')
+    .select(`
+      id,
+      order_number,
+      status,
+      total_jod,
+      created_at,
+      scheduled_delivery_date,
+      scheduled_delivery_time,
+      suppliers (
+        business_name
+      )
+    `)
+    .eq('contractor_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -97,7 +123,7 @@ export default async function DashboardPage() {
                         طلباتي
                       </dt>
                       <dd className="text-lg font-medium text-gray-900">
-                        0 طلب نشط
+                        {activeOrdersCount || 0} طلب نشط
                       </dd>
                     </dl>
                   </div>
@@ -142,44 +168,121 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent Orders - Empty State */}
+          {/* Recent Orders */}
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                الطلبات الأخيرة
-              </h3>
-              <div className="text-center py-12">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  لا توجد طلبات بعد
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  الطلبات الأخيرة
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  ابدأ بتصفح مواد البناء وإضافتها إلى السلة
-                </p>
-                <div className="mt-6">
-                  <Link href="/products">
-                    <Button variant="primary">
-                      تصفح المواد
-                    </Button>
+                {recentOrders && recentOrders.length > 0 && (
+                  <Link href="/orders" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                    عرض الكل ←
                   </Link>
-                </div>
+                )}
               </div>
+
+              {recentOrders && recentOrders.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الطلب</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المورد</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المبلغ</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">التاريخ</th>
+                        <th className="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {recentOrders.map((order: any) => (
+                        <tr key={order.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                            #{order.order_number}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {order.suppliers?.business_name || 'غير محدد'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <OrderStatusBadge status={order.status} />
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {order.total_jod.toFixed(2)} د.أ
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {new Date(order.created_at).toLocaleDateString('ar-JO')}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-left">
+                            <Link
+                              href={`/orders/${order.id}`}
+                              className="text-primary-600 hover:text-primary-700 font-medium"
+                            >
+                              عرض ←
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    لا توجد طلبات بعد
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    ابدأ بتصفح مواد البناء وإضافتها إلى السلة
+                  </p>
+                  <div className="mt-6">
+                    <Link href="/products">
+                      <Button variant="primary">
+                        تصفح المواد
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </main>
     </div>
+  )
+}
+
+function OrderStatusBadge({ status }: { status: string }) {
+  const configs: Record<string, { label: string; className: string }> = {
+    pending: { label: 'معلق', className: 'bg-yellow-100 text-yellow-800' },
+    confirmed: { label: 'مؤكد', className: 'bg-blue-100 text-blue-800' },
+    accepted: { label: 'مقبول', className: 'bg-green-100 text-green-800' },
+    in_delivery: { label: 'قيد التوصيل', className: 'bg-purple-100 text-purple-800' },
+    awaiting_contractor_confirmation: { label: 'بانتظار تأكيدك', className: 'bg-indigo-100 text-indigo-800' },
+    delivered: { label: 'تم التوصيل', className: 'bg-teal-100 text-teal-800' },
+    completed: { label: 'مكتمل', className: 'bg-green-100 text-green-800' },
+    cancelled: { label: 'ملغي', className: 'bg-gray-100 text-gray-800' },
+    rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-800' },
+    disputed: { label: 'متنازع عليه', className: 'bg-orange-100 text-orange-800' },
+  }
+
+  const config = configs[status] || { label: status, className: 'bg-gray-100 text-gray-800' }
+
+  return (
+    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${config.className}`}>
+      {config.label}
+    </span>
   )
 }
