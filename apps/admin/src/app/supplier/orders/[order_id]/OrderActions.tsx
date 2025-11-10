@@ -72,7 +72,7 @@ export function OrderActions({ orderId, orderNumber }: OrderActionsProps) {
           status: 'confirmed',
           updated_at: new Date().toISOString(),
         })
-        .eq('order_id', orderId)
+        .eq('id', orderId)
 
       if (updateError) throw updateError
 
@@ -105,7 +105,7 @@ export function OrderActions({ orderId, orderNumber }: OrderActionsProps) {
           rejection_reason: rejectionReason.trim(),
           updated_at: new Date().toISOString(),
         })
-        .eq('order_id', orderId)
+        .eq('id', orderId)
 
       if (updateError) throw updateError
 
