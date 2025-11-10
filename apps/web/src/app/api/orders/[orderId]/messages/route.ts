@@ -2,17 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * GET /api/orders/[id]/messages
+ * GET /api/orders/[orderId]/messages
  *
  * Get all messages for an order
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { orderId: string } }
 ) {
   try {
     const supabase = await createClient()
-    const orderId = params.id
+    const orderId = params.orderId
     const { searchParams } = new URL(request.url)
 
     // Pagination params
@@ -123,17 +123,17 @@ export async function GET(
 }
 
 /**
- * POST /api/orders/[id]/messages
+ * POST /api/orders/[orderId]/messages
  *
  * Send a message on an order
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { orderId: string } }
 ) {
   try {
     const supabase = await createClient()
-    const orderId = params.id
+    const orderId = params.orderId
     const body = await request.json()
     const { message, attachments } = body
 
