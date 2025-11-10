@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         status,
         created_at,
         contractor_id,
-        payments!inner (
+        payments (
           id,
           amount_jod,
           status

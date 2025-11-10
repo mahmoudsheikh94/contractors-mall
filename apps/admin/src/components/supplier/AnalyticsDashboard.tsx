@@ -52,28 +52,44 @@ export function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch('/api/supplier/analytics', {
+        // Add cache busting to prevent stale data
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}: فشل تحميل البيانات`)
+      }
+
+      const analyticsData = await response.json()
+      setData(analyticsData)
+      setRetryCount(0) // Reset retry count on success
+    } catch (err: any) {
+      console.error('Analytics fetch error:', err)
+      setError(err.message || 'فشل تحميل بيانات التحليلات. يرجى المحاولة مرة أخرى.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function fetchAnalytics() {
-      try {
-        const response = await fetch('/api/supplier/analytics')
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch analytics')
-        }
-
-        const analyticsData = await response.json()
-        setData(analyticsData)
-      } catch (err) {
-        console.error('Analytics fetch error:', err)
-        setError('فشل تحميل بيانات التحليلات')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchAnalytics()
-  }, [])
+  }, [retryCount])
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1)
+  }
 
   if (loading) {
     return (
@@ -93,15 +109,74 @@ export function AnalyticsDashboard() {
 
   if (error || !data) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-        <span className="text-4xl">⚠️</span>
-        <p className="mt-2 text-red-800">{error || 'خطأ في تحميل البيانات'}</p>
+      <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+        <span className="text-5xl mb-4 block">⚠️</span>
+        <h3 className="text-lg font-semibold text-red-900 mb-2">
+          فشل تحميل بيانات التحليلات
+        </h3>
+        <p className="text-sm text-red-700 mb-6">
+          {error || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'}
+        </p>
+        <button
+          onClick={handleRetry}
+          disabled={loading}
+          className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span>🔄</span>
+          <span>{loading ? 'جاري إعادة المحاولة...' : 'إعادة المحاولة'}</span>
+        </button>
+      </div>
+    )
+  }
+
+  // Check if supplier has any data at all
+  const hasNoData = data.summary.totalOrders === 0
+
+  if (hasNoData) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-12 text-center">
+        <span className="text-6xl mb-4 block">📊</span>
+        <h3 className="text-xl font-semibold text-blue-900 mb-2">
+          ابدأ رحلتك مع المقاول مول
+        </h3>
+        <p className="text-blue-700 mb-6 max-w-md mx-auto">
+          بمجرد أن تبدأ في استلام الطلبات، ستظهر هنا تحليلات شاملة لمبيعاتك وأداء منتجاتك وعملائك.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href="/supplier/products"
+            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+          >
+            <span>🛍️</span>
+            <span>أضف منتجاتك</span>
+          </a>
+          <button
+            onClick={handleRetry}
+            className="inline-flex items-center justify-center gap-2 bg-white border-2 border-blue-300 text-blue-700 px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors font-semibold"
+          >
+            <span>🔄</span>
+            <span>تحديث</span>
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {/* Refresh Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleRetry}
+          disabled={loading}
+          className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          title="تحديث البيانات"
+        >
+          <span className={loading ? 'animate-spin' : ''}>🔄</span>
+          <span>{loading ? 'جاري التحديث...' : 'تحديث البيانات'}</span>
+        </button>
+      </div>
+
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-5">
