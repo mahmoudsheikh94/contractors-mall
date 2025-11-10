@@ -213,7 +213,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplier.id)
-      .eq('status', 'confirmed'),
+      .eq('status', 'pending'),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
@@ -233,7 +233,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
   const stats = {
     all: statusCounts[0].count || 0,
-    confirmed: statusCounts[1].count || 0,
+    pending: statusCounts[1].count || 0,
     accepted: statusCounts[2].count || 0,
     in_delivery: statusCounts[3].count || 0,
     delivered: statusCounts[4].count || 0,
@@ -271,7 +271,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="all">جميع الطلبات</option>
-              <option value="confirmed">جديد (معلق)</option>
+              <option value="pending">معلق</option>
               <option value="accepted">مقبول</option>
               <option value="in_delivery">قيد التوصيل</option>
               <option value="delivered">تم التوصيل</option>
@@ -299,10 +299,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               active={!params.status || params.status === 'all'}
             />
             <StatusTab
-              href="/supplier/orders?status=confirmed"
-              label="جديد"
-              count={stats.confirmed}
-              active={params.status === 'confirmed'}
+              href="/supplier/orders?status=pending"
+              label="معلق"
+              count={stats.pending}
+              active={params.status === 'pending'}
               highlight
             />
             <StatusTab

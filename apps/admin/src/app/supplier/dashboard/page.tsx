@@ -16,10 +16,10 @@ async function getDashboardStats(supplierId: string) {
   // First, get all order IDs for this supplier
   const { data: supplierOrders } = await supabase
     .from('orders')
-    .select('order_id')
+    .select('id')
     .eq('supplier_id', supplierId)
 
-  const orderIds = supplierOrders?.map(o => o.order_id) || []
+  const orderIds = supplierOrders?.map(o => o.id) || []
 
   // Fetch statistics in parallel
   const [
@@ -34,13 +34,13 @@ async function getDashboardStats(supplierId: string) {
     // Total orders
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplierId),
 
     // Active products
     supabase
       .from('products')
-      .select('product_id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplierId)
       .eq('is_available', true),
 
@@ -56,7 +56,7 @@ async function getDashboardStats(supplierId: string) {
     // Today's orders
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplierId)
       .gte('created_at', today.toISOString())
       .lt('created_at', tomorrow.toISOString()),
@@ -64,23 +64,22 @@ async function getDashboardStats(supplierId: string) {
     // Pending orders (new, not accepted yet)
     supabase
       .from('orders')
-      .select('order_id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplierId)
-      .eq('status', 'confirmed'),
+      .eq('status', 'pending'),
 
-    // Today's deliveries
-    orderIds.length > 0
-      ? supabase
-          .from('deliveries')
-          .select('delivery_id', { count: 'exact', head: true })
-          .eq('scheduled_date', today.toISOString().split('T')[0])
-          .in('order_id', orderIds)
-      : Promise.resolve({ count: 0 }),
+    // Today's deliveries (orders scheduled for today that are in_delivery or delivered status)
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplierId)
+      .eq('scheduled_delivery_date', today.toISOString().split('T')[0])
+      .in('status', ['in_delivery', 'delivered']),
 
     // Low stock products (≤10 units)
     supabase
       .from('products')
-      .select('product_id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplierId)
       .lte('stock_quantity', 10)
       .eq('is_available', true)
@@ -107,13 +106,13 @@ async function getRecentOrders(supplierId: string) {
   const { data } = await supabase
     .from('orders')
     .select(`
-      order_id,
+      id,
       order_number,
       status,
       total_jod,
       created_at,
-      delivery_date,
-      delivery_time_slot
+      scheduled_delivery_date,
+      scheduled_delivery_time
     `)
     .eq('supplier_id', supplierId)
     .order('created_at', { ascending: false })
@@ -141,7 +140,7 @@ export default async function SupplierDashboard({
   // Get profile with verification status
   const { data: profile } = await supabase
     .from('profiles')
-    .select('email_verified, phone_verified, verification_method, phone')
+    .select('email_verified, phone')
     .eq('id', user?.id)
     .maybeSingle()
 
@@ -346,7 +345,7 @@ export default async function SupplierDashboard({
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {recentOrders.map((order) => (
-                  <tr key={order.order_id} className="hover:bg-gray-50">
+                  <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       #{order.order_number}
                     </td>
@@ -357,9 +356,9 @@ export default async function SupplierDashboard({
                       {order.total_jod.toFixed(2)} د.أ
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
-                      {new Date(order.delivery_date).toLocaleDateString('ar-JO')}
+                      {new Date(order.scheduled_delivery_date).toLocaleDateString('ar-JO')}
                       <span className="text-gray-500 text-xs block">
-                        {getTimeSlotLabel(order.delivery_time_slot)}
+                        {getTimeSlotLabel(order.scheduled_delivery_time)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -367,7 +366,7 @@ export default async function SupplierDashboard({
                     </td>
                     <td className="px-6 py-4 text-sm text-left">
                       <Link
-                        href={`/supplier/orders/${order.order_id}`}
+                        href={`/supplier/orders/${order.id}`}
                         className="text-primary-600 hover:text-primary-700"
                       >
                         عرض ←
@@ -437,13 +436,14 @@ export default async function SupplierDashboard({
 
 function OrderStatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; className: string }> = {
-    confirmed: { label: 'جديد', className: 'bg-blue-100 text-blue-800' },
+    pending: { label: 'معلق', className: 'bg-yellow-100 text-yellow-800' },
+    confirmed: { label: 'مؤكد', className: 'bg-blue-100 text-blue-800' },
     accepted: { label: 'مقبول', className: 'bg-green-100 text-green-800' },
     in_delivery: { label: 'قيد التوصيل', className: 'bg-purple-100 text-purple-800' },
     delivered: { label: 'تم التوصيل', className: 'bg-indigo-100 text-indigo-800' },
     completed: { label: 'مكتمل', className: 'bg-green-100 text-green-800' },
     rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-800' },
-    disputed: { label: 'متنازع عليه', className: 'bg-yellow-100 text-yellow-800' },
+    disputed: { label: 'متنازع عليه', className: 'bg-orange-100 text-orange-800' },
   }
 
   const config = configs[status] || { label: status, className: 'bg-gray-100 text-gray-800' }
