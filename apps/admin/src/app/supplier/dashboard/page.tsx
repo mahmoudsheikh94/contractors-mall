@@ -28,6 +28,7 @@ async function getDashboardStats(supplierId: string) {
     earningsResult,
     todayOrdersResult,
     pendingOrdersResult,
+    activeOrdersResult,
     deliveriesResult,
     lowStockResult
   ] = await Promise.all([
@@ -68,13 +69,20 @@ async function getDashboardStats(supplierId: string) {
       .eq('supplier_id', supplierId)
       .eq('status', 'pending'),
 
+    // Active orders (all non-terminal orders)
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('supplier_id', supplierId)
+      .in('status', ['pending', 'confirmed', 'accepted', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered'] as any),
+
     // Today's deliveries (orders scheduled for today that are in_delivery or delivered status)
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplierId)
       .eq('scheduled_delivery_date', today.toISOString().split('T')[0])
-      .in('status', ['in_delivery', 'delivered']),
+      .in('status', ['in_delivery', 'delivered'] as any),
 
     // Low stock products (≤10 units)
     supabase
@@ -95,6 +103,7 @@ async function getDashboardStats(supplierId: string) {
     totalEarnings,
     todayOrders: todayOrdersResult.count || 0,
     pendingOrders: pendingOrdersResult.count || 0,
+    activeOrders: activeOrdersResult.count || 0,
     todayDeliveries: deliveriesResult.count || 0,
     lowStockProducts: lowStockResult.count || 0,
   }
@@ -263,14 +272,14 @@ export default async function SupplierDashboard({
           <div className="text-sm text-blue-700">طلب جديد</div>
         </div>
 
-        {/* Pending Orders */}
-        <div className="bg-yellow-50 rounded-lg shadow-sm p-6">
+        {/* Active Orders */}
+        <div className="bg-indigo-50 rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-3xl">⏳</span>
-            <span className="text-sm text-yellow-600">معلق</span>
+            <span className="text-3xl">📋</span>
+            <span className="text-sm text-indigo-600">نشط</span>
           </div>
-          <div className="text-2xl font-bold text-yellow-900">{stats.pendingOrders}</div>
-          <div className="text-sm text-yellow-700">بانتظار القبول</div>
+          <div className="text-2xl font-bold text-indigo-900">{stats.activeOrders}</div>
+          <div className="text-sm text-indigo-700">طلب نشط</div>
         </div>
 
         {/* Today's Deliveries */}
