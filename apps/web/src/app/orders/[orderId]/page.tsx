@@ -20,7 +20,7 @@ interface OrderDetailsPageProps {
   params: { orderId: string }
 }
 
-type OrderStatus = 'pending' | 'confirmed' | 'accepted' | 'in_delivery' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
+type OrderStatus = 'pending' | 'confirmed' | 'accepted' | 'in_delivery' | 'awaiting_contractor_confirmation' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
 
 interface OrderItem {
   item_id: string
@@ -52,8 +52,6 @@ interface OrderDetails {
   }
   delivery: {
     delivery_pin: string | null
-    scheduled_date: string
-    scheduled_time_slot: string
     address_line: string
     neighborhood: string
     city: string
@@ -101,8 +99,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             ),
             deliveries (
               delivery_pin,
-              scheduled_date,
-              scheduled_time_slot,
               address_line,
               neighborhood,
               city,
@@ -152,8 +148,6 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
           },
           delivery: data.deliveries ? {
             delivery_pin: (data.deliveries as any).delivery_pin,
-            scheduled_date: (data.deliveries as any).scheduled_date,
-            scheduled_time_slot: (data.deliveries as any).scheduled_time_slot,
             address_line: (data.deliveries as any).address_line,
             neighborhood: (data.deliveries as any).neighborhood,
             city: (data.deliveries as any).city,
@@ -270,6 +264,26 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
           </div>
         )}
 
+        {/* Delivery Confirmation Banner */}
+        {order.status === 'awaiting_contractor_confirmation' && (
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 mb-6">
+            <div className="flex items-start gap-3 mb-4">
+              <span className="text-3xl">📦</span>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-orange-900 mb-2">
+                  المورد قام بتأكيد التوصيل
+                </h3>
+                <p className="text-orange-800 mb-4">
+                  قام المورد بتأكيد توصيل الطلب إليك. الرجاء تأكيد استلام الطلب بشكل صحيح.
+                  إذا كانت هناك أي مشاكل مع الطلب، يمكنك الإبلاغ عنها الآن.
+                </p>
+              </div>
+            </div>
+
+            <DeliveryConfirmationButtons orderId={order.order_id} orderNumber={order.order_number} />
+          </div>
+        )}
+
         {/* Delivery Details */}
         {order.delivery && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -278,7 +292,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b">
                 <span className="text-gray-600">التاريخ</span>
-                <span className="font-semibold">{formatDate(order.delivery.scheduled_date)}</span>
+                <span className="font-semibold">{formatDate(order.scheduled_delivery_date)}</span>
               </div>
 
               <div className="flex justify-between py-2 border-b">
@@ -493,6 +507,7 @@ function OrderStatusBadge({ status }: { status: OrderStatus }) {
     confirmed: { label: 'مؤكد', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
     accepted: { label: 'قبِل من المورد', bgColor: 'bg-green-100', textColor: 'text-green-800' },
     in_delivery: { label: 'قيد التوصيل', bgColor: 'bg-purple-100', textColor: 'text-purple-800' },
+    awaiting_contractor_confirmation: { label: 'في انتظار التأكيد', bgColor: 'bg-orange-100', textColor: 'text-orange-800' },
     delivered: { label: 'تم التوصيل', bgColor: 'bg-indigo-100', textColor: 'text-indigo-800' },
     completed: { label: 'مكتمل', bgColor: 'bg-green-100', textColor: 'text-green-800' },
     rejected: { label: 'مرفوض', bgColor: 'bg-red-100', textColor: 'text-red-800' },
@@ -536,11 +551,12 @@ function DeliveryTimeline({ status }: { status: OrderStatus }) {
     { key: 'confirmed', label: 'تم تأكيد الطلب', icon: '✓' },
     { key: 'accepted', label: 'قبِل من المورد', icon: '✓' },
     { key: 'in_delivery', label: 'قيد التوصيل (السائق في الطريق)', icon: '🚚' },
+    { key: 'awaiting_contractor_confirmation', label: 'في انتظار تأكيدك', icon: '✋' },
     { key: 'delivered', label: 'تم التوصيل', icon: '📦' },
     { key: 'completed', label: 'مكتمل', icon: '✓' },
   ]
 
-  const statusOrder = ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered', 'completed']
+  const statusOrder = ['pending', 'confirmed', 'accepted', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered', 'completed']
   const currentIndex = statusOrder.indexOf(status)
 
   return (
@@ -579,6 +595,190 @@ function DeliveryTimeline({ status }: { status: OrderStatus }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/**
+ * Delivery Confirmation Buttons Component
+ */
+function DeliveryConfirmationButtons({ orderId, orderNumber }: { orderId: string; orderNumber: string }) {
+  const [confirmingDelivery, setConfirmingDelivery] = useState(false)
+  const [showIssueForm, setShowIssueForm] = useState(false)
+
+  const handleConfirmDelivery = async () => {
+    const confirmed = window.confirm(
+      `هل أنت متأكد من استلام الطلب #${orderNumber} بشكل صحيح وكامل؟\n\nسيتم تحرير الدفعة للمورد بعد التأكيد.`
+    )
+
+    if (!confirmed) return
+
+    setConfirmingDelivery(true)
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          confirmed: true,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'فشل تأكيد الاستلام')
+      }
+
+      alert(data.message || 'تم تأكيد الاستلام بنجاح!')
+      window.location.reload()
+    } catch (err) {
+      console.error('Error confirming delivery:', err)
+      alert(err instanceof Error ? err.message : 'فشل تأكيد الاستلام. الرجاء المحاولة مرة أخرى.')
+    } finally {
+      setConfirmingDelivery(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={handleConfirmDelivery}
+          disabled={confirmingDelivery}
+          className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <span className="text-xl">✅</span>
+          {confirmingDelivery ? 'جاري التأكيد...' : 'تأكيد استلام الطلب'}
+        </button>
+
+        <button
+          onClick={() => setShowIssueForm(true)}
+          disabled={confirmingDelivery}
+          className="flex-1 bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <span className="text-xl">❌</span>
+          الإبلاغ عن مشكلة
+        </button>
+      </div>
+
+      {showIssueForm && (
+        <IssueReportModal
+          orderId={orderId}
+          orderNumber={orderNumber}
+          onClose={() => setShowIssueForm(false)}
+        />
+      )}
+    </>
+  )
+}
+
+/**
+ * Issue Report Modal Component
+ */
+function IssueReportModal({
+  orderId,
+  orderNumber,
+  onClose,
+}: {
+  orderId: string
+  orderNumber: string
+  onClose: () => void
+}) {
+  const [issues, setIssues] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!issues.trim() || issues.trim().length < 10) {
+      alert('الرجاء تقديم وصف تفصيلي للمشكلة (10 أحرف على الأقل)')
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}/confirm-delivery`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          confirmed: false,
+          issues: issues.trim(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'فشل إرسال البلاغ')
+      }
+
+      alert(data.message || 'تم الإبلاغ عن المشكلة بنجاح')
+      window.location.reload()
+    } catch (err) {
+      console.error('Error reporting issue:', err)
+      alert(err instanceof Error ? err.message : 'فشل إرسال البلاغ. الرجاء المحاولة مرة أخرى.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full" dir="rtl">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">
+          الإبلاغ عن مشكلة في الطلب #{orderNumber}
+        </h3>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-gray-700 font-semibold mb-2">
+              وصف المشكلة
+            </label>
+            <textarea
+              value={issues}
+              onChange={(e) => setIssues(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              rows={5}
+              placeholder="الرجاء وصف المشكلة بالتفصيل... (مثال: كمية ناقصة، تلف في المواد، عدم مطابقة المواصفات)"
+              required
+            />
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-800 text-sm flex items-start gap-2">
+              <span className="text-lg">⚠️</span>
+              <span>
+                سيتم إنشاء نزاع وتجميد الدفعة للمورد حتى يتم حل المشكلة.
+                سيتواصل معك فريق الدعم قريباً لحل المشكلة.
+              </span>
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+              disabled={submitting}
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50"
+              disabled={submitting}
+            >
+              {submitting ? 'جاري الإرسال...' : 'إرسال البلاغ'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
