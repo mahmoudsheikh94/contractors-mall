@@ -30,18 +30,22 @@ export default async function DashboardPage() {
     redirect('/supplier/dashboard')
   }
 
-  // Get active orders count
-  const { count: activeOrdersCount, error: activeOrdersError } = await supabase
+  // Get all orders for the contractor (to count active ones)
+  const { data: allOrders, error: ordersError } = await supabase
     .from('orders')
-    .select('*', { count: 'exact', head: true })
+    .select('id, status')
     .eq('contractor_id', user.id)
-    .in('status', ['pending', 'confirmed', 'accepted', 'in_delivery', 'delivered'] as any)
 
   // Debug logging
-  if (activeOrdersError) {
-    console.error('Error fetching active orders count:', activeOrdersError)
+  if (ordersError) {
+    console.error('Error fetching orders:', ordersError)
   }
-  console.log('Active orders count for contractor:', user.id, '=', activeOrdersCount)
+  console.log('Total orders for contractor:', allOrders?.length || 0)
+
+  // Count active orders (client-side filter)
+  const activeStatuses = ['pending', 'confirmed', 'accepted', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered']
+  const activeOrdersCount = allOrders?.filter(o => activeStatuses.includes(o.status)).length || 0
+  console.log('Active orders count:', activeOrdersCount)
 
   // Get recent orders
   const { data: recentOrders, error: recentOrdersError } = await supabase
