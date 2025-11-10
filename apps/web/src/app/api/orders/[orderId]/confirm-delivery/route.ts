@@ -285,7 +285,7 @@ export async function POST(
       await supabase
         .from('orders')
         .update({
-          status: 'disputed',
+          status: 'disputed' as any,
           updated_at: now,
         })
         .eq('id', orderId)
