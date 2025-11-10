@@ -50,6 +50,11 @@ export default function SupplierSidebar({ businessName, userName, isOpen = false
       icon: '📦',
     },
     {
+      label: 'العملاء',
+      href: '/supplier/customers',
+      icon: '👥',
+    },
+    {
       label: 'المنتجات',
       href: '/supplier/products',
       icon: '🛍️',
