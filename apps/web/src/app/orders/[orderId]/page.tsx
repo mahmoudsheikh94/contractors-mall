@@ -21,7 +21,7 @@ interface OrderDetailsPageProps {
   params: { orderId: string }
 }
 
-type OrderStatus = 'pending' | 'confirmed' | 'accepted' | 'in_delivery' | 'awaiting_contractor_confirmation' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
+type OrderStatus = 'pending' | 'confirmed' | 'in_delivery' | 'awaiting_contractor_confirmation' | 'delivered' | 'completed' | 'rejected' | 'disputed' | 'cancelled'
 
 interface OrderItem {
   item_id: string
@@ -519,8 +519,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
 function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const configs = {
     pending: { label: 'قيد الانتظار', bgColor: 'bg-gray-100', textColor: 'text-gray-800' },
-    confirmed: { label: 'مؤكد', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
-    accepted: { label: 'قبِل من المورد', bgColor: 'bg-green-100', textColor: 'text-green-800' },
+    confirmed: { label: 'تم تأكيد الطلب', bgColor: 'bg-blue-100', textColor: 'text-blue-800' },
     in_delivery: { label: 'قيد التوصيل', bgColor: 'bg-purple-100', textColor: 'text-purple-800' },
     awaiting_contractor_confirmation: { label: 'في انتظار التأكيد', bgColor: 'bg-orange-100', textColor: 'text-orange-800' },
     delivered: { label: 'تم التوصيل', bgColor: 'bg-indigo-100', textColor: 'text-indigo-800' },
@@ -564,14 +563,13 @@ function DeliveryTimeline({ status }: { status: OrderStatus }) {
   const steps = [
     { key: 'pending', label: 'قيد الانتظار', icon: '⏳' },
     { key: 'confirmed', label: 'تم تأكيد الطلب', icon: '✓' },
-    { key: 'accepted', label: 'قبِل من المورد', icon: '✓' },
     { key: 'in_delivery', label: 'قيد التوصيل (السائق في الطريق)', icon: '🚚' },
     { key: 'awaiting_contractor_confirmation', label: 'في انتظار تأكيدك', icon: '✋' },
     { key: 'delivered', label: 'تم التوصيل', icon: '📦' },
     { key: 'completed', label: 'مكتمل', icon: '✓' },
   ]
 
-  const statusOrder = ['pending', 'confirmed', 'accepted', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered', 'completed']
+  const statusOrder = ['pending', 'confirmed', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered', 'completed']
   const currentIndex = statusOrder.indexOf(status)
 
   return (

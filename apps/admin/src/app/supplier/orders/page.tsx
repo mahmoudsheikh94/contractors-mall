@@ -234,7 +234,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const stats = {
     all: statusCounts[0].count || 0,
     pending: statusCounts[1].count || 0,
-    accepted: statusCounts[2].count || 0,
+    confirmed: statusCounts[2].count || 0,
     in_delivery: statusCounts[3].count || 0,
     delivered: statusCounts[4].count || 0,
   }
@@ -306,10 +306,10 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
               highlight
             />
             <StatusTab
-              href="/supplier/orders?status=accepted"
-              label="مقبول"
-              count={stats.accepted}
-              active={params.status === 'accepted'}
+              href="/supplier/orders?status=confirmed"
+              label="تم تأكيد الطلب"
+              count={stats.confirmed}
+              active={params.status === 'confirmed'}
             />
             <StatusTab
               href="/supplier/orders?status=in_delivery"

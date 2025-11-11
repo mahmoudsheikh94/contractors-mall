@@ -82,13 +82,15 @@ export async function GET(request: NextRequest) {
 
     // Generate CSV
     const statusLabels: Record<string, string> = {
-      confirmed: 'جديد - معلق',
-      accepted: 'مقبول',
+      pending: 'معلق',
+      confirmed: 'تم تأكيد الطلب',
       in_delivery: 'قيد التوصيل',
       delivered: 'تم التوصيل',
       completed: 'مكتمل',
       rejected: 'مرفوض',
       disputed: 'متنازع عليه',
+      cancelled: 'ملغي',
+      awaiting_contractor_confirmation: 'في انتظار التأكيد',
     }
 
     const timeSlotLabels: Record<string, string> = {

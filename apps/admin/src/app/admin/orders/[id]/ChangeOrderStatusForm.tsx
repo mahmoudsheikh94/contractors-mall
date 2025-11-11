@@ -13,10 +13,11 @@ type OrderStatus = 'pending' | 'confirmed' | 'in_delivery' | 'delivered' | 'comp
 
 const STATUS_OPTIONS: { value: OrderStatus; label: string; color: string }[] = [
   { value: 'pending', label: 'معلق', color: 'yellow' },
-  { value: 'confirmed', label: 'مؤكد', color: 'blue' },
+  { value: 'confirmed', label: 'تم تأكيد الطلب', color: 'blue' },
   { value: 'in_delivery', label: 'قيد التوصيل', color: 'purple' },
   { value: 'delivered', label: 'تم التوصيل', color: 'green' },
   { value: 'completed', label: 'مكتمل', color: 'green' },
+  { value: 'cancelled', label: 'ملغي', color: 'gray' },
 ]
 
 export function ChangeOrderStatusForm({ orderId, currentStatus }: ChangeOrderStatusFormProps) {

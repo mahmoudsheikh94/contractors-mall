@@ -260,17 +260,19 @@ CREATE TABLE orders (
 **Order Status Enum**:
 ```sql
 CREATE TYPE order_status AS ENUM (
-  'pending',      -- Initial state
-  'confirmed',    -- Payment confirmed
-  'accepted',     -- Supplier accepted
-  'in_delivery',  -- Out for delivery
-  'delivered',    -- Delivered (awaiting proof)
-  'completed',    -- Proof verified, payment released
-  'cancelled',    -- Cancelled by user/supplier
-  'rejected',     -- Supplier rejected
-  'disputed'      -- Contractor reported issue
+  'pending',                           -- Initial state (order created, payment made)
+  'confirmed',                         -- Supplier accepted the order
+  'in_delivery',                       -- Out for delivery
+  'awaiting_contractor_confirmation',  -- Supplier confirmed delivery, awaiting contractor
+  'delivered',                         -- Both supplier & contractor confirmed delivery
+  'completed',                         -- Payment released
+  'cancelled',                         -- Cancelled by user/supplier
+  'rejected',                          -- Supplier rejected
+  'disputed'                           -- Contractor reported issue
 );
 ```
+
+**⚠️ IMPORTANT**: The 'accepted' status was removed in January 2025 to eliminate redundancy with 'confirmed'. See migration `20251113000000_remove_accepted_status.sql`.
 
 **RLS Policies** (Fixed - No Circular Dependencies!):
 - Contractors can view/create their own orders
@@ -653,6 +655,36 @@ WHERE supplier_zone_fees.supplier_id = p_supplier_id
 - Removed foreign key constraint
 - Made `vehicle_class_id` nullable in `orders` table
 - Added unique constraint on `(supplier_id, zone)`
+
+#### 6. Order Status Simplification (January 13, 2025)
+
+**Problem**: Redundant order statuses causing confusion.
+- `confirmed` and `accepted` both meant "supplier accepted order"
+- Inconsistent labels across the application (جديد vs مؤكد vs مقبول من المورد)
+- Users confused about the difference
+
+**Solution**: Removed redundant 'accepted' status
+- Migration: `20251113000000_remove_accepted_status.sql`
+- All existing 'accepted' orders converted to 'confirmed'
+- Standardized label to "تم تأكيد الطلب" (Order has been confirmed)
+- Removed 'accepted' from order_status enum
+
+**Simplified Flow**:
+```
+pending → confirmed → in_delivery → awaiting_contractor_confirmation → delivered → completed
+```
+
+**Files Updated** (15 files):
+- Supplier app: 6 files (orders table, order details, dashboard, deliveries, customers, export)
+- Contractor app: 2 files (order details with timeline, dashboard)
+- Admin app: 3 files (search panel, status form, export)
+- Database: 1 migration file
+- Documentation: TECHNICAL_MEMORY.md
+
+**Label Standardization**:
+- All status badges now show "تم تأكيد الطلب" for confirmed status
+- Removed all "مقبول" (Accepted) references
+- Consistent across supplier portal, contractor app, and admin panel
 
 ### Archived Hotfixes
 
@@ -2131,7 +2163,7 @@ CREATE POLICY "System can insert notifications for users"
 
 **Trigger**: `on_order_status_change` on `orders` table
 **Function**: `notify_order_status_change()`
-**Coverage**: ALL 9 order statuses (complete coverage)
+**Coverage**: ALL 8 order statuses (complete coverage - 'accepted' removed Jan 2025)
 
 ```sql
 CREATE TRIGGER on_order_status_change
@@ -2445,5 +2477,5 @@ setMessages([...messages, data.message])
 
 ---
 
-**Last Updated**: January 12, 2025
+**Last Updated**: January 13, 2025
 **Maintained by**: Claude Code AI

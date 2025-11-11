@@ -111,11 +111,13 @@ export default function AdvancedSearchPanel() {
               </label>
               <div className="space-y-2">
                 {[
-                  { value: 'confirmed', label: 'مؤكد' },
-                  { value: 'accepted', label: 'مقبول' },
+                  { value: 'pending', label: 'معلق' },
+                  { value: 'confirmed', label: 'تم تأكيد الطلب' },
                   { value: 'in_delivery', label: 'قيد التوصيل' },
+                  { value: 'awaiting_contractor_confirmation', label: 'في انتظار التأكيد' },
                   { value: 'delivered', label: 'تم التوصيل' },
                   { value: 'completed', label: 'مكتمل' },
+                  { value: 'rejected', label: 'مرفوض' },
                   { value: 'cancelled', label: 'ملغي' },
                   { value: 'disputed', label: 'متنازع عليه' },
                 ].map(status => (

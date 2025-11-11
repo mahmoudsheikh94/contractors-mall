@@ -357,8 +357,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 function OrderStatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; className: string }> = {
     pending: { label: 'معلق - في انتظار القبول', className: 'bg-yellow-100 text-yellow-800 border border-yellow-200' },
-    confirmed: { label: 'مقبول من المورد', className: 'bg-green-100 text-green-800 border border-green-200' },
-    accepted: { label: 'مقبول', className: 'bg-green-100 text-green-800 border border-green-200' },
+    confirmed: { label: 'تم تأكيد الطلب', className: 'bg-green-100 text-green-800 border border-green-200' },
     in_delivery: { label: 'قيد التوصيل', className: 'bg-purple-100 text-purple-800 border border-purple-200' },
     delivered: { label: 'تم التوصيل', className: 'bg-indigo-100 text-indigo-800 border border-indigo-200' },
     completed: { label: 'مكتمل', className: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },

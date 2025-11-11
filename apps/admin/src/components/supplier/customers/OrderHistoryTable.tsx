@@ -68,12 +68,13 @@ export function OrderHistoryTable({ contractorId, supplierId }: OrderHistoryTabl
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { label: string; color: string }> = {
       pending: { label: 'قيد الانتظار', color: 'bg-yellow-100 text-yellow-800' },
-      confirmed: { label: 'مؤكد', color: 'bg-blue-100 text-blue-800' },
+      confirmed: { label: 'تم تأكيد الطلب', color: 'bg-blue-100 text-blue-800' },
       in_delivery: { label: 'قيد التوصيل', color: 'bg-purple-100 text-purple-800' },
       delivered: { label: 'تم التوصيل', color: 'bg-green-100 text-green-800' },
       completed: { label: 'مكتمل', color: 'bg-green-100 text-green-800' },
       cancelled: { label: 'ملغي', color: 'bg-red-100 text-red-800' },
-      disputed: { label: 'متنازع عليه', color: 'bg-orange-100 text-orange-800' }
+      disputed: { label: 'متنازع عليه', color: 'bg-orange-100 text-orange-800' },
+      awaiting_contractor_confirmation: { label: 'في انتظار التأكيد', color: 'bg-blue-100 text-blue-800' }
     }
 
     const badge = badges[status] || { label: status, color: 'bg-gray-100 text-gray-800' }

@@ -74,7 +74,7 @@ async function getDashboardStats(supplierId: string) {
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplierId)
-      .in('status', ['pending', 'confirmed', 'accepted', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered'] as any),
+      .in('status', ['pending', 'confirmed', 'in_delivery', 'awaiting_contractor_confirmation', 'delivered'] as any),
 
     // Today's deliveries (orders scheduled for today that are in_delivery or delivered status)
     supabase
@@ -446,8 +446,7 @@ export default async function SupplierDashboard({
 function OrderStatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; className: string }> = {
     pending: { label: 'معلق', className: 'bg-yellow-100 text-yellow-800' },
-    confirmed: { label: 'مؤكد', className: 'bg-blue-100 text-blue-800' },
-    accepted: { label: 'مقبول', className: 'bg-green-100 text-green-800' },
+    confirmed: { label: 'تم تأكيد الطلب', className: 'bg-blue-100 text-blue-800' },
     in_delivery: { label: 'قيد التوصيل', className: 'bg-purple-100 text-purple-800' },
     delivered: { label: 'تم التوصيل', className: 'bg-indigo-100 text-indigo-800' },
     completed: { label: 'مكتمل', className: 'bg-green-100 text-green-800' },

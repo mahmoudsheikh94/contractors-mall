@@ -171,9 +171,10 @@ export async function GET(request: NextRequest) {
 
     // Status labels
     const statusLabels: Record<string, string> = {
-      confirmed: 'جديد - معلق',
-      accepted: 'مقبول',
+      pending: 'معلق',
+      confirmed: 'تم تأكيد الطلب',
       in_delivery: 'قيد التوصيل',
+      awaiting_contractor_confirmation: 'في انتظار التأكيد',
       delivered: 'تم التوصيل',
       completed: 'مكتمل',
       rejected: 'مرفوض',
