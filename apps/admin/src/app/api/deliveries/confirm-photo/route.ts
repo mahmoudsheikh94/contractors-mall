@@ -15,11 +15,11 @@ export async function POST(request: Request) {
     const supabase = await createClient()
 
     // Get delivery details
-    const { data: delivery, error: fetchError } = await supabase
+    const { data: delivery, error: fetchError } = (await supabase
       .from('deliveries')
       .select('*, order:orders!inner(*)')
       .eq('id', deliveryId)
-      .single()
+      .single()) as any
 
     if (fetchError || !delivery) {
       console.error('Error fetching delivery:', fetchError)

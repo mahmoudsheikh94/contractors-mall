@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Log the action in admin_audit_log
-        const { error: auditError } = await supabase
-          .from('admin_audit_log')
+        const { error: auditError } = (await supabase
+          .from('admin_audit_log' as any)
           .insert({
             admin_id: user.id,
             action: 'bulk_update_order',
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
             changes: updateData,
             ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
             user_agent: request.headers.get('user-agent') || 'unknown'
-          })
+          })) as any
 
         if (auditError) {
           console.error('Audit log error:', auditError)

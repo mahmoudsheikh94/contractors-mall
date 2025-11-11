@@ -59,7 +59,6 @@ export async function GET(request: NextRequest) {
         delivery_phone,
         special_requests,
         vehicle_type,
-        payment_status,
         contractor:contractor_id (
           full_name,
           phone,
@@ -73,7 +72,7 @@ export async function GET(request: NextRequest) {
         order_items (
           quantity,
           unit_price_jod,
-          subtotal_jod,
+          total_jod,
           product:product_id (
             name_ar,
             name_en,
@@ -85,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (status) {
-      query = query.eq('status', status)
+      query = query.eq('status', status as any)
     }
 
     if (supplierId) {
@@ -143,7 +142,6 @@ export async function GET(request: NextRequest) {
     ordersSheet.columns = [
       { header: 'رقم الطلب', key: 'order_number', width: 15 },
       { header: 'الحالة', key: 'status', width: 15 },
-      { header: 'حالة الدفع', key: 'payment_status', width: 15 },
       { header: 'المورد', key: 'supplier', width: 25 },
       { header: 'العميل', key: 'contractor', width: 25 },
       { header: 'هاتف العميل', key: 'contractor_phone', width: 15 },
@@ -211,7 +209,6 @@ export async function GET(request: NextRequest) {
       ordersSheet.addRow({
         order_number: order.order_number || '',
         status: statusLabels[order.status] || order.status,
-        payment_status: paymentStatusLabels[order.payment_status] || order.payment_status,
         supplier: supplier?.business_name || '',
         contractor: contractor?.full_name || '',
         contractor_phone: contractor?.phone || '',
@@ -285,7 +282,7 @@ export async function GET(request: NextRequest) {
           product_name: product?.name_ar || '',
           quantity: item.quantity || 0,
           unit_price: item.unit_price_jod || 0,
-          subtotal: item.subtotal_jod || 0,
+          subtotal: item.total_jod || 0,
         })
       })
     })

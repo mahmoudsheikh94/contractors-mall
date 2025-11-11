@@ -89,11 +89,10 @@ export async function GET(request: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('status', 'confirmed'),
 
-      // Disputed orders
+      // Disputed orders (count orders with associated disputes)
       supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'disputed'),
+        .from('disputes')
+        .select('order_id', { count: 'exact', head: true }),
 
       // Total suppliers
       supabase
@@ -123,13 +122,13 @@ export async function GET(request: NextRequest) {
       supabase
         .from('disputes')
         .select('id', { count: 'exact', head: true })
-        .in('status', ['open', 'investigating']),
+        .in('status', ['opened', 'investigating']),
 
       // Payments in escrow
       supabase
-        .from('orders')
-        .select('total_jod')
-        .eq('payment_status', 'escrow_held'),
+        .from('payments')
+        .select('amount_jod')
+        .eq('status', 'held'),
 
       // Total revenue (completed orders)
       supabase
@@ -139,7 +138,7 @@ export async function GET(request: NextRequest) {
     ])
 
     // Calculate total escrow amount
-    const escrowAmount = paymentsEscrow.data?.reduce((sum, order) => sum + (order.total_jod || 0), 0) || 0
+    const escrowAmount = paymentsEscrow.data?.reduce((sum, payment) => sum + (payment.amount_jod || 0), 0) || 0
 
     // Calculate total revenue
     const totalRevenue = revenueTotal.data?.reduce((sum, order) => sum + (order.total_jod || 0), 0) || 0

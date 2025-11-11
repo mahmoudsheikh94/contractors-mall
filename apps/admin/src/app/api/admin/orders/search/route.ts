@@ -95,12 +95,15 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (status.length > 0) {
-      query = query.in('status', status)
+      query = query.in('status', status as any)
     }
 
-    if (paymentStatus.length > 0) {
-      query = query.in('payment_status', paymentStatus)
-    }
+    // Note: payment_status doesn't exist on orders table
+    // Payment status is tracked in the payments table
+    // Commenting out until proper join with payments table is implemented
+    // if (paymentStatus.length > 0) {
+    //   query = query.in('payment_status', paymentStatus)
+    // }
 
     if (supplierId) {
       query = query.eq('supplier_id', supplierId)
@@ -131,7 +134,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (deliveryZone) {
-      query = query.eq('delivery_zone', deliveryZone)
+      query = query.eq('delivery_zone', deliveryZone as any)
     }
 
     // Apply pagination and ordering
