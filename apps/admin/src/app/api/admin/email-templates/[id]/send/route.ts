@@ -3,8 +3,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { trackAPIError, trackEvent } from '@/lib/monitoring'
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Force dynamic rendering - this route uses cookies for auth
+export const dynamic = 'force-dynamic'
+
+// Lazy initialize Resend to avoid build-time errors
+let resend: Resend | null = null
+function getResend() {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resend
+}
 
 /**
  * POST /api/admin/email-templates/[id]/send
@@ -137,7 +146,15 @@ export async function POST(
     }
 
     // Send email using Resend
-    const { data, error: sendError } = await resend.emails.send({
+    const resendClient = getResend()
+    if (!resendClient) {
+      return NextResponse.json(
+        { error: 'Email service not configured' },
+        { status: 500 }
+      )
+    }
+
+    const { data, error: sendError } = await resendClient.emails.send({
       from: process.env.FROM_EMAIL || 'noreply@contractorsmall.com',
       to: recipientEmail,
       subject: processedSubject,

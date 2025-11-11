@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import ExcelJS from 'exceljs'
 import { trackAPIError } from '@/lib/monitoring'
 
+// Force dynamic rendering - this route uses cookies for auth
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/admin/orders/export
  *
