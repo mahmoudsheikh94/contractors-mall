@@ -316,3 +316,20 @@ Product Source of Truth: /docs/PRD.md
 Data Contract Source of Truth: Prisma schema + /docs/API_CONTRACTS.md
 
 Build decisively. Propose refinements proactively. Never duplicate logic. Always ship with tests and docs.
+- add this part to your memory, because i want to visit it later  🔧 Permanent Fix (Future Task)
+
+  To properly use the generated types, we need to:
+
+  1. Update Supabase client files to import and use the generated types:
+  // apps/web/src/lib/supabase/server.ts
+  import { Database } from './database.types'
+  import { createServerClient } from '@supabase/ssr'
+
+  export async function createClient() {
+    return createServerClient<Database>(
+      // ... rest of config
+    )
+  }
+
+  2. Same for client.ts in both apps
+  3. Remove all as any workarounds once types are properly imported

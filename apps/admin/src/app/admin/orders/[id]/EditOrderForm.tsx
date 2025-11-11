@@ -22,7 +22,7 @@ export function EditOrderForm({ order }: EditOrderFormProps) {
     delivery_phone: order.delivery_phone || '',
     delivery_instructions: order.delivery_instructions || '',
     scheduled_delivery_date: order.scheduled_delivery_date || '',
-    delivery_time_slot: order.delivery_time_slot || '',
+    scheduled_delivery_time: order.scheduled_delivery_time || '',
     special_requests: order.special_requests || '',
     internal_reference: order.internal_reference || '',
   })
@@ -184,8 +184,8 @@ export function EditOrderForm({ order }: EditOrderFormProps) {
         <label className="block text-xs text-gray-600 mb-1">الفترة الزمنية</label>
         <input
           type="text"
-          name="delivery_time_slot"
-          value={formData.delivery_time_slot}
+          name="scheduled_delivery_time"
+          value={formData.scheduled_delivery_time}
           onChange={handleChange}
           placeholder="مثال: 9:00 صباحاً - 12:00 ظهراً"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-600 focus:border-transparent"

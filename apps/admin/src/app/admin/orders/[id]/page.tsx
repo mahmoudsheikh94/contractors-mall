@@ -199,8 +199,8 @@ export default async function OrderDetailsPage({
                 <p className="font-semibold text-gray-900">
                   {new Date(order.scheduled_delivery_date).toLocaleDateString('ar-JO')}
                 </p>
-                {order.delivery_time_slot && (
-                  <p className="text-sm text-gray-600">{order.delivery_time_slot}</p>
+                {order.scheduled_delivery_time && (
+                  <p className="text-sm text-gray-600">{order.scheduled_delivery_time}</p>
                 )}
               </div>
 
