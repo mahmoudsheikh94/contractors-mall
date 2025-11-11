@@ -3,8 +3,8 @@
 ## Overview
 This document describes the database schema for Contractors Mall, a bilingual construction materials marketplace for Jordan.
 
-**Last Updated:** January 11, 2025
-**Schema Version:** 2.1 (Post-Phase 1.2 + Schema Fixes)
+**Last Updated:** January 13, 2025
+**Schema Version:** 2.2 (Order Status Simplification)
 
 ## 🔑 Naming Conventions
 
@@ -100,10 +100,13 @@ Customer orders
 - `order_number` (TEXT): Unique order number (ORD-YYYYMMDD-XXXXX)
 - `contractor_id` (UUID, FK): References profiles
 - `supplier_id` (UUID, FK): References suppliers
-- `status` (ENUM): pending|confirmed|in_delivery|delivered|completed|cancelled|awaiting_contractor_confirmation
+- `status` (ENUM): pending|confirmed|in_delivery|awaiting_contractor_confirmation|delivered|completed|cancelled
   - **Note**: 'rejected' and 'disputed' are NOT order statuses
     - Disputes are tracked in separate `disputes` table with their own status enum
-    - 'accepted' status was removed - suppliers no longer manually accept orders
+    - 'accepted' status removed (Jan 2025) - was redundant with 'confirmed'
+      - Both statuses meant "supplier accepted order"
+      - Now uses single 'confirmed' status for supplier acceptance
+      - Label: "تم تأكيد الطلب" (Order has been confirmed)
     - 'awaiting_contractor_confirmation' added for dual-delivery confirmation flow (supplier confirms → contractor confirms → payment released)
 - `subtotal_jod` (NUMERIC): Items subtotal
 - `delivery_fee_jod` (NUMERIC): Calculated delivery fee
