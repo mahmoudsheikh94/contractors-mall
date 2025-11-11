@@ -22,11 +22,11 @@ export async function POST(request: Request) {
     const supabase = await createClient()
 
     // Get delivery details
-    const { data: delivery, error: fetchError } = (await supabase
+    const { data: delivery, error: fetchError } = await (supabase as any)
       .from('deliveries')
       .select('*, order:orders!inner(*)')
       .eq('id', deliveryId)
-      .single()) as any
+      .single()
 
     if (fetchError || !delivery) {
       console.error('Error fetching delivery:', fetchError)
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     if (pin !== delivery.delivery_pin) {
       // Increment attempts
       const newAttempts = delivery.pin_attempts + 1
-      await supabase
+      await (supabase as any)
         .from('deliveries')
         .update({ pin_attempts: newAttempts, updated_at: new Date().toISOString() })
         .eq('id', deliveryId)
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const now = new Date().toISOString()
 
     // Update delivery
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('deliveries')
       .update({
         pin_verified_at: now,
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
 
     // Update order status to awaiting contractor confirmation
     // NOTE: Payment will NOT be released until contractor also confirms
-    const { error: orderError } = await supabase
+    const { error: orderError } = await (supabase as any)
       .from('orders')
       .update({
         status: 'awaiting_contractor_confirmation',
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     }
 
     // Mark supplier as confirmed (dual confirmation system)
-    const { error: confirmError } = await supabase
+    const { error: confirmError } = await (supabase as any)
       .from('deliveries')
       .update({
         supplier_confirmed: true,

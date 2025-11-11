@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query
-    let query = supabase
+    let query = (supabase as any)
       .from('contractor_communications')
       .select(`
         *,
@@ -182,36 +182,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Create communication log
-    const { data: communication, error: insertError } = await (supabase
+    const { data: communication, error: insertError } = await (supabase as any)
       .from('contractor_communications')
-      .insert as any)({
-      contractor_id,
-      supplier_id: supplier.id,
-      order_id: order_id || null,
-      type,
-      subject,
-      message,
-      metadata: metadata || {},
-      created_by: user.id
-    })
-    .select(`
-      *,
-      contractor:contractor_id (
-        id,
-        full_name,
-        email,
-        phone
-      ),
-      order:order_id (
-        id,
-        order_number
-      ),
-      creator:created_by (
-        id,
-        full_name
-      )
-    `)
-    .single()
+      .insert({
+        contractor_id,
+        supplier_id: supplier.id,
+        order_id: order_id || null,
+        type,
+        subject,
+        message,
+        metadata: metadata || {},
+        created_by: user.id
+      })
+      .select(`
+        *,
+        contractor:contractor_id (
+          id,
+          full_name,
+          email,
+          phone
+        ),
+        order:order_id (
+          id,
+          order_number
+        ),
+        creator:created_by (
+          id,
+          full_name
+        )
+      `)
+      .single()
 
     if (insertError) {
       console.error('Communication insert error:', insertError)

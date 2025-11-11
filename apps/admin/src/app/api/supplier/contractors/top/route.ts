@@ -47,22 +47,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Query for top contractors with raw SQL for better performance
-    const { data: topContractors, error: queryError } = (await supabase
+    const { data: topContractors, error: queryError } = await (supabase as any)
       .rpc('get_top_contractors', {
         p_supplier_id: supplier.id,
         p_period: period,
         p_limit: limit
-      })) as any
+      })
 
     // If RPC doesn't exist, fall back to manual query
     if (queryError) {
       // Fallback query using the view
-      const { data: contractors } = (await supabase
+      const { data: contractors } = await (supabase as any)
         .from('contractor_insights')
         .select('*')
         .eq('supplier_id', supplier.id)
         .order('total_spent', { ascending: false })
-        .limit(limit)) as any
+        .limit(limit)
 
       // Transform data for consistency
       const transformedData = contractors?.map((c: any, index: number) => ({

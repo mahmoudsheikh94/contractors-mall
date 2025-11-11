@@ -69,7 +69,7 @@ export async function GET(
 
     // Apply filters
     if (status) {
-      query = query.eq('status', status)
+      query = query.eq('status', status as any)
     }
 
     if (startDate) {
@@ -103,7 +103,7 @@ export async function GET(
       .eq('supplier_id', supplier.id)
 
     if (status) {
-      statsQuery = statsQuery.eq('status', status)
+      statsQuery = statsQuery.eq('status', status as any)
     }
     if (startDate) {
       statsQuery = statsQuery.gte('created_at', startDate)

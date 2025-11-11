@@ -43,7 +43,7 @@ export default async function CustomersPage() {
   }
 
   // Fetch all contractors who have ordered from this supplier
-  const { data: contractors, error: contractorsError } = (await supabase
+  const { data: contractors, error: contractorsError } = await (supabase as any)
     .from('contractor_insights')
     .select(`
       contractor_id,
@@ -59,7 +59,7 @@ export default async function CustomersPage() {
       rejected_orders
     `)
     .eq('supplier_id', supplier.id)
-    .order('total_spent', { ascending: false })) as any
+    .order('total_spent', { ascending: false })
 
   if (contractorsError) {
     console.error('Error fetching contractors:', contractorsError)

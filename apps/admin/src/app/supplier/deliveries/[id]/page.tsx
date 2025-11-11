@@ -7,7 +7,7 @@ import Link from 'next/link'
 async function getDeliveryDetails(deliveryId: string) {
   const supabase = await createClient()
 
-  const { data: delivery, error } = await supabase
+  const { data: delivery, error } = await (supabase as any)
     .from('deliveries')
     .select(`
       *,

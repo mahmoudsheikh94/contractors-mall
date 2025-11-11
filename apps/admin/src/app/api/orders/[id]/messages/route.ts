@@ -269,18 +269,18 @@ export async function POST(
       })
 
       // Add to email queue for notification
-      await (supabase
+      await (supabase as any)
         .from('email_queue')
-        .insert as any)({
-        recipient_email: isContractor ? supplier?.owner_id : order.contractor_id, // Would need to fetch email
-        template_id: 'new_message',
-        data: {
-          order_number: order.order_number,
-          message_preview: message.substring(0, 100),
-          sender_name: newMessage.sender.full_name,
-          sender_type: senderType
-        }
-      })
+        .insert({
+          recipient_email: isContractor ? supplier?.owner_id : order.contractor_id, // Would need to fetch email
+          template_id: 'new_message',
+          data: {
+            order_number: order.order_number,
+            message_preview: message.substring(0, 100),
+            sender_name: newMessage.sender.full_name,
+            sender_type: senderType
+          }
+        })
     }
 
     return NextResponse.json({
