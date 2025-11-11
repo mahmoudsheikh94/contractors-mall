@@ -85,8 +85,11 @@ Individual line items within an order
 - `product_name` (TEXT, NULLABLE): Product name at time of order (⚠️ temporarily nullable - should pass from frontend)
 - `unit` (TEXT, NULLABLE): Unit of measure at time of order (⚠️ temporarily nullable - should pass from frontend)
 - `quantity` (NUMERIC): Quantity ordered
-- `price_per_unit` (NUMERIC): Price per unit at time of order
-- `subtotal` (NUMERIC): Line item subtotal
+- `price_per_unit` (NUMERIC): Price per unit at time of order (JOD)
+- `unit_price_jod` (NUMERIC): Alias for price_per_unit (for consistency)
+- `total_jod` (NUMERIC): Line item total (quantity × price_per_unit)
+- `weight_kg` (NUMERIC): Total weight for this line item
+- `volume_m3` (NUMERIC): Total volume for this line item
 - `created_at` (TIMESTAMPTZ)
 
 **TODO**: Make `product_name` and `unit` NOT NULL after frontend checkout is updated to pass these values.
@@ -97,7 +100,11 @@ Customer orders
 - `order_number` (TEXT): Unique order number (ORD-YYYYMMDD-XXXXX)
 - `contractor_id` (UUID, FK): References profiles
 - `supplier_id` (UUID, FK): References suppliers
-- `status` (ENUM): pending|confirmed|accepted|in_delivery|delivered|completed|cancelled|rejected|disputed
+- `status` (ENUM): pending|confirmed|in_delivery|delivered|completed|cancelled|awaiting_contractor_confirmation
+  - **Note**: 'rejected' and 'disputed' are NOT order statuses
+    - Disputes are tracked in separate `disputes` table with their own status enum
+    - 'accepted' status was removed - suppliers no longer manually accept orders
+    - 'awaiting_contractor_confirmation' added for dual-delivery confirmation flow (supplier confirms → contractor confirms → payment released)
 - `subtotal_jod` (NUMERIC): Items subtotal
 - `delivery_fee_jod` (NUMERIC): Calculated delivery fee
 - `total_jod` (NUMERIC): Total order amount (subtotal + delivery)
@@ -108,8 +115,8 @@ Customer orders
 - `scheduled_delivery_time` (TEXT): Time slot
 - `delivery_address` (TEXT): Full delivery address
 - `delivery_latitude/longitude` (NUMERIC): GPS coordinates
-- `rejection_reason` (TEXT): If status = rejected
-- `disputed_at` (TIMESTAMPTZ): When dispute was opened
+- `rejection_reason` (TEXT): Reserved for future use
+- `disputed_at` (TIMESTAMPTZ): When dispute was opened (references disputes table)
 
 ### deliveries
 Delivery tracking and proof
@@ -231,6 +238,74 @@ In-app messaging between contractor and supplier
 - `message` (TEXT): Message content
 - `is_read` (BOOLEAN): Read status
 - `created_at` (TIMESTAMPTZ)
+
+### order_activities
+Activity log for order lifecycle events
+- `id` (UUID, PK)
+- `order_id` (UUID, FK): References orders
+- `activity_type` (TEXT): e.g., 'status_change', 'note_added', 'tag_added', 'delivery_started'
+- `description` (TEXT): Human-readable activity description
+- `metadata` (JSONB): Additional structured data about the activity
+- `created_by` (UUID, FK): References profiles (who performed the action)
+- `created_at` (TIMESTAMPTZ)
+
+### contractor_communications
+Communication log between suppliers and contractors (supplier-to-contractor messaging)
+- `id` (UUID, PK)
+- `contractor_id` (UUID, FK): References profiles (contractor)
+- `supplier_id` (UUID, FK): References suppliers
+- `order_id` (UUID, FK, NULLABLE): Related order (optional)
+- `type` (TEXT): Communication type (e.g., 'inquiry', 'follow_up', 'issue')
+- `subject` (TEXT): Communication subject
+- `message` (TEXT): Message content
+- `metadata` (JSONB): Additional data
+- `created_by` (UUID, FK): References profiles (sender)
+- `created_at` (TIMESTAMPTZ)
+
+### email_queue
+Outbound email queue for notifications and transactional emails
+- `id` (UUID, PK)
+- `recipient_email` (TEXT): Email address to send to
+- `template_id` (TEXT): References email_templates.name
+- `data` (JSONB): Template variable values
+- `sent_at` (TIMESTAMPTZ, NULLABLE): When email was sent (null = pending)
+- `error_message` (TEXT, NULLABLE): Error if send failed
+- `created_at` (TIMESTAMPTZ)
+
+**Note**: Emails are processed asynchronously. Failed emails are retried based on error_message.
+
+### contractor_insights (VIEW)
+Aggregated analytics about contractor behavior per supplier
+- `contractor_id` (UUID): References profiles
+- `supplier_id` (UUID): References suppliers
+- `contractor_name` (TEXT): Contractor's full name
+- `contractor_email` (TEXT): Contractor's email
+- `contractor_phone` (TEXT): Contractor's phone
+- `total_orders` (INTEGER): Total orders placed
+- `total_spent` (NUMERIC): Total amount spent (JOD)
+- `average_order_value` (NUMERIC): Average order amount
+- `last_order_date` (DATE): Most recent order date
+- `days_since_last_order` (INTEGER): Days since last order
+- `orders_last_30_days` (INTEGER): Orders in last 30 days
+- `orders_last_90_days` (INTEGER): Orders in last 90 days
+- `completed_orders` (INTEGER): Successfully completed orders
+- `disputed_orders` (INTEGER): Orders with disputes
+- `rejected_orders` (INTEGER): Cancelled/rejected orders
+
+**Note**: This is a database VIEW, not a table. Automatically updated.
+
+### contractor_category_preferences (VIEW)
+Product category preferences per contractor-supplier relationship
+- `contractor_id` (UUID): References profiles
+- `supplier_id` (UUID): References suppliers
+- `category_id` (UUID): References categories
+- `category_name_ar` (TEXT): Category name (Arabic)
+- `category_name_en` (TEXT): Category name (English)
+- `total_spent_on_category` (NUMERIC): Total spent in this category (JOD)
+- `order_count` (INTEGER): Number of orders containing items from this category
+- `last_order_date` (DATE): Most recent order with items from this category
+
+**Note**: This is a database VIEW, not a table. Automatically updated.
 
 ### in_app_notifications
 User notifications system

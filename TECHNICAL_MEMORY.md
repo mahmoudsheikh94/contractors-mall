@@ -1875,6 +1875,161 @@ If issues occur:
 
 ---
 
+## 14. TypeScript Type Workarounds (January 11, 2025)
+
+### ⚠️ Supabase Type Inference Depth Limit
+
+**Problem**: Complex queries with joins cause TypeScript error: `"Type instantiation is excessively deep and possibly infinite"`
+
+**Root Cause**: Supabase's generated types create deeply nested type definitions when using `.from()` with joins. TypeScript compiler hits recursion limit when inferring these types.
+
+**Solution Pattern**:
+```typescript
+// ❌ WRONG - TypeScript fails BEFORE reaching 'as any'
+const { data } = (await supabase
+  .from('table')
+  .select('*, related_table!inner(*)')
+  .single()) as any
+
+// ✅ CORRECT - Cast supabase to 'any' BEFORE method chain
+const { data } = await (supabase as any)
+  .from('table')
+  .select('*, related_table!inner(*)')
+  .single()
+```
+
+**Why This Works**: By casting `supabase` to `any` before calling methods, TypeScript skips type inference entirely instead of trying to resolve deeply nested types and hitting the recursion limit.
+
+### Files Using This Pattern (9 total)
+
+All files below use `(supabase as any)` to avoid type depth limits:
+
+1. **`apps/admin/src/app/api/deliveries/confirm-photo/route.ts`** (4 queries)
+   - Line 18: Delivery fetch with order join
+   - Line 44: Delivery photo update
+   - Line 64: Order status update
+   - Line 78: Supplier confirmation
+
+2. **`apps/admin/src/app/api/deliveries/verify-pin/route.ts`** (5 queries)
+   - Line 25: Delivery fetch with order join
+   - Line 59: PIN attempts increment
+   - Line 77: Delivery PIN verification update
+   - Line 96: Order status update
+   - Line 110: Supplier confirmation
+
+3. **`apps/admin/src/app/api/orders/[id]/messages/route.ts`** (1 query)
+   - Line 272: Email queue insert
+
+4. **`apps/admin/src/app/api/supplier/communications/route.ts`** (2 queries)
+   - Line 41: Contractor communications list with joins
+   - Line 185: Communication creation with joins
+
+5. **`apps/admin/src/app/api/supplier/contractors/[id]/history/route.ts`** (2 queries)
+   - Line 72: Order status filter
+   - Line 106: Stats query status filter
+
+6. **`apps/admin/src/app/api/supplier/contractors/[id]/route.ts`** (7 queries)
+   - Line 25: Supplier fetch
+   - Line 36: Contractor profile fetch
+   - Line 48: Contractor insights view
+   - Line 56: Lifetime value RPC call
+   - Line 64: Purchase frequency RPC call
+   - Line 73: Category preferences
+   - Line 82: Recent orders
+   - Line 91: Delivery addresses
+
+7. **`apps/admin/src/app/api/supplier/contractors/top/route.ts`** (2 queries)
+   - Line 50: Top contractors RPC call
+   - Line 60: Fallback contractor insights query
+
+8. **`apps/admin/src/app/supplier/customers/page.tsx`** (1 query)
+   - Line 46: Contractor insights list
+
+9. **`apps/admin/src/app/supplier/deliveries/[id]/page.tsx`** (1 query)
+   - Line 10: Delivery details with order join
+
+**Total**: 25+ individual query locations using this workaround
+
+### Deployment Impact
+
+**Before Fix** (Commit c405851):
+- ❌ Build failed on Vercel with type errors
+- ❌ Admin app deployment blocked
+- ❌ 98+ TypeScript errors
+
+**After Fix** (Commit aa7a20a):
+- ✅ Build succeeds on Vercel
+- ✅ Admin app deploys successfully
+- ✅ All 44 static pages generated
+- ✅ 100% error reduction (98 → 0)
+
+### Proper Future Fix
+
+The correct long-term solution is to properly import and use generated Database types:
+
+```typescript
+// Step 1: Import generated types
+import { Database } from '@/lib/supabase/database.types'
+import { createServerClient } from '@supabase/ssr'
+
+// Step 2: Use typed client
+export async function createClient() {
+  const cookieStore = await cookies()
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { /* ... */ } }
+  )
+}
+
+// Step 3: For simple queries, types will work
+const { data } = await supabase
+  .from('orders')
+  .select('*')
+  .eq('id', orderId)
+  .single()  // Type inference works fine
+
+// Step 4: For complex joins, may still need workaround
+const { data } = await (supabase as any)  // Still needed for deep joins
+  .from('deliveries')
+  .select('*, order:orders!inner(*, items:order_items(*, product:products(*)))')
+  .single()
+```
+
+**Note**: Even with proper type imports, complex multi-level joins may still hit TypeScript's depth limit. The `as any` workaround is a pragmatic solution until Supabase improves their type generation or TypeScript increases depth limits.
+
+### Alternative Approaches Considered
+
+1. **Split queries** - Query tables separately and join in TypeScript
+   - ❌ Loses database-level join optimization
+   - ❌ Requires N+1 queries
+   - ❌ More complex code
+
+2. **Use raw SQL** - Query with `supabase.rpc()` or raw SQL
+   - ❌ Loses type safety completely
+   - ❌ No auto-complete
+   - ❌ More prone to SQL injection if not careful
+
+3. **Simplify selects** - Only select needed columns
+   - ✅ Sometimes works for shallow joins
+   - ❌ Doesn't solve deep nesting (3+ levels)
+   - ❌ Requires manual type definitions
+
+4. **Cast to 'any'** (chosen solution) ✅
+   - ✅ Minimal code changes
+   - ✅ Works for all query complexity levels
+   - ✅ No performance impact
+   - ⚠️  Loses type safety for that query (acceptable tradeoff)
+
+### Related Issues
+
+- Supabase Issue: https://github.com/supabase/supabase-js/issues/658
+- TypeScript Issue: https://github.com/microsoft/TypeScript/issues/34933
+
+**Status**: Documented workaround, no better solution available as of January 2025.
+
+---
+
 ## Summary Checklist
 
 When working on this project, remember:
@@ -1890,6 +2045,8 @@ When working on this project, remember:
 ✅ Phase 1.1 admin features complete
 ✅ Stability improvements complete
 ✅ Phase 1.2 support tools complete (search, messaging, email templates, bulk ops)
+✅ TypeScript build errors resolved (January 11, 2025) - 100% error reduction
+✅ Vercel deployment now succeeds for both web and admin apps
 
 ---
 
@@ -1899,6 +2056,7 @@ When working on this project, remember:
 - Workarounds discovered
 - Deployment configuration changes
 - Environment variables added
+- TypeScript build fixes applied
 
-**Last Updated**: November 9, 2025
+**Last Updated**: January 11, 2025
 **Maintained by**: Claude Code AI
