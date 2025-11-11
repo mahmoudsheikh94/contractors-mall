@@ -35,7 +35,10 @@ export function OrderChat({ orderId, currentUserId, currentUserType }: OrderChat
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [prevMessageCount, setPrevMessageCount] = useState(0)
+  const [isUserScrolling, setIsUserScrolling] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch messages
@@ -99,9 +102,23 @@ export function OrderChat({ orderId, currentUserId, currentUserType }: OrderChat
     e.target.style.height = `${e.target.scrollHeight}px`
   }
 
-  // Scroll to bottom when messages change
+  // Handle scroll detection to know if user manually scrolled up
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
+    setIsUserScrolling(!isAtBottom)
+  }
+
+  // Scroll to bottom only when new messages are added (not on polling refresh)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Only auto-scroll if:
+    // 1. Message count increased (new message added)
+    // 2. User hasn't manually scrolled up
+    if (messages.length > prevMessageCount && !isUserScrolling) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    setPrevMessageCount(messages.length)
   }, [messages])
 
   // Load messages on mount
@@ -138,7 +155,11 @@ export function OrderChat({ orderId, currentUserId, currentUserType }: OrderChat
       </div>
 
       {/* Messages List */}
-      <div className="p-4 h-96 overflow-y-auto space-y-4">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="p-4 h-96 overflow-y-auto space-y-4"
+      >
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-4xl">📭</span>

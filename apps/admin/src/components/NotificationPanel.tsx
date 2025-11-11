@@ -23,7 +23,7 @@ export function NotificationPanel() {
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/supplier/notifications?limit=10')
+      const response = await fetch('/api/notifications/unread')
       const data = await response.json()
 
       if (response.ok) {
@@ -38,36 +38,31 @@ export function NotificationPanel() {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('/api/supplier/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markAll: true })
+      const response = await fetch('/api/notifications/mark-read', {
+        method: 'PUT'
       })
 
       if (response.ok) {
-        setNotifications(prev =>
-          prev.map(n => ({ ...n, is_read: true }))
-        )
+        setNotifications([])
         setUnreadCount(0)
       }
     } catch (err) {
-      console.error('Failed to mark as read:', err)
+      console.error('Failed to mark all as read:', err)
     }
   }
 
   // Mark single notification as read
   const markAsRead = async (notificationId: string) => {
     try {
-      const response = await fetch('/api/supplier/notifications', {
-        method: 'PATCH',
+      const response = await fetch('/api/notifications/mark-read', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notificationIds: [notificationId] })
       })
 
       if (response.ok) {
-        setNotifications(prev =>
-          prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-        )
+        // Remove from list since we only show unread notifications
+        setNotifications(prev => prev.filter(n => n.id !== notificationId))
         setUnreadCount(prev => Math.max(0, prev - 1))
       }
     } catch (err) {
