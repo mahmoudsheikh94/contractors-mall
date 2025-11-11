@@ -17,8 +17,16 @@ ALTER TABLE supplier_zone_fees DROP CONSTRAINT IF EXISTS supplier_zone_fees_supp
 -- Remove vehicle_class_id column
 ALTER TABLE supplier_zone_fees DROP COLUMN IF EXISTS vehicle_class_id;
 
--- Add new unique constraint (one fee per supplier per zone)
-ALTER TABLE supplier_zone_fees ADD CONSTRAINT supplier_zone_fees_supplier_zone_unique UNIQUE (supplier_id, zone);
+-- Add new unique constraint (one fee per supplier per zone) - only if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'supplier_zone_fees_supplier_zone_unique'
+  ) THEN
+    ALTER TABLE supplier_zone_fees ADD CONSTRAINT supplier_zone_fees_supplier_zone_unique UNIQUE (supplier_id, zone);
+  END IF;
+END $$;
 
 -- ============================================================================
 -- STEP 2: Make vehicle_class_id nullable in orders table

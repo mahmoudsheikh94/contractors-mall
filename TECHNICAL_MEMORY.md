@@ -1,6 +1,6 @@
 # Contractors Mall - Technical Memory
 
-**Last Updated**: November 9, 2025
+**Last Updated**: January 11, 2025
 **Purpose**: Single source of truth for technical decisions, actual implementation, and current state
 **Audience**: Claude Code AI, future developers, technical stakeholders
 
@@ -141,10 +141,24 @@ CREATE TABLE profiles (
 );
 ```
 
-**RLS Policies**:
-- Users can view their own profile
+**RLS Policies** (Updated January 11, 2025):
+```sql
+CREATE POLICY "Users can view relevant profiles"
+  ON profiles FOR SELECT
+  TO authenticated
+  USING (
+    id = auth.uid()                    -- Own profile
+    OR role = 'contractor'             -- All contractor profiles visible
+    OR role = 'supplier_admin'         -- All supplier profiles visible (for messaging)
+    OR is_supplier_admin()             -- Admins see all
+  );
+```
+
+**Key Points**:
+- Contractor AND supplier_admin profiles are visible to all authenticated users
+- This enables messaging between contractors and suppliers
+- Safe because supplier info is semi-public (visible on suppliers page)
 - Users can update their own profile
-- Admins can view all profiles
 - Service role has full access
 
 #### `suppliers`
@@ -619,7 +633,107 @@ All individual hotfix files have been archived:
 
 ## 6. Known Issues & Workarounds
 
-### 1. Sentry Type Issues (Fixed)
+### Critical Issues Fixed (January 11, 2025)
+
+#### 1. Infinite Recursion in Profiles RLS (RESOLVED) 🔴→✅
+
+**Incident Date**: January 11, 2025
+**Severity**: Critical - App completely broken
+**Duration**: ~30 minutes
+
+**Problem**:
+Migration `20251111000000_fix_profiles_rls_for_messaging.sql` created an RLS policy with a subquery that caused infinite recursion:
+
+```sql
+-- ❌ BAD: Causes infinite recursion
+(role = 'supplier_admin' AND id IN (
+  SELECT s.owner_id
+  FROM orders o  -- orders table has RLS that checks profiles
+  JOIN suppliers s ON s.id = o.supplier_id
+  WHERE o.contractor_id = auth.uid()  -- This queries profiles again!
+))
+```
+
+**Symptoms**:
+- Users unable to login
+- Profile completion fails with error: `"infinite recursion detected in policy for relation \"profiles\""`
+- Redirect loop to `/auth/complete-profile`
+
+**Root Cause**:
+RLS circular dependency:
+```
+profiles RLS → queries orders → orders RLS → queries profiles → infinite loop
+```
+
+**Emergency Fix Applied**:
+Manually ran SQL in production to restore working policy:
+
+```sql
+DROP POLICY IF EXISTS "Users can view relevant profiles" ON profiles;
+
+CREATE POLICY "Users can view relevant profiles"
+  ON profiles FOR SELECT
+  TO authenticated
+  USING (
+    id = auth.uid()
+    OR
+    role = 'contractor'
+    OR
+    role = 'supplier_admin'  -- Simple: make all supplier profiles visible
+    OR
+    is_supplier_admin()
+  );
+```
+
+**Lesson Learned**:
+- NEVER use subqueries in RLS policies that query tables with their own RLS policies
+- Always prefer simple conditions or SECURITY DEFINER functions
+- Test RLS policies in production-like environment before deploying
+
+**Files to Delete**:
+- ❌ `supabase/migrations/20251111000000_fix_profiles_rls_for_messaging.sql` (DANGEROUS - DO NOT USE)
+
+**Working Migrations**:
+- ✅ `supabase/migrations/20251111000001_rollback_infinite_recursion.sql`
+- ✅ `supabase/migrations/20251111000002_fix_messaging_rls_properly.sql`
+
+---
+
+### Current Issues
+
+### 2. OrderChat Component - Supplier Names in Messages ✅
+
+**Status**: Fixed (January 11, 2025)
+**Issue**: Contractors saw "مستخدم غير معروف" (Unknown User) instead of supplier names in order messages.
+
+**Root Cause**:
+RLS policy on `profiles` table didn't allow contractors to view supplier admin profiles. The `message.sender` join returned `null`.
+
+**Fix Applied**:
+1. Added defensive null check in `OrderChat.tsx`:
+   ```typescript
+   return message.sender?.full_name || 'مستخدم غير معروف'
+   ```
+
+2. Updated RLS policy to make `supplier_admin` profiles visible to all authenticated users:
+   ```sql
+   role = 'supplier_admin'  -- Suppliers are semi-public anyway
+   ```
+
+**Why This Is Safe**:
+- Supplier profiles are already visible on the public suppliers page
+- No sensitive information exposed (just name, email, phone - already public)
+- Simpler than complex SECURITY DEFINER functions
+- No recursion risk
+
+**Current Behavior**:
+- ✅ Contractors see supplier names in messages
+- ✅ Suppliers see contractor names in messages (already worked)
+- ✅ No crashes, null checks prevent errors
+
+---
+
+### 3. Sentry Type Issues (Fixed)
 
 **Issue**: `Sentry.Transaction` type not available in newer Sentry SDK.
 
@@ -650,7 +764,7 @@ export async function measurePerformance<T>(
 }
 ```
 
-### 2. RPC Function Types Not Defined
+### 4. RPC Function Types Not Defined
 
 **Issue**: Custom database functions like `get_table_stats()` not in TypeScript types.
 
@@ -672,7 +786,7 @@ const { data: perfMetrics } = await (supabase.rpc as any)('get_performance_metri
 npx supabase gen types typescript --project-id YOUR_PROJECT_ID > src/types/database.ts
 ```
 
-### 3. `system_logs` Table May Not Exist
+### 5. `system_logs` Table May Not Exist
 
 **Issue**: Health monitoring queries `system_logs` table that might not exist in all environments.
 
@@ -692,7 +806,7 @@ npx supabase db push
 # Or manually apply: supabase/migrations/20251108200000_health_monitoring_functions.sql
 ```
 
-### 4. Frontend Not Passing Product Data
+### 6. Frontend Not Passing Product Data
 
 **Issue**: Checkout flow doesn't pass `product_name` and `unit` to `order_items`.
 
@@ -710,7 +824,7 @@ npx supabase db push
 }
 ```
 
-### 5. Vehicle Auto-Selection Disabled
+### 7. Vehicle Auto-Selection Disabled
 
 **Issue**: Original PRD specified auto vehicle selection, but it's been disabled.
 
