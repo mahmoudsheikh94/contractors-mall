@@ -286,7 +286,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           />
 
           {/* Rejection Reason (if rejected) */}
-          {order.status === 'rejected' && order.rejection_reason && (
+          {(order.status as any) === 'rejected' && order.rejection_reason && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-red-900 mb-2">سبب الرفض</h3>
               <p className="text-red-800">{order.rejection_reason}</p>

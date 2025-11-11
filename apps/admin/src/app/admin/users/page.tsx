@@ -20,7 +20,7 @@ async function getUsers(filter?: string, search?: string) {
 
   // Apply role filter
   if (filter && filter !== 'all') {
-    query = query.eq('role', filter)
+    query = query.eq('role', filter as any)
   }
 
   // Apply search filter
@@ -28,7 +28,7 @@ async function getUsers(filter?: string, search?: string) {
     query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
   }
 
-  const { data, error } = await query
+  const { data, error } = (await query) as any
 
   if (error) {
     console.error('Error fetching users:', error)

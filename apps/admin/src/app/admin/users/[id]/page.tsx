@@ -4,14 +4,14 @@ import Link from 'next/link'
 async function getUserDetails(id: string) {
   const supabase = await createClient()
 
-  const { data: user, error } = await supabase
+  const { data: user, error } = (await supabase
     .from('profiles')
     .select(`
       *,
       supplier:suppliers!owner_id(*)
     `)
     .eq('id', id)
-    .single()
+    .single()) as any
 
   if (error) {
     console.error('Error fetching user:', error)
@@ -23,30 +23,30 @@ async function getUserDetails(id: string) {
   let deliveries = []
 
   if (user.role === 'contractor') {
-    const { data: contractorOrders } = await supabase
+    const { data: contractorOrders } = (await supabase
       .from('orders')
       .select('*, supplier:suppliers!supplier_id(business_name)')
       .eq('contractor_id', id)
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(10)) as any
 
     orders = contractorOrders || []
   } else if (user.role === 'supplier_admin' && user.supplier) {
-    const { data: supplierOrders } = await supabase
+    const { data: supplierOrders } = (await supabase
       .from('orders')
       .select('*, contractor:profiles!contractor_id(full_name)')
       .eq('supplier_id', user.supplier.id)
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(10)) as any
 
     orders = supplierOrders || []
   } else if (user.role === 'driver') {
-    const { data: driverDeliveries } = await supabase
+    const { data: driverDeliveries } = (await supabase
       .from('deliveries')
       .select('*, order:orders!order_id(*)')
       .eq('driver_id', id)
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(10)) as any
 
     deliveries = driverDeliveries || []
   }

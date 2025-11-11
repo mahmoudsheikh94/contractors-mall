@@ -309,7 +309,7 @@ export default async function OrderDetailsPage({
               <div>
                 <label className="text-sm text-gray-600 block mb-1">المنطقة</label>
                 <p className="font-semibold text-gray-900">
-                  {order.delivery_zone === 'A' ? 'منطقة A' : order.delivery_zone === 'B' ? 'منطقة B' : '-'}
+                  {order.delivery_zone === 'zone_a' ? 'منطقة A' : order.delivery_zone === 'zone_b' ? 'منطقة B' : '-'}
                 </p>
               </div>
 

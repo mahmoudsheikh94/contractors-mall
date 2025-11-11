@@ -5,7 +5,7 @@ import { VerifySupplierButton } from './VerifySupplierButton'
 async function getSupplierDetails(id: string) {
   const supabase = await createClient()
 
-  const { data: supplier, error } = await supabase
+  const { data: supplier, error } = (await supabase
     .from('suppliers')
     .select(`
       *,
@@ -18,7 +18,7 @@ async function getSupplierDetails(id: string) {
       )
     `)
     .eq('id', id)
-    .single()
+    .single()) as any
 
   if (error) {
     console.error('Error fetching supplier:', error)

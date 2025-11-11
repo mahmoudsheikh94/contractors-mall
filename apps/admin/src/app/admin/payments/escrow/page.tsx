@@ -5,7 +5,7 @@ import { EscrowActions } from './EscrowActions'
 async function getHeldPayments() {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('payments')
     .select(`
       *,
@@ -28,7 +28,7 @@ async function getHeldPayments() {
       )
     `)
     .eq('status', 'held')
-    .order('held_at', { ascending: true })
+    .order('held_at', { ascending: true })) as any
 
   if (error) {
     console.error('Error fetching held payments:', error)
