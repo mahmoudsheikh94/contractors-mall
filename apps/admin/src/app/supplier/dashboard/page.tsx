@@ -453,6 +453,8 @@ function OrderStatusBadge({ status }: { status: string }) {
     completed: { label: 'مكتمل', className: 'bg-green-100 text-green-800' },
     rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-800' },
     disputed: { label: 'متنازع عليه', className: 'bg-orange-100 text-orange-800' },
+    cancelled: { label: 'ملغي', className: 'bg-gray-100 text-gray-800' },
+    awaiting_contractor_confirmation: { label: 'في انتظار تأكيد العميل', className: 'bg-blue-100 text-blue-800' },
   }
 
   const config = configs[status] || { label: status, className: 'bg-gray-100 text-gray-800' }

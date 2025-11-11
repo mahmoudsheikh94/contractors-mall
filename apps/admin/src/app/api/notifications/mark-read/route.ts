@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Force dynamic rendering to avoid static generation errors with cookies
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/notifications/mark-read
  *

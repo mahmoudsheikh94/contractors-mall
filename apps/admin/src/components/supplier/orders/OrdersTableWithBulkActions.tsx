@@ -315,6 +315,7 @@ export function OrdersTableWithBulkActions({ orders, searchParams }: OrdersTable
 
 function OrderStatusBadge({ status }: { status: string }) {
   const configs: Record<string, { label: string; className: string }> = {
+    pending: { label: 'معلق', className: 'bg-yellow-100 text-yellow-800' },
     confirmed: { label: 'جديد', className: 'bg-blue-100 text-blue-800' },
     accepted: { label: 'مقبول', className: 'bg-green-100 text-green-800' },
     in_delivery: { label: 'قيد التوصيل', className: 'bg-purple-100 text-purple-800' },
@@ -322,6 +323,8 @@ function OrderStatusBadge({ status }: { status: string }) {
     completed: { label: 'مكتمل', className: 'bg-emerald-100 text-emerald-800' },
     rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-800' },
     disputed: { label: 'متنازع عليه', className: 'bg-yellow-100 text-yellow-800' },
+    cancelled: { label: 'ملغي', className: 'bg-gray-100 text-gray-800' },
+    awaiting_contractor_confirmation: { label: 'في انتظار التأكيد', className: 'bg-blue-100 text-blue-800' },
   }
 
   const config = configs[status] || { label: status, className: 'bg-gray-100 text-gray-800' }
