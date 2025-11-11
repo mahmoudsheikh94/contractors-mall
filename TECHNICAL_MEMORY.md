@@ -2354,6 +2354,47 @@ useEffect(() => {
 - `apps/admin/src/components/supplier/orders/OrderChat.tsx`
 - `apps/web/src/components/OrderChat.tsx`
 
+### Message Ordering Fix (January 12, 2025) ✅
+
+**Problem**: Chat messages displayed in reverse chronological order (newest first), which is counter to standard chat UX conventions.
+
+**User Request**: "the chat messages in both app are sorted in a descending order, where it's better if they are ascending, meaning the latest should be the last one not the first one"
+
+**Root Cause**: API routes returned messages in descending order
+```typescript
+// ❌ BAD: Returns newest messages first
+.order('created_at', { ascending: false })
+```
+
+**Fix Applied**: Changed to ascending order in both API routes
+```typescript
+// ✅ GOOD: Returns oldest messages first
+.order('created_at', { ascending: true })
+```
+
+**Frontend Adjustment**: Changed message append logic
+```typescript
+// Before: Prepended new messages (for descending order)
+setMessages([data.message, ...messages])
+
+// After: Append new messages (for ascending order)
+setMessages([...messages, data.message])
+```
+
+**Files Fixed**:
+- `apps/admin/src/app/api/orders/[id]/messages/route.ts` (line 74)
+- `apps/web/src/app/api/orders/[orderId]/messages/route.ts` (line 74)
+- `apps/admin/src/components/supplier/orders/OrderChat.tsx` (line 81)
+- `apps/web/src/components/OrderChat.tsx` (line 80)
+
+**Result**: Messages now display in traditional chat order:
+- Oldest messages at top ⬆️
+- Newest messages at bottom ⬇️
+- New messages appear at end of conversation
+- Consistent across both supplier and contractor apps
+
+**Commit**: `56485f2` - "fix: correct chat message ordering to show oldest first"
+
 ### Testing Checklist
 
 **Production Verification** (January 12, 2025):
@@ -2364,6 +2405,8 @@ useEffect(() => {
 - ✅ Mark as read works correctly
 - ✅ Chat doesn't auto-scroll during polling
 - ✅ Chat auto-scrolls only when new messages arrive
+- ✅ Chat messages display oldest-first (traditional chat order)
+- ✅ New messages appear at bottom of conversation
 
 ### Performance Considerations
 
