@@ -71,7 +71,7 @@ export async function GET(
         )
       `, { count: 'exact' })
       .eq('order_id', orderId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
       .range(offset, offset + limit - 1)
 
     if (messagesError) {

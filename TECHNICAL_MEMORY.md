@@ -2058,5 +2058,349 @@ When working on this project, remember:
 - Environment variables added
 - TypeScript build fixes applied
 
-**Last Updated**: January 11, 2025
+---
+
+## 15. Notification System (January 12, 2025)
+
+### ✅ Complete Implementation & Fixes
+
+**Implementation Date**: January 11-12, 2025
+**Status**: Fully Operational
+**Migrations**:
+- `20250111120000_fix_order_status_notifications.sql`
+- `20251112000000_fix_notification_rls_insert.sql`
+
+### System Architecture
+
+The notification system provides real-time in-app notifications for order status changes and messaging events.
+
+#### Database Tables
+
+```sql
+CREATE TABLE in_app_notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  data JSONB DEFAULT '{}',
+  is_read BOOLEAN DEFAULT FALSE,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_in_app_notifications_user ON in_app_notifications(user_id, is_read);
+CREATE INDEX idx_in_app_notifications_created ON in_app_notifications(created_at DESC);
+```
+
+#### RLS Policies
+
+```sql
+-- Allow users to view their own notifications
+CREATE POLICY "Users can view their own notifications"
+  ON in_app_notifications FOR SELECT
+  USING (user_id = auth.uid());
+
+-- Allow users to mark their own notifications as read
+CREATE POLICY "Users can update their own notifications"
+  ON in_app_notifications FOR UPDATE
+  USING (user_id = auth.uid());
+
+-- Critical: Allow system to create notifications
+CREATE POLICY "System can insert notifications for users"
+  ON in_app_notifications FOR INSERT
+  WITH CHECK (user_id IN (SELECT id FROM profiles WHERE id = user_id));
+```
+
+**⚠️ CRITICAL**: The INSERT policy is essential. Without it, database triggers cannot create notifications even with SECURITY DEFINER.
+
+### Notification Types
+
+| Type | Trigger | Sent To | Example |
+|------|---------|---------|---------|
+| `order_status_update` | Order status changes | Contractor & Supplier | "تم قبول طلبك من المورد #ORD-001" |
+| `new_message` | Message sent | Recipient | "رسالة جديدة بخصوص الطلب #ORD-001" |
+| `new_order` | Order created | Supplier | "طلب جديد #ORD-001 - يرجى المراجعة" |
+| `low_stock` | Stock threshold | Supplier | "مخزون منخفض: اسمنت (5 وحدات)" |
+| `payment_received` | Payment released | Supplier | "تم استلام دفعة: 150 د.أ" |
+| `communication_logged` | Admin note | Relevant users | "ملاحظة جديدة على طلبك" |
+
+### Database Triggers
+
+#### Order Status Change Notifications
+
+**Trigger**: `on_order_status_change` on `orders` table
+**Function**: `notify_order_status_change()`
+**Coverage**: ALL 9 order statuses (complete coverage)
+
+```sql
+CREATE TRIGGER on_order_status_change
+  AFTER UPDATE OF status ON orders
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_order_status_change();
+```
+
+**Status Messages** (Arabic):
+
+| Status | Contractor Message | Supplier Message |
+|--------|-------------------|------------------|
+| `pending` | (no notification) | "طلب جديد #X - يرجى المراجعة والقبول" |
+| `confirmed` | "تم قبول طلبك من المورد #X" | "تم قبول الطلب #X" |
+| `cancelled` | "تم إلغاء طلبك #X" | "تم إلغاء الطلب #X" |
+| `awaiting_contractor_confirmation` | "تم توصيل طلبك #X - يرجى تأكيد الاستلام" | "في انتظار تأكيد العميل لاستلام الطلب #X" |
+| `in_delivery` | "طلبك #X قيد التوصيل - في الطريق إليك" | "الطلب #X قيد التوصيل" |
+| `delivered` | "تم توصيل طلبك #X" | "تم توصيل الطلب #X" |
+| `completed` | "اكتمل طلبك #X - شكراً لتعاملك معنا" | "اكتمل الطلب #X" |
+| `rejected` | "تم رفض طلبك #X" + reason | "تم رفض الطلب #X" |
+| `disputed` | "يوجد نزاع على طلبك #X - سيتم مراجعته" | "نزاع على الطلب #X - يرجى التواصل" |
+
+**Data Payload**:
+```json
+{
+  "order_id": "uuid",
+  "order_number": "ORD-20250112-00001",
+  "old_status": "pending",
+  "new_status": "confirmed"
+}
+```
+
+### API Endpoints
+
+#### `GET /api/notifications/unread`
+
+**Purpose**: Fetch unread notifications count and recent 10 notifications
+**Auth**: Required (authenticated users only)
+**Polling**: Client polls every 30 seconds
+
+**Response**:
+```json
+{
+  "unreadCount": 5,
+  "notifications": [
+    {
+      "id": "uuid",
+      "type": "order_status_update",
+      "title": "تحديث حالة الطلب",
+      "message": "تم قبول طلبك من المورد #ORD-001",
+      "data": {
+        "order_id": "uuid",
+        "order_number": "ORD-001",
+        "old_status": "pending",
+        "new_status": "confirmed"
+      },
+      "is_read": false,
+      "created_at": "2025-01-12T10:30:00Z"
+    }
+  ]
+}
+```
+
+**Configuration**:
+```typescript
+export const dynamic = 'force-dynamic'  // Prevents Next.js static rendering
+```
+
+#### `POST /api/notifications/mark-read`
+
+**Purpose**: Mark specific notifications as read
+**Auth**: Required
+**Security**: RLS ensures users can only mark their own notifications
+
+**Request**:
+```json
+{
+  "notificationIds": ["uuid1", "uuid2"]
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "markedCount": 2
+}
+```
+
+#### `PUT /api/notifications/mark-read`
+
+**Purpose**: Mark ALL user's notifications as read
+**Auth**: Required
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "All notifications marked as read"
+}
+```
+
+### Frontend Components
+
+#### `NotificationPanel.tsx` (Admin App)
+
+**Location**: `apps/admin/src/components/NotificationPanel.tsx`
+**Used in**: Supplier dashboard, admin portal
+
+**Features**:
+- 30-second polling for new notifications
+- Unread badge with count (shows "99+" if >99)
+- Dropdown panel with notifications list
+- Mark individual or all as read
+- Click notification → navigate to related page
+- Auto-close on click outside
+
+**Smart Linking**:
+```typescript
+const getLink = () => {
+  if (notification.type === 'new_message' && notification.data?.order_id) {
+    return `/supplier/orders/${notification.data.order_id}`;
+  }
+  if (notification.type === 'order_status_update' && notification.data?.order_id) {
+    return `/supplier/orders/${notification.data.order_id}`;
+  }
+  // ... more types
+  return null;
+};
+```
+
+#### `NotificationBell.tsx` (Ready for Use)
+
+**Location**: `apps/admin/src/components/layout/NotificationBell.tsx`
+**Status**: Created but not yet integrated into layout
+
+**Features**: Same as NotificationPanel but designed for header bar integration
+
+### Production Issues Fixed (January 12, 2025)
+
+#### Issue 1: Missing Status Translations ✅
+
+**Problem**: "cancelled" status showed in English in supplier app
+**Files Fixed**:
+- `apps/admin/src/app/supplier/dashboard/page.tsx`
+- `apps/admin/src/app/supplier/orders/[id]/page.tsx`
+- `apps/admin/src/app/supplier/deliveries/[id]/page.tsx`
+- `apps/admin/src/components/supplier/orders/OrdersTableWithBulkActions.tsx`
+
+**Added**:
+```typescript
+cancelled: { label: 'ملغي', className: 'bg-gray-100 text-gray-800' },
+awaiting_contractor_confirmation: { label: 'في انتظار تأكيد العميل', className: 'bg-blue-100 text-blue-800' },
+```
+
+#### Issue 2: No Notifications Created (CRITICAL) ✅
+
+**Problem**: `in_app_notifications` table had RLS enabled but NO INSERT POLICY
+**Root Cause**: Migration `20251105130000_phase_2c_2d_insights_messaging.sql` created SELECT and UPDATE policies but forgot INSERT
+**Impact**: Zero notifications created in production - triggers silently failed
+
+**Evidence**:
+```sql
+-- Existing policies (from 20251105130000)
+CREATE POLICY "Users can view their own notifications" ... FOR SELECT
+CREATE POLICY "Users can update their own notifications" ... FOR UPDATE
+-- ❌ NO INSERT POLICY!
+```
+
+**Fix Applied**: Migration `20251112000000_fix_notification_rls_insert.sql`
+```sql
+CREATE POLICY "System can insert notifications for users"
+  ON in_app_notifications FOR INSERT
+  WITH CHECK (user_id IN (SELECT id FROM profiles WHERE id = user_id));
+```
+
+**Why This Works**: Even though triggers run with SECURITY DEFINER, RLS policies still apply to INSERT operations. The INSERT policy allows the system to create notifications for any valid user.
+
+#### Issue 3: Next.js Build Errors ✅
+
+**Problem**: Routes using `cookies()` tried to statically pre-render during build
+**Error**: `Dynamic server usage: Route /api/notifications/unread couldn't be rendered statically`
+
+**Fix**: Added to both notification API routes:
+```typescript
+export const dynamic = 'force-dynamic'
+```
+
+**Files Fixed**:
+- `apps/admin/src/app/api/notifications/unread/route.ts`
+- `apps/admin/src/app/api/notifications/mark-read/route.ts`
+
+### Auto-Scroll Fix for Chat (January 12, 2025) ✅
+
+**Problem**: Chat messages auto-scrolled continuously during polling, making it impossible to read older messages
+
+**Root Cause**:
+```typescript
+// ❌ BAD: Scrolls EVERY time messages array changes
+useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+}, [messages])  // Triggers on polling too!
+```
+
+**Fix Applied**: Smart scroll detection
+```typescript
+const [prevMessageCount, setPrevMessageCount] = useState(0)
+const [isUserScrolling, setIsUserScrolling] = useState(false)
+
+// Only scroll if: (1) new messages added AND (2) user is at bottom
+useEffect(() => {
+  if (messages.length > prevMessageCount && !isUserScrolling) {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+  setPrevMessageCount(messages.length)
+}, [messages])
+```
+
+**Files Fixed**:
+- `apps/admin/src/components/supplier/orders/OrderChat.tsx`
+- `apps/web/src/components/OrderChat.tsx`
+
+### Testing Checklist
+
+**Production Verification** (January 12, 2025):
+- ✅ Build succeeds without errors
+- ✅ 'Cancelled' status shows "ملغي" in Arabic
+- ✅ Order status changes create notifications (after SQL migration applied)
+- ✅ Notification bell shows unread count
+- ✅ Mark as read works correctly
+- ✅ Chat doesn't auto-scroll during polling
+- ✅ Chat auto-scrolls only when new messages arrive
+
+### Performance Considerations
+
+**Polling Frequency**: 30 seconds
+- Balance between real-time feel and server load
+- ~2 requests/minute per active user
+- Consider WebSocket upgrade for Phase 2
+
+**Database Indexes**:
+- `idx_in_app_notifications_user` (user_id, is_read) - O(log n) lookup
+- `idx_in_app_notifications_created` (created_at DESC) - Fast sorting
+
+**Pagination**: API returns max 10 recent notifications
+- Prevents large payloads
+- Full notification history available at `/supplier/notifications` (future)
+
+### Known Limitations
+
+1. **No Real-Time Updates**: Uses polling instead of WebSockets/Server-Sent Events
+2. **No Notification History Page**: Only recent 10 shown in dropdown
+3. **No Sound/Desktop Notifications**: Browser notifications not implemented
+4. **No Email Fallback**: In-app only (email notifications are Phase 2)
+5. **No Notification Preferences**: Cannot disable specific notification types yet
+
+### Future Enhancements (Phase 2)
+
+- [ ] WebSocket integration for real-time notifications
+- [ ] Browser push notifications API
+- [ ] Email notification fallback
+- [ ] User notification preferences (granular control)
+- [ ] Notification history page
+- [ ] Notification search and filtering
+- [ ] Read receipts for messages
+- [ ] Notification sound effects
+- [ ] Batch notification summaries (digest emails)
+
+---
+
+**Last Updated**: January 12, 2025
 **Maintained by**: Claude Code AI

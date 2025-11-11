@@ -78,7 +78,7 @@ export function OrderChat({ orderId, currentUserId, currentUserType }: OrderChat
       const data = await response.json()
 
       if (response.ok) {
-        setMessages([data.message, ...messages])
+        setMessages([...messages, data.message])
         setNewMessage('')
         // Reset textarea height
         if (textareaRef.current) {
