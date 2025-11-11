@@ -26,7 +26,7 @@ async function getOrders(filter?: string, search?: string) {
 
   // Apply status filter
   if (filter && filter !== 'all') {
-    query = query.eq('status', filter)
+    query = query.eq('status', filter as any)
   }
 
   // Apply search filter

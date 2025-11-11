@@ -22,7 +22,7 @@ async function getPayments(filter?: string) {
 
   // Apply filters
   if (filter && filter !== 'all') {
-    query = query.eq('status', filter)
+    query = query.eq('status', filter as any)
   }
 
   const { data, error } = await query

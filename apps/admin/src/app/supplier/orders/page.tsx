@@ -42,7 +42,7 @@ async function getOrders(
 
   // Filter by status
   if (status && status !== 'all') {
-    query = query.eq('status', status)
+    query = query.eq('status', status as any)
   }
 
   // Search by order number or contractor name
@@ -218,7 +218,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('supplier_id', supplier.id)
-      .eq('status', 'accepted'),
+      .eq('status', 'confirmed'),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })

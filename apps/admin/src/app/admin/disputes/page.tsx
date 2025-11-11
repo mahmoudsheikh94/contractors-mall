@@ -27,7 +27,7 @@ async function getDisputes(filter?: string) {
   } else if (filter === 'site_visit_required') {
     query = query.eq('site_visit_required', true).eq('site_visit_completed', false)
   } else if (filter && filter !== 'all') {
-    query = query.eq('status', filter)
+    query = query.eq('status', filter as any)
   }
 
   const { data, error } = await query
