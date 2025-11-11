@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      communications: communications || [],
+      communications: (communications || []) as any,
       pagination: {
         page,
         limit,

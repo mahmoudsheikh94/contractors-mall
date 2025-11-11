@@ -3,8 +3,8 @@
 ## Overview
 This document describes the database schema for Contractors Mall, a bilingual construction materials marketplace for Jordan.
 
-**Last Updated:** November 10, 2025
-**Schema Version:** 2.0 (Post-Phase 2 + Email Verification)
+**Last Updated:** January 11, 2025
+**Schema Version:** 2.1 (Post-Phase 1.2 + Schema Fixes)
 
 ## 🔑 Naming Conventions
 
@@ -65,6 +65,32 @@ Supplier product catalog
 - `volume_m3_per_unit` (NUMERIC): Volume per unit
 - `requires_open_bed` (BOOLEAN): Requires flatbed
 
+### supplier_zone_fees
+Delivery fees per zone for each supplier
+- `id` (UUID, PK)
+- `supplier_id` (UUID, FK): References suppliers
+- `zone` (ENUM): zone_a | zone_b
+- `base_fee_jod` (NUMERIC): Delivery fee for this zone
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+- **Unique constraint**: `(supplier_id, zone)` - One fee per zone per supplier
+
+**Note**: The `vehicle_class_id` column was removed in hotfix 20251108100000. Suppliers now set a single fee per zone regardless of vehicle type.
+
+### order_items
+Individual line items within an order
+- `id` (UUID, PK)
+- `order_id` (UUID, FK): References orders
+- `product_id` (UUID, FK): References products
+- `product_name` (TEXT, NULLABLE): Product name at time of order (⚠️ temporarily nullable - should pass from frontend)
+- `unit` (TEXT, NULLABLE): Unit of measure at time of order (⚠️ temporarily nullable - should pass from frontend)
+- `quantity` (NUMERIC): Quantity ordered
+- `price_per_unit` (NUMERIC): Price per unit at time of order
+- `subtotal` (NUMERIC): Line item subtotal
+- `created_at` (TIMESTAMPTZ)
+
+**TODO**: Make `product_name` and `unit` NOT NULL after frontend checkout is updated to pass these values.
+
 ### orders
 Customer orders
 - `id` (UUID, PK)
@@ -75,7 +101,8 @@ Customer orders
 - `subtotal_jod` (NUMERIC): Items subtotal
 - `delivery_fee_jod` (NUMERIC): Calculated delivery fee
 - `total_jod` (NUMERIC): Total order amount (subtotal + delivery)
-- `vehicle_class_id` (UUID, FK): Auto-selected vehicle
+- `vehicle_class_id` (UUID, FK, NULLABLE): Vehicle reference (currently unused - suppliers handle logistics)
+- `vehicle_type` (TEXT, NULLABLE): Vehicle type (currently unused - suppliers handle logistics)
 - `delivery_zone` (ENUM): zone_a|zone_b
 - `scheduled_delivery_date` (DATE): Delivery date
 - `scheduled_delivery_time` (TEXT): Time slot
@@ -124,6 +151,58 @@ Platform configuration
   - `delivery_settings`: photo_threshold_jod (120), safety_margin_percent (10)
   - `commission_settings`: commission_percent (10), free_period_days (30)
   - `dispute_settings`: site_visit_threshold_jod (350)
+
+## Phase 1.2: Support & Admin Tools (Implemented)
+
+### admin_conversations
+Support conversations between admins and users
+- `id` (UUID, PK)
+- `subject` (TEXT): Conversation subject
+- `order_id` (UUID, FK, NULLABLE): Related order (if applicable)
+- `status` (TEXT): 'open' | 'closed'
+- `priority` (TEXT): 'low' | 'normal' | 'high' | 'urgent'
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+- `closed_at` (TIMESTAMPTZ)
+- `closed_by` (UUID, FK): References profiles
+
+### admin_conversation_participants
+Participants in support conversations
+- `conversation_id` (UUID, FK): References admin_conversations
+- `user_id` (UUID, FK): References profiles
+- `role` (TEXT): 'admin' | 'customer'
+- `joined_at` (TIMESTAMPTZ)
+- `last_read_at` (TIMESTAMPTZ)
+- **Primary Key**: `(conversation_id, user_id)`
+
+### admin_messages
+Messages within support conversations
+- `id` (UUID, PK)
+- `conversation_id` (UUID, FK): References admin_conversations
+- `sender_id` (UUID, FK): References profiles
+- `content` (TEXT): Message content
+- `attachments` (TEXT[]): Array of attachment URLs
+- `is_read` (BOOLEAN): Read status
+- `is_internal` (BOOLEAN): Internal admin notes (not visible to customers)
+- `created_at` (TIMESTAMPTZ)
+- `read_at` (TIMESTAMPTZ)
+
+### email_templates
+Reusable bilingual email templates
+- `id` (UUID, PK)
+- `name` (TEXT, UNIQUE): Template identifier
+- `description` (TEXT): Template description
+- `subject_ar` (TEXT): Arabic email subject
+- `subject_en` (TEXT): English email subject
+- `body_ar` (TEXT): Arabic email body
+- `body_en` (TEXT): English email body
+- `variables` (JSONB): Available template variables
+- `category` (TEXT): Template category (default: 'general')
+- `is_active` (BOOLEAN): Whether template is active
+- `created_at` (TIMESTAMPTZ)
+- `updated_at` (TIMESTAMPTZ)
+- `created_by` (UUID, FK): References profiles
+- `updated_by` (UUID, FK): References profiles
 
 ## Phase 2 Enhanced Features Tables
 
@@ -232,7 +311,8 @@ orders (1) ─── (1) payments
 orders (1) ─── (N) disputes
 profiles (1) ─── (N) projects (contractor)
 categories (1) ─── (N) products
-vehicles (1) ─── (N) supplier_zone_fees
+admin_conversations (1) ─── (N) admin_messages
+admin_conversations (1) ─── (N) admin_conversation_participants
 ```
 
 ## RLS Policies

@@ -71,7 +71,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe('Admin Dispute Management', () => {
 
     mockSupabase.rpc.mockResolvedValue(mockApprove());
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -254,7 +254,7 @@ describe('Admin Dispute Management', () => {
 
     mockSupabase.rpc.mockResolvedValue(mockReject());
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -307,7 +307,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -354,7 +354,7 @@ describe('Admin Dispute Management', () => {
 
     mockSupabase.rpc.mockResolvedValue(mockSchedule());
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -438,7 +438,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -472,7 +472,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       // Should show statistics
@@ -505,7 +505,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -533,7 +533,7 @@ describe('Admin Dispute Management', () => {
       }),
     });
 
-    render(<DisputesPage />);
+    render(<DisputesPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText(/error.*loading/i)).toBeInTheDocument();

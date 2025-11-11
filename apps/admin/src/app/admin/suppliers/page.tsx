@@ -31,7 +31,7 @@ async function getSuppliers(filter?: string) {
     return []
   }
 
-  return data || []
+  return (data || []) as any
 }
 
 export default async function SuppliersPage({

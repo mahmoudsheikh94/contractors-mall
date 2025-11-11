@@ -37,7 +37,8 @@ async function getDisputes(filter?: string) {
     return []
   }
 
-  return data || []
+  // Type assertion for complex join query
+  return (data || []) as any
 }
 
 export default async function DisputesPage({

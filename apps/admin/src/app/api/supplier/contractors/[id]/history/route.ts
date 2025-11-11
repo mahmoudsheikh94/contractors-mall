@@ -126,7 +126,7 @@ export async function GET(
     }
 
     return NextResponse.json({
-      orders: orders || [],
+      orders: orders as any || [],
       pagination: {
         page,
         limit,

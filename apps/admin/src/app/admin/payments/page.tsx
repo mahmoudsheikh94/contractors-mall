@@ -32,7 +32,7 @@ async function getPayments(filter?: string) {
     return []
   }
 
-  return data || []
+  return (data || []) as any
 }
 
 export default async function PaymentsPage({

@@ -452,6 +452,50 @@ export type Database = {
           },
         ]
       }
+      in_app_notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          is_read: boolean | null
+          message: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "in_app_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media: {
         Row: {
           created_at: string | null
@@ -488,6 +532,157 @@ export type Database = {
         }
         Relationships: []
       }
+      message_attachments: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size_bytes: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          message_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          message_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          order_id: string
+          read_at: string | null
+          sender_id: string
+          sender_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          order_id: string
+          read_at?: string | null
+          sender_id: string
+          sender_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          order_id?: string
+          read_at?: string | null
+          sender_id?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          app_low_stock: boolean | null
+          app_messages: boolean | null
+          app_new_order: boolean | null
+          app_status_updates: boolean | null
+          email_daily_summary: boolean | null
+          email_low_stock: boolean | null
+          email_messages: boolean | null
+          email_new_order: boolean | null
+          email_status_updates: boolean | null
+          email_weekly_report: boolean | null
+          id: string
+          quiet_hours_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          app_low_stock?: boolean | null
+          app_messages?: boolean | null
+          app_new_order?: boolean | null
+          app_status_updates?: boolean | null
+          email_daily_summary?: boolean | null
+          email_low_stock?: boolean | null
+          email_messages?: boolean | null
+          email_new_order?: boolean | null
+          email_status_updates?: boolean | null
+          email_weekly_report?: boolean | null
+          id?: string
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          app_low_stock?: boolean | null
+          app_messages?: boolean | null
+          app_new_order?: boolean | null
+          app_status_updates?: boolean | null
+          email_daily_summary?: boolean | null
+          email_low_stock?: boolean | null
+          email_messages?: boolean | null
+          email_new_order?: boolean | null
+          email_status_updates?: boolean | null
+          email_weekly_report?: boolean | null
+          id?: string
+          quiet_hours_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_activities: {
         Row: {
           activity_type: string
@@ -517,6 +712,13 @@ export type Database = {
           order_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "order_activities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_activities_order_id_fkey"
             columns: ["order_id"]
@@ -618,6 +820,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "order_notes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_notes_order_id_fkey"
             columns: ["order_id"]

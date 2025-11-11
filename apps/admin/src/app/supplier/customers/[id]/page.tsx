@@ -30,7 +30,7 @@ export default async function ContractorProfilePage({ params }: { params: { id: 
   // Get supplier profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role, supplier_id')
+    .select('id, role')
     .eq('id', user.id)
     .single()
 
@@ -38,7 +38,14 @@ export default async function ContractorProfilePage({ params }: { params: { id: 
     redirect('/auth/login')
   }
 
-  if (!profile.supplier_id) {
+  // Get supplier record
+  const { data: supplier } = await supabase
+    .from('suppliers')
+    .select('id')
+    .eq('owner_id', user.id)
+    .maybeSingle()
+
+  if (!supplier) {
     redirect('/supplier/setup')
   }
 
@@ -65,7 +72,7 @@ export default async function ContractorProfilePage({ params }: { params: { id: 
     .from('orders')
     .select('id')
     .eq('contractor_id', contractorId)
-    .eq('supplier_id', profile.supplier_id)
+    .eq('supplier_id', supplier.id)
     .limit(1)
     .single()
 
@@ -114,7 +121,7 @@ export default async function ContractorProfilePage({ params }: { params: { id: 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Order History */}
           <div className="lg:col-span-2 space-y-6">
-            <OrderHistoryTable contractorId={contractorId} supplierId={profile.supplier_id} />
+            <OrderHistoryTable contractorId={contractorId} supplierId={supplier.id} />
           </div>
 
           {/* Right Column - Insights */}
@@ -123,7 +130,7 @@ export default async function ContractorProfilePage({ params }: { params: { id: 
               <CategoryPreferences preferences={contractor.category_preferences} />
             )}
 
-            <CommunicationHistory contractorId={contractorId} supplierId={profile.supplier_id} />
+            <CommunicationHistory contractorId={contractorId} supplierId={supplier.id} />
           </div>
         </div>
       </div>

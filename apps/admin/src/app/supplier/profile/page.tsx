@@ -71,16 +71,16 @@ export default async function SupplierProfilePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                نوع النشاط
+                رقم السجل التجاري
               </label>
-              <p className="text-gray-900">{supplier.business_type || 'غير محدد'}</p>
+              <p className="text-gray-900">{supplier.license_number || 'غير محدد'}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                رقم السجل التجاري
+                الرقم الضريبي
               </label>
-              <p className="text-gray-900">{supplier.commercial_registration || 'غير محدد'}</p>
+              <p className="text-gray-900">{supplier.tax_number || 'غير محدد'}</p>
             </div>
 
             <div>
@@ -89,18 +89,12 @@ export default async function SupplierProfilePage() {
               </label>
               <span
                 className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                  supplier.approval_status === 'approved'
+                  supplier.is_verified
                     ? 'bg-green-100 text-green-800'
-                    : supplier.approval_status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800'
                 }`}
               >
-                {supplier.approval_status === 'approved'
-                  ? 'موافق عليه'
-                  : supplier.approval_status === 'pending'
-                  ? 'قيد المراجعة'
-                  : 'مرفوض'}
+                {supplier.is_verified ? 'موافق عليه' : 'قيد المراجعة'}
               </span>
             </div>
           </div>
@@ -128,7 +122,7 @@ export default async function SupplierProfilePage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 العنوان
               </label>
-              <p className="text-gray-900">{supplier.business_address || 'غير محدد'}</p>
+              <p className="text-gray-900">{supplier.address || 'غير محدد'}</p>
             </div>
           </div>
         </div>

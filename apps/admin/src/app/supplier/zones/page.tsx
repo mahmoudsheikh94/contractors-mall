@@ -40,6 +40,15 @@ export default async function SupplierZonesPage() {
     )
   }
 
+  // Fetch zone fees
+  const { data: zoneFees } = await supabase
+    .from('supplier_zone_fees')
+    .select('zone, base_fee_jod')
+    .eq('supplier_id', supplier.id)
+
+  const zoneAFee = zoneFees?.find(f => f.zone === 'zone_a')?.base_fee_jod || 3.00
+  const zoneBFee = zoneFees?.find(f => f.zone === 'zone_b')?.base_fee_jod || 5.00
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -67,19 +76,19 @@ export default async function SupplierZonesPage() {
                 </span>
               </div>
               <p className="text-sm text-gray-600 mb-3">
-                المناطق القريبة من موقع المستودع (أقل من {supplier.zone_a_radius_km || 10} كم)
+                المناطق القريبة من موقع المستودع (أقل من {supplier.radius_km_zone_a || 10} كم)
               </p>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">نصف القطر:</span>
                   <span className="font-medium text-gray-900 mr-2">
-                    {supplier.zone_a_radius_km || 10} كم
+                    {supplier.radius_km_zone_a || 10} كم
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">رسوم التوصيل:</span>
                   <span className="font-medium text-gray-900 mr-2">
-                    {supplier.zone_a_fee_jod?.toFixed(2) || '3.00'} د.أ
+                    {zoneAFee.toFixed(2)} د.أ
                   </span>
                 </div>
               </div>
@@ -94,19 +103,19 @@ export default async function SupplierZonesPage() {
                 </span>
               </div>
               <p className="text-sm text-gray-600 mb-3">
-                المناطق المتوسطة البعد ({supplier.zone_a_radius_km || 10} - {supplier.zone_b_radius_km || 25} كم)
+                المناطق المتوسطة البعد ({supplier.radius_km_zone_a || 10} - {supplier.radius_km_zone_b || 25} كم)
               </p>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">نصف القطر:</span>
                   <span className="font-medium text-gray-900 mr-2">
-                    {supplier.zone_b_radius_km || 25} كم
+                    {supplier.radius_km_zone_b || 25} كم
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">رسوم التوصيل:</span>
                   <span className="font-medium text-gray-900 mr-2">
-                    {supplier.zone_b_fee_jod?.toFixed(2) || '5.00'} د.أ
+                    {zoneBFee.toFixed(2)} د.أ
                   </span>
                 </div>
               </div>
@@ -114,32 +123,32 @@ export default async function SupplierZonesPage() {
           </div>
         </div>
 
-        {/* Warehouse Location */}
+        {/* Business Location */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">موقع المستودع</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">موقع العمل</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 العنوان
               </label>
               <p className="text-gray-900">
-                {supplier.warehouse_address || 'لم يتم تحديد العنوان'}
+                {supplier.address || 'لم يتم تحديد العنوان'}
               </p>
             </div>
 
-            {supplier.warehouse_lat && supplier.warehouse_lng && (
+            {supplier.latitude && supplier.longitude && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     خط العرض
                   </label>
-                  <p className="text-gray-900" dir="ltr">{supplier.warehouse_lat}</p>
+                  <p className="text-gray-900" dir="ltr">{supplier.latitude}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     خط الطول
                   </label>
-                  <p className="text-gray-900" dir="ltr">{supplier.warehouse_lng}</p>
+                  <p className="text-gray-900" dir="ltr">{supplier.longitude}</p>
                 </div>
               </div>
             )}
@@ -159,13 +168,13 @@ export default async function SupplierZonesPage() {
             <div className="flex items-start">
               <span className="text-primary-600 ml-3 mt-0.5">●</span>
               <p>
-                <strong>منطقة أ:</strong> للطلبات القريبة (أقل من {supplier.zone_a_radius_km || 10} كم)
+                <strong>منطقة أ:</strong> للطلبات القريبة (أقل من {supplier.radius_km_zone_a || 10} كم)
               </p>
             </div>
             <div className="flex items-start">
               <span className="text-primary-600 ml-3 mt-0.5">●</span>
               <p>
-                <strong>منطقة ب:</strong> للطلبات متوسطة البعد (من {supplier.zone_a_radius_km || 10} إلى {supplier.zone_b_radius_km || 25} كم)
+                <strong>منطقة ب:</strong> للطلبات متوسطة البعد (من {supplier.radius_km_zone_a || 10} إلى {supplier.radius_km_zone_b || 25} كم)
               </p>
             </div>
             <div className="flex items-start">

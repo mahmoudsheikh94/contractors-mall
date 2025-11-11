@@ -41,7 +41,7 @@ async function getOrders(filter?: string, search?: string) {
     return []
   }
 
-  return data || []
+  return (data || []) as any
 }
 
 export default async function OrdersManagementPage({

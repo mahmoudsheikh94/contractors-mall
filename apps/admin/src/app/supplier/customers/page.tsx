@@ -21,22 +21,29 @@ export default async function CustomersPage() {
   }
 
   // Get supplier profile
-  const { data: profile } = await supabase
+  const { data: profile } = (await supabase
     .from('profiles')
-    .select('id, role, supplier_id')
+    .select('id, role')
     .eq('id', user.id)
-    .single()
+    .single()) as any
 
   if (!profile || profile.role !== 'supplier_admin') {
     redirect('/auth/login')
   }
 
-  if (!profile.supplier_id) {
+  // Get supplier record
+  const { data: supplier } = (await supabase
+    .from('suppliers')
+    .select('id')
+    .eq('owner_id', user.id)
+    .maybeSingle()) as any
+
+  if (!supplier) {
     redirect('/supplier/setup')
   }
 
   // Fetch all contractors who have ordered from this supplier
-  const { data: contractors, error: contractorsError } = await supabase
+  const { data: contractors, error: contractorsError } = (await supabase
     .from('contractor_insights')
     .select(`
       contractor_id,
@@ -51,8 +58,8 @@ export default async function CustomersPage() {
       disputed_orders,
       rejected_orders
     `)
-    .eq('supplier_id', profile.supplier_id)
-    .order('total_spent', { ascending: false })
+    .eq('supplier_id', supplier.id)
+    .order('total_spent', { ascending: false })) as any
 
   if (contractorsError) {
     console.error('Error fetching contractors:', contractorsError)
@@ -62,11 +69,11 @@ export default async function CustomersPage() {
   const contractorIds = contractors?.map(c => c.contractor_id) || []
 
   const { data: contractorProfiles } = contractorIds.length > 0
-    ? await supabase
+    ? (await supabase
         .from('profiles')
         .select('id, full_name, email, phone, created_at')
-        .in('id', contractorIds)
-    : { data: [] }
+        .in('id', contractorIds)) as any
+    : { data: [] as any }
 
   // Merge insights with profiles
   const contractorsWithProfiles = contractors?.map(contractor => {
@@ -165,7 +172,7 @@ export default async function CustomersPage() {
         {/* Contractors List */}
         <ContractorsList
           initialContractors={contractorsWithProfiles}
-          supplierId={profile.supplier_id}
+          supplierId={supplier.id}
         />
       </div>
     </div>

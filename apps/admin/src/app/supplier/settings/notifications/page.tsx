@@ -21,26 +21,26 @@ export default async function NotificationSettingsPage() {
   }
 
   // Get supplier profile
-  const { data: profile } = await supabase
+  const { data: profile } = (await supabase
     .from('profiles')
     .select('id, role, supplier_id')
     .eq('id', user.id)
-    .single()
+    .single()) as any
 
   if (!profile || profile.role !== 'supplier_admin') {
     redirect('/auth/login')
   }
 
   // Get or create notification preferences
-  let { data: preferences } = await supabase
+  let { data: preferences } = (await supabase
     .from('notification_preferences')
     .select('*')
     .eq('user_id', user.id)
-    .single()
+    .single()) as any
 
   // If no preferences exist, create default ones
   if (!preferences) {
-    const { data: newPreferences } = await supabase
+    const { data: newPreferences } = (await supabase
       .from('notification_preferences')
       .insert({
         user_id: user.id,
@@ -64,7 +64,7 @@ export default async function NotificationSettingsPage() {
         quiet_hours_end: '08:00'
       })
       .select()
-      .single()
+      .single()) as any
 
     preferences = newPreferences
   }

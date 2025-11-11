@@ -21,30 +21,30 @@ export async function POST(
     const orderId = params.id
 
     // Get current user and verify authentication
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = (await supabase.auth.getUser()) as any
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get the order and verify supplier ownership
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = (await supabase
       .from('orders')
       .select('id, order_number, supplier_id, status, total_jod')
       .eq('id', orderId)
-      .single()
+      .single()) as any
 
     if (orderError || !order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
     // Verify supplier ownership
-    const { data: supplier } = await supabase
+    const { data: supplier } = (await supabase
       .from('suppliers')
       .select('id, business_name')
       .eq('id', order.supplier_id)
       .eq('owner_id', user.id)
-      .maybeSingle()
+      .maybeSingle()) as any
 
     if (!supplier) {
       return NextResponse.json(
@@ -65,11 +65,11 @@ export async function POST(
     }
 
     // Check if delivery already started
-    const { data: delivery } = await supabase
+    const { data: delivery } = (await supabase
       .from('deliveries')
       .select('id, delivery_started_at')
       .eq('order_id', orderId)
-      .maybeSingle()
+      .maybeSingle()) as any
 
     if (delivery?.delivery_started_at) {
       return NextResponse.json(

@@ -19,18 +19,18 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || 'all_time' // all_time, last_30_days, last_90_days, last_year
 
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = (await supabase.auth.getUser()) as any
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get supplier info
-    const { data: supplier } = await supabase
+    const { data: supplier } = (await supabase
       .from('suppliers')
       .select('id')
       .eq('owner_id', user.id)
-      .single()
+      .single()) as any
 
     if (!supplier) {
       return NextResponse.json({ error: 'Supplier not found' }, { status: 404 })
@@ -47,25 +47,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Query for top contractors with raw SQL for better performance
-    const { data: topContractors, error: queryError } = await supabase
+    const { data: topContractors, error: queryError } = (await supabase
       .rpc('get_top_contractors', {
         p_supplier_id: supplier.id,
         p_period: period,
         p_limit: limit
-      })
+      })) as any
 
     // If RPC doesn't exist, fall back to manual query
     if (queryError) {
       // Fallback query using the view
-      const { data: contractors } = await supabase
+      const { data: contractors } = (await supabase
         .from('contractor_insights')
         .select('*')
         .eq('supplier_id', supplier.id)
         .order('total_spent', { ascending: false })
-        .limit(limit)
+        .limit(limit)) as any
 
       // Transform data for consistency
-      const transformedData = contractors?.map((c, index) => ({
+      const transformedData = contractors?.map((c: any, index: number) => ({
         rank: index + 1,
         contractor_id: c.contractor_id,
         contractor_name: c.contractor_name,

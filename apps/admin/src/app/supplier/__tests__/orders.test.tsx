@@ -70,7 +70,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -200,7 +200,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -247,7 +247,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -302,7 +302,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -352,7 +352,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -385,7 +385,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText(/no orders|لا توجد طلبات/i)).toBeInTheDocument();
@@ -404,7 +404,7 @@ describe('Supplier Orders Page', () => {
       }),
     });
 
-    render(<OrdersPage />);
+    render(<OrdersPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText(/error|خطأ/i)).toBeInTheDocument();

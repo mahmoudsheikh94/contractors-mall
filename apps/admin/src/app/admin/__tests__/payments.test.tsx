@@ -69,7 +69,7 @@ describe('Admin Payment Management', () => {
       }),
     });
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('Admin Payment Management', () => {
       }),
     });
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('Admin Payment Management', () => {
 
     mockSupabase.rpc.mockResolvedValue(mockRelease());
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -204,7 +204,7 @@ describe('Admin Payment Management', () => {
 
     mockSupabase.rpc.mockResolvedValue(mockRefund());
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -258,7 +258,7 @@ describe('Admin Payment Management', () => {
       }),
     });
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -317,7 +317,7 @@ describe('Admin Payment Management', () => {
       }),
     });
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -350,7 +350,7 @@ describe('Admin Payment Management', () => {
       }),
     });
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       // Total held in escrow should be 400 JOD
@@ -383,7 +383,7 @@ describe('Admin Payment Management', () => {
     global.URL.createObjectURL = jest.fn();
     global.URL.revokeObjectURL = jest.fn();
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText('ORD-001')).toBeInTheDocument();
@@ -409,7 +409,7 @@ describe('Admin Payment Management', () => {
       }),
     });
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText(/error.*loading|خطأ.*التحميل/i)).toBeInTheDocument();
@@ -430,7 +430,7 @@ describe('Admin Payment Management', () => {
       },
     });
 
-    render(<PaymentsPage />);
+    render(<PaymentsPage searchParams={{}} />);
 
     await waitFor(() => {
       expect(screen.getByText(/unauthorized|غير مصرح/i)).toBeInTheDocument();

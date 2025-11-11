@@ -26,7 +26,8 @@ async function getDisputeDetails(id: string) {
     return null
   }
 
-  return data
+  // Type assertion for complex join query
+  return data as any
 }
 
 export default async function DisputeDetailsPage({

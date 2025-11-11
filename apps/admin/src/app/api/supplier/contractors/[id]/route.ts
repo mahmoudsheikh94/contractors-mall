@@ -15,87 +15,88 @@ export async function GET(
     const contractorId = params.id
 
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = (await supabase.auth.getUser()) as any
 
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get supplier info
-    const { data: supplier } = await supabase
+    const { data: supplier } = (await supabase
       .from('suppliers')
       .select('id')
       .eq('owner_id', user.id)
-      .single()
+      .single()) as any
 
     if (!supplier) {
       return NextResponse.json({ error: 'Supplier not found' }, { status: 404 })
     }
 
     // Get contractor basic info
-    const { data: contractor, error: contractorError } = await supabase
+    const { data: contractor, error: contractorError } = (await supabase
       .from('profiles')
       .select('id, full_name, email, phone, created_at')
       .eq('id', contractorId)
       .eq('role', 'contractor')
-      .single()
+      .single()) as any
 
     if (contractorError || !contractor) {
       return NextResponse.json({ error: 'Contractor not found' }, { status: 404 })
     }
 
     // Get contractor insights from the view
-    const { data: insights } = await supabase
+    const { data: insights } = (await supabase
       .from('contractor_insights')
       .select('*')
       .eq('contractor_id', contractorId)
       .eq('supplier_id', supplier.id)
-      .single()
+      .single()) as any
 
     // Get lifetime value using the function
-    const { data: lifetimeValue } = await supabase
+    const { data: lifetimeValue } = (await supabase
       .rpc('get_contractor_lifetime_value', {
         p_contractor_id: contractorId,
         p_supplier_id: supplier.id
       })
-      .single()
+      .single()) as any
 
     // Get purchase frequency for last 12 months
-    const { data: purchaseFrequency } = await supabase
+    const { data: purchaseFrequency } = (await supabase
       .rpc('get_contractor_purchase_frequency', {
         p_contractor_id: contractorId,
         p_supplier_id: supplier.id,
         p_period_days: 365
       })
+      .single()) as any
 
     // Get category preferences
-    const { data: categoryPreferences } = await supabase
+    const { data: categoryPreferences } = (await supabase
       .from('contractor_category_preferences')
       .select('*')
       .eq('contractor_id', contractorId)
       .eq('supplier_id', supplier.id)
       .order('total_spent_on_category', { ascending: false })
-      .limit(5)
+      .limit(5)) as any
 
     // Get recent orders
-    const { data: recentOrders } = await supabase
+    const { data: recentOrders } = (await supabase
       .from('orders')
       .select('id, order_number, total_jod, status, created_at')
       .eq('contractor_id', contractorId)
       .eq('supplier_id', supplier.id)
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(5)) as any
 
     // Get delivery addresses used
-    const { data: deliveryAddresses } = await supabase
+    const { data: deliveryAddresses } = (await supabase
       .from('orders')
       .select('delivery_address')
       .eq('contractor_id', contractorId)
       .eq('supplier_id', supplier.id)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false })) as any
 
     // Get unique addresses
-    const uniqueAddresses = Array.from(new Set(deliveryAddresses?.map(d => d.delivery_address) || []))
+    const uniqueAddresses = Array.from(new Set(deliveryAddresses?.map((d: any) => d.delivery_address) || []))
 
     // Combine all data
     const profile = {
