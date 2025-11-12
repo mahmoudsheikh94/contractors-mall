@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 
 /**
  * Vercel Deployment Webhook Handler
@@ -11,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server'
  * - deployment.succeeded
  * - deployment.failed
  * - deployment.error
+ *
+ * Security: Uses HMAC-SHA256 signature verification
  */
 
 interface VercelDeploymentPayload {
@@ -38,17 +41,56 @@ interface VercelDeploymentPayload {
   }
 }
 
+/**
+ * Verify Vercel webhook signature
+ * Vercel signs webhooks using HMAC-SHA256
+ */
+function verifyWebhookSignature(
+  payload: string,
+  signature: string | null,
+  secret: string
+): boolean {
+  if (!signature) return false
+
+  try {
+    const hash = crypto
+      .createHmac('sha256', secret)
+      .update(payload)
+      .digest('hex')
+
+    // Constant time comparison to prevent timing attacks
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(hash)
+    )
+  } catch (error) {
+    console.error('Signature verification error:', error)
+    return false
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Verify webhook signature (optional but recommended)
-    // In production, implement signature verification:
-    // const signature = request.headers.get('x-vercel-signature')
-    // const isValid = verifySignature(signature, await request.text())
-    // if (!isValid) {
-    //   return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    // }
+    // Get raw body for signature verification
+    const rawBody = await request.text()
 
-    const payload: VercelDeploymentPayload = await request.json()
+    // SECURITY: Verify webhook signature if secret is configured
+    if (process.env.VERCEL_WEBHOOK_SECRET) {
+      const signature = request.headers.get('x-vercel-signature')
+
+      if (!verifyWebhookSignature(rawBody, signature, process.env.VERCEL_WEBHOOK_SECRET)) {
+        console.warn('⚠️ Invalid webhook signature received')
+        return NextResponse.json(
+          { error: 'Invalid signature' },
+          { status: 401 }
+        )
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      // Warn if running in production without webhook verification
+      console.warn('⚠️ Vercel webhook running without signature verification in production!')
+    }
+
+    const payload: VercelDeploymentPayload = JSON.parse(rawBody)
 
     // Log deployment event
     console.log('📦 Vercel Deployment Event:', {

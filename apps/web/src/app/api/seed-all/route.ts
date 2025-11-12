@@ -1,7 +1,33 @@
 import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
-export async function POST() {
+export async function POST(request: Request) {
+  // SECURITY: Block seed endpoint in production
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== 'true') {
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Seed endpoints are disabled in production'
+      },
+      { status: 403 }
+    )
+  }
+
+  // SECURITY: Verify seed secret if provided
+  const headersList = headers()
+  const seedSecret = headersList.get('X-Seed-Secret')
+
+  if (process.env.SEED_SECRET && seedSecret !== process.env.SEED_SECRET) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Invalid or missing seed secret'
+      },
+      { status: 401 }
+    )
+  }
+
   try {
     // Use service role client to bypass RLS for seeding
     const supabase = createServiceRoleClient()
