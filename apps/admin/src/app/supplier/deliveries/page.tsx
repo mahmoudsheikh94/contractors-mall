@@ -162,7 +162,7 @@ export default async function DeliveriesPage({
         {deliveries.length > 0 ? (
           <div className="divide-y divide-gray-200">
             {(deliveries as any).map((delivery: any) => (
-              <DeliveryCard key={delivery.id} delivery={delivery} />
+              <DeliveryCard key={delivery.delivery_id} delivery={delivery} />
             ))}
           </div>
         ) : (
@@ -277,14 +277,14 @@ function DeliveryCard({ delivery }: { delivery: any }) {
         <div>
           {!isCompleted ? (
             <Link
-              href={`/supplier/deliveries/${delivery.id}`}
+              href={`/supplier/deliveries/${delivery.delivery_id}`}
               className="inline-block bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors font-semibold"
             >
               تأكيد التوصيل ←
             </Link>
           ) : (
             <Link
-              href={`/supplier/deliveries/${delivery.id}`}
+              href={`/supplier/deliveries/${delivery.delivery_id}`}
               className="inline-block bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
             >
               عرض التفاصيل ←

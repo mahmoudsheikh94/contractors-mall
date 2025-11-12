@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const { data: delivery, error: fetchError } = await (supabase as any)
       .from('deliveries')
       .select('*, order:orders!inner(*)')
-      .eq('id', deliveryId)
+      .eq('delivery_id', deliveryId)
       .single()
 
     if (fetchError || !delivery) {
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         completed_at: now,
         updated_at: now,
       })
-      .eq('id', deliveryId)
+      .eq('delivery_id', deliveryId)
 
     if (updateError) {
       console.error('Error updating delivery:', updateError)
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
         supplier_confirmed: true,
         supplier_confirmed_at: now,
       })
-      .eq('id', deliveryId)
+      .eq('delivery_id', deliveryId)
 
     if (confirmError) {
       console.error('Error marking supplier confirmation:', confirmError)

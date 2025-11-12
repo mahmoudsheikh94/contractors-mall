@@ -21,7 +21,7 @@ async function getDeliveryDetails(deliveryId: string) {
         delivery_notes
       )
     `)
-    .eq('id', deliveryId)
+    .eq('delivery_id', deliveryId)
     .single()
 
   if (error) {
@@ -83,7 +83,7 @@ export default async function DeliveryDetailPage({
         breadcrumbs={[
           { label: 'لوحة التحكم', href: '/supplier/dashboard' },
           { label: 'التوصيل', href: '/supplier/deliveries' },
-          { label: `توصيل #${delivery.id.slice(0, 8)}...` },
+          { label: `توصيل #${delivery.delivery_id.slice(0, 8)}...` },
         ]}
       />
 
@@ -136,7 +136,7 @@ export default async function DeliveryDetailPage({
               </div>
             ) : (
               <DeliveryConfirmation
-                deliveryId={delivery.id}
+                deliveryId={delivery.delivery_id}
                 orderTotal={order.total_jod}
                 requiresPin={requiresPin}
                 pinAttempts={delivery.pin_attempts}
