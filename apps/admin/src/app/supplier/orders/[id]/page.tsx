@@ -143,6 +143,17 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
   const subtotal = order.order_items?.reduce((sum: number, item: any) => sum + item.total_jod, 0) || 0
 
+  // Get delivery record if order is in_delivery
+  let delivery = null
+  if (order.status === 'in_delivery') {
+    const { data: deliveryData } = await supabase
+      .from('deliveries')
+      .select('id, delivery_id, order_id')
+      .eq('order_id', order.id)
+      .maybeSingle()
+    delivery = deliveryData
+  }
+
   return (
     <div>
       {/* Header with Back Link */}
@@ -185,6 +196,55 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                 عندما تكون جاهزاً لبدء التوصيل، انقر على الزر أدناه لإعلام العميل بأن طلبه في الطريق إليه
               </p>
               <StartDeliveryButton orderId={order.id} orderNumber={order.order_number} />
+            </div>
+          )}
+
+          {/* Confirm Delivery (for in_delivery status) */}
+          {order.status === 'in_delivery' && delivery && (
+            <div id="confirm-delivery" className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <span className="text-3xl">⏳</span>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                    يتطلب تأكيد التوصيل
+                  </h3>
+                  <p className="text-purple-700 mb-3">
+                    الطلب قيد التوصيل. يجب تأكيد وصول الطلب إلى العميل لإكمال العملية.
+                  </p>
+                  <div className="bg-white border border-purple-200 rounded-lg p-3 mb-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      {order.total_jod >= 120 ? (
+                        <>
+                          <span className="text-xl">🔐</span>
+                          <div>
+                            <span className="font-semibold text-purple-900">مطلوب رمز PIN للتأكيد</span>
+                            <p className="text-purple-700 text-xs mt-1">
+                              الطلب بقيمة {order.total_jod.toFixed(2)} د.أ (≥120 د.أ)
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xl">📸</span>
+                          <div>
+                            <span className="font-semibold text-purple-900">مطلوب صورة للتأكيد</span>
+                            <p className="text-purple-700 text-xs mt-1">
+                              الطلب بقيمة {order.total_jod.toFixed(2)} د.أ (&lt;120 د.أ)
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/supplier/deliveries/${delivery.delivery_id}`}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                  >
+                    تأكيد التوصيل الآن
+                    <span>←</span>
+                  </Link>
+                </div>
+              </div>
             </div>
           )}
 
