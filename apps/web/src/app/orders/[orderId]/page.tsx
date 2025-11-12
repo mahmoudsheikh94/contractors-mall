@@ -76,121 +76,124 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   const [showDisputeForm, setShowDisputeForm] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchOrderDetails() {
-      try {
-        const supabase = createClient()
+  // Extract fetch logic so it can be called manually for refetching
+  const fetchOrderDetails = async () => {
+    try {
+      setLoading(true)
+      const supabase = createClient()
 
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          setUserId(user.id)
-        }
-
-        const { data, error: fetchError } = (await supabase
-          .from('orders')
-          .select(`
-            id,
-            order_number,
-            status,
-            total_jod,
-            scheduled_delivery_date,
-            scheduled_delivery_time,
-            delivery_fee_jod,
-            created_at,
-            suppliers (
-              id,
-              business_name,
-              business_name_en,
-              phone,
-              email
-            ),
-            deliveries (
-              delivery_pin,
-              address_line,
-              neighborhood,
-              city,
-              building_number,
-              floor_number,
-              apartment_number,
-              phone
-            ),
-            payments (
-              status,
-              amount_jod,
-              payment_intent_id
-            ),
-            order_items (
-              item_id,
-              quantity,
-              unit_price_jod,
-              total_jod,
-              products (
-                name_ar,
-                name_en,
-                unit_ar
-              )
-            )
-          `)
-          .eq('id', params.orderId)
-          .single()) as { data: any | null, error: any }
-
-        if (fetchError) throw fetchError
-
-        // Transform the data
-        const orderDetails: OrderDetails = {
-          order_id: data.id,
-          order_number: data.order_number,
-          status: data.status,
-          total_jod: data.total_jod,
-          scheduled_delivery_date: data.scheduled_delivery_date,
-          scheduled_delivery_time: data.scheduled_delivery_time,
-          delivery_fee_jod: data.delivery_fee_jod,
-          created_at: data.created_at,
-          supplier: {
-            id: (data.suppliers as any).id,
-            business_name: (data.suppliers as any).business_name,
-            business_name_en: (data.suppliers as any).business_name_en,
-            phone: (data.suppliers as any).phone,
-            email: (data.suppliers as any).email,
-          },
-          delivery: data.deliveries ? {
-            delivery_pin: (data.deliveries as any).delivery_pin,
-            address_line: (data.deliveries as any).address_line,
-            neighborhood: (data.deliveries as any).neighborhood,
-            city: (data.deliveries as any).city,
-            building_number: (data.deliveries as any).building_number,
-            floor_number: (data.deliveries as any).floor_number,
-            apartment_number: (data.deliveries as any).apartment_number,
-            phone: (data.deliveries as any).phone,
-          } : null,
-          payment: data.payments ? {
-            status: (data.payments as any).status,
-            amount_jod: (data.payments as any).amount_jod,
-            payment_intent_id: (data.payments as any).payment_intent_id,
-          } : null,
-          order_items: (data.order_items as any[]).map((item: any) => ({
-            item_id: item.item_id,
-            quantity: item.quantity,
-            unit_price_jod: item.unit_price_jod,
-            total_jod: item.total_jod,
-            product: {
-              name_ar: item.products.name_ar,
-              name_en: item.products.name_en,
-              unit_ar: item.products.unit_ar,
-            },
-          })),
-        }
-
-        setOrder(orderDetails)
-      } catch (err) {
-        console.error('Error fetching order details:', err)
-        setError('فشل تحميل تفاصيل الطلب')
-      } finally {
-        setLoading(false)
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
       }
-    }
 
+      const { data, error: fetchError } = (await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          status,
+          total_jod,
+          scheduled_delivery_date,
+          scheduled_delivery_time,
+          delivery_fee_jod,
+          created_at,
+          suppliers (
+            id,
+            business_name,
+            business_name_en,
+            phone,
+            email
+          ),
+          deliveries (
+            delivery_pin,
+            address_line,
+            neighborhood,
+            city,
+            building_number,
+            floor_number,
+            apartment_number,
+            phone
+          ),
+          payments (
+            status,
+            amount_jod,
+            payment_intent_id
+          ),
+          order_items (
+            item_id,
+            quantity,
+            unit_price_jod,
+            total_jod,
+            products (
+              name_ar,
+              name_en,
+              unit_ar
+            )
+          )
+        `)
+        .eq('id', params.orderId)
+        .single()) as { data: any | null, error: any }
+
+      if (fetchError) throw fetchError
+
+      // Transform the data
+      const orderDetails: OrderDetails = {
+        order_id: data.id,
+        order_number: data.order_number,
+        status: data.status,
+        total_jod: data.total_jod,
+        scheduled_delivery_date: data.scheduled_delivery_date,
+        scheduled_delivery_time: data.scheduled_delivery_time,
+        delivery_fee_jod: data.delivery_fee_jod,
+        created_at: data.created_at,
+        supplier: {
+          id: (data.suppliers as any).id,
+          business_name: (data.suppliers as any).business_name,
+          business_name_en: (data.suppliers as any).business_name_en,
+          phone: (data.suppliers as any).phone,
+          email: (data.suppliers as any).email,
+        },
+        delivery: data.deliveries ? {
+          delivery_pin: (data.deliveries as any).delivery_pin,
+          address_line: (data.deliveries as any).address_line,
+          neighborhood: (data.deliveries as any).neighborhood,
+          city: (data.deliveries as any).city,
+          building_number: (data.deliveries as any).building_number,
+          floor_number: (data.deliveries as any).floor_number,
+          apartment_number: (data.deliveries as any).apartment_number,
+          phone: (data.deliveries as any).phone,
+        } : null,
+        payment: data.payments ? {
+          status: (data.payments as any).status,
+          amount_jod: (data.payments as any).amount_jod,
+          payment_intent_id: (data.payments as any).payment_intent_id,
+        } : null,
+        order_items: (data.order_items as any[]).map((item: any) => ({
+          item_id: item.item_id,
+          quantity: item.quantity,
+          unit_price_jod: item.unit_price_jod,
+          total_jod: item.total_jod,
+          product: {
+            name_ar: item.products.name_ar,
+            name_en: item.products.name_en,
+            unit_ar: item.products.unit_ar,
+          },
+        })),
+      }
+
+      setOrder(orderDetails)
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching order details:', err)
+      setError('فشل تحميل تفاصيل الطلب')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchOrderDetails()
   }, [params.orderId])
 
@@ -288,7 +291,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               </div>
             </div>
 
-            <DeliveryConfirmationButtons orderId={order.order_id} orderNumber={order.order_number} />
+            <DeliveryConfirmationButtons orderId={order.order_id} orderNumber={order.order_number} onSuccess={fetchOrderDetails} />
           </div>
         )}
 
@@ -506,6 +509,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
           <DisputeFormModal
             orderId={order.order_id}
             onClose={() => setShowDisputeForm(false)}
+            onSuccess={fetchOrderDetails}
           />
         )}
       </div>
@@ -615,7 +619,7 @@ function DeliveryTimeline({ status }: { status: OrderStatus }) {
 /**
  * Delivery Confirmation Buttons Component
  */
-function DeliveryConfirmationButtons({ orderId, orderNumber }: { orderId: string; orderNumber: string }) {
+function DeliveryConfirmationButtons({ orderId, orderNumber, onSuccess }: { orderId: string; orderNumber: string; onSuccess: () => void }) {
   const [confirmingDelivery, setConfirmingDelivery] = useState(false)
   const [showIssueForm, setShowIssueForm] = useState(false)
 
@@ -646,7 +650,7 @@ function DeliveryConfirmationButtons({ orderId, orderNumber }: { orderId: string
       }
 
       alert(data.message || 'تم تأكيد الاستلام بنجاح!')
-      window.location.reload()
+      await onSuccess() // Refetch order data to show updated status
     } catch (err) {
       console.error('Error confirming delivery:', err)
       alert(err instanceof Error ? err.message : 'فشل تأكيد الاستلام. الرجاء المحاولة مرة أخرى.')
@@ -682,6 +686,7 @@ function DeliveryConfirmationButtons({ orderId, orderNumber }: { orderId: string
           orderId={orderId}
           orderNumber={orderNumber}
           onClose={() => setShowIssueForm(false)}
+          onSuccess={onSuccess}
         />
       )}
     </>
@@ -695,10 +700,12 @@ function IssueReportModal({
   orderId,
   orderNumber,
   onClose,
+  onSuccess,
 }: {
   orderId: string
   orderNumber: string
   onClose: () => void
+  onSuccess: () => void
 }) {
   const [issues, setIssues] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -732,7 +739,8 @@ function IssueReportModal({
       }
 
       alert(data.message || 'تم الإبلاغ عن المشكلة بنجاح')
-      window.location.reload()
+      await onSuccess() // Refetch order data to show updated status
+      onClose()
     } catch (err) {
       console.error('Error reporting issue:', err)
       alert(err instanceof Error ? err.message : 'فشل إرسال البلاغ. الرجاء المحاولة مرة أخرى.')
@@ -799,7 +807,7 @@ function IssueReportModal({
 /**
  * Dispute Form Modal Component (Placeholder)
  */
-function DisputeFormModal({ orderId, onClose }: { orderId: string; onClose: () => void }) {
+function DisputeFormModal({ orderId, onClose, onSuccess }: { orderId: string; onClose: () => void; onSuccess: () => void }) {
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -832,8 +840,9 @@ function DisputeFormModal({ orderId, onClose }: { orderId: string; onClose: () =
 
       alert('تم إرسال البلاغ بنجاح. سيتم تجميد الدفع وسيتواصل معك فريق الدعم قريباً.')
 
-      // Reload page to show updated status
-      window.location.reload()
+      // Refetch order data to show updated status
+      await onSuccess()
+      onClose()
     } catch (err) {
       console.error('Error submitting dispute:', err)
       alert(err instanceof Error ? err.message : 'فشل إرسال البلاغ. الرجاء المحاولة مرة أخرى.')
