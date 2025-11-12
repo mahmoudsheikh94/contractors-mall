@@ -16,63 +16,88 @@
 -- - Full audit trail
 -- - Jordan tax authority field requirements
 -- - Multi-currency support (JOD primary)
+-- - IDEMPOTENT: Safe to run multiple times
 -- ==========================================
 
 -- Enable UUID extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ==========================================
--- ENUMS
+-- ENUMS (with idempotency checks)
 -- ==========================================
 
 -- Invoice types as per Jordan tax law
-CREATE TYPE invoice_type AS ENUM (
-  'income',        -- فاتورة ضريبة دخل (no tax calculations)
-  'sales_tax',     -- فاتورة ضريبة مبيعات (general sales tax)
-  'special_tax'    -- فاتورة ضريبة خاصة (general + special taxes)
-);
+DO $$ BEGIN
+  CREATE TYPE invoice_type AS ENUM (
+    'income',        -- فاتورة ضريبة دخل (no tax calculations)
+    'sales_tax',     -- فاتورة ضريبة مبيعات (general sales tax)
+    'special_tax'    -- فاتورة ضريبة خاصة (general + special taxes)
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Invoice categories as per Jordan regulations
-CREATE TYPE invoice_category AS ENUM (
-  'local',              -- فاتورة محلية (standard domestic invoice)
-  'export',             -- فاتورة تصدير (0% tax rate)
-  'development_zone'    -- فاتورة مناطق تنموية/تشجيع استثمار (0% tax, requires buyer tax number)
-);
+DO $$ BEGIN
+  CREATE TYPE invoice_category AS ENUM (
+    'local',              -- فاتورة محلية (standard domestic invoice)
+    'export',             -- فاتورة تصدير (0% tax rate)
+    'development_zone'    -- فاتورة مناطق تنموية/تشجيع استثمار (0% tax, requires buyer tax number)
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Invoice lifecycle status
-CREATE TYPE invoice_status AS ENUM (
-  'draft',                 -- Being created, not yet issued
-  'issued',                -- Generated and ready for submission
-  'submitted_to_portal',   -- Successfully submitted to Jordan portal
-  'cancelled'              -- Cancelled/voided invoice
-);
+DO $$ BEGIN
+  CREATE TYPE invoice_status AS ENUM (
+    'draft',                 -- Being created, not yet issued
+    'issued',                -- Generated and ready for submission
+    'submitted_to_portal',   -- Successfully submitted to Jordan portal
+    'cancelled'              -- Cancelled/voided invoice
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Portal submission status (for Phase 2 API integration)
-CREATE TYPE submission_status AS ENUM (
-  'pending',   -- Queued for submission
-  'success',   -- Successfully submitted
-  'failed'     -- Submission failed (see error message)
-);
+DO $$ BEGIN
+  CREATE TYPE submission_status AS ENUM (
+    'pending',   -- Queued for submission
+    'success',   -- Successfully submitted
+    'failed'     -- Submission failed (see error message)
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Buyer ID types as per Jordan system
-CREATE TYPE buyer_id_type AS ENUM (
-  'national_id',      -- الرقم الوطني
-  'tax_number',       -- الرقم الضريبي
-  'personal_number'   -- الرقم الشخصي
-);
+DO $$ BEGIN
+  CREATE TYPE buyer_id_type AS ENUM (
+    'national_id',      -- الرقم الوطني
+    'tax_number',       -- الرقم الضريبي
+    'personal_number'   -- الرقم الشخصي
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Item types for invoice line items
-CREATE TYPE invoice_item_type AS ENUM (
-  'product',           -- سلعة
-  'service',           -- خدمة
-  'service_allowance'  -- بدل خدمة
-);
+DO $$ BEGIN
+  CREATE TYPE invoice_item_type AS ENUM (
+    'product',           -- سلعة
+    'service',           -- خدمة
+    'service_allowance'  -- بدل خدمة
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- ==========================================
 -- INVOICES TABLE
 -- ==========================================
 
-CREATE TABLE invoices (
+CREATE TABLE IF NOT EXISTS invoices (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
@@ -164,7 +189,7 @@ CREATE TABLE invoices (
 -- INVOICE LINE ITEMS TABLE
 -- ==========================================
 
-CREATE TABLE invoice_line_items (
+CREATE TABLE IF NOT EXISTS invoice_line_items (
   -- Primary Key
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
@@ -215,7 +240,7 @@ CREATE TABLE invoice_line_items (
 -- Format: SUP{supplier_id_short}-{year}-{sequence}
 -- Example: SUP001-2025-0001
 
-CREATE SEQUENCE invoice_number_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START 1;
 
 -- Function to generate next invoice number for a supplier
 CREATE OR REPLACE FUNCTION generate_invoice_number(p_supplier_id UUID)
@@ -255,23 +280,32 @@ $$ LANGUAGE plpgsql;
 -- ==========================================
 
 -- Performance indexes
-CREATE INDEX idx_invoices_supplier_id ON invoices(supplier_id);
-CREATE INDEX idx_invoices_contractor_id ON invoices(contractor_id);
-CREATE INDEX idx_invoices_order_id ON invoices(order_id);
-CREATE INDEX idx_invoices_status ON invoices(status);
-CREATE INDEX idx_invoices_issue_date ON invoices(issue_date DESC);
-CREATE INDEX idx_invoices_created_at ON invoices(created_at DESC);
-CREATE INDEX idx_invoices_electronic_number ON invoices(electronic_invoice_number) WHERE electronic_invoice_number IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_invoices_supplier_id ON invoices(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_contractor_id ON invoices(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_order_id ON invoices(order_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+CREATE INDEX IF NOT EXISTS idx_invoices_issue_date ON invoices(issue_date DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_created_at ON invoices(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_invoices_electronic_number ON invoices(electronic_invoice_number) WHERE electronic_invoice_number IS NOT NULL;
 
-CREATE INDEX idx_invoice_line_items_invoice_id ON invoice_line_items(invoice_id);
-CREATE INDEX idx_invoice_line_items_product_id ON invoice_line_items(product_id) WHERE product_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_invoice_line_items_invoice_id ON invoice_line_items(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_line_items_product_id ON invoice_line_items(product_id) WHERE product_id IS NOT NULL;
 
 -- ==========================================
--- RLS POLICIES
+-- RLS POLICIES (idempotent)
 -- ==========================================
 
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoice_line_items ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies first to ensure idempotency
+DROP POLICY IF EXISTS "Suppliers can view own invoices" ON invoices;
+DROP POLICY IF EXISTS "Suppliers can create own invoices" ON invoices;
+DROP POLICY IF EXISTS "Suppliers can update own draft invoices" ON invoices;
+DROP POLICY IF EXISTS "Contractors can view their invoices" ON invoices;
+DROP POLICY IF EXISTS "Admins can view all invoices" ON invoices;
+DROP POLICY IF EXISTS "Users can view line items for invoices they can see" ON invoice_line_items;
+DROP POLICY IF EXISTS "Suppliers can create line items for own invoices" ON invoice_line_items;
 
 -- Suppliers can view and create their own invoices
 CREATE POLICY "Suppliers can view own invoices"
@@ -331,8 +365,11 @@ CREATE POLICY "Suppliers can create line items for own invoices"
   );
 
 -- ==========================================
--- TRIGGERS
+-- TRIGGERS (idempotent)
 -- ==========================================
+
+-- Drop existing trigger first
+DROP TRIGGER IF EXISTS update_invoices_updated_at ON invoices;
 
 -- Auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_invoice_updated_at()
@@ -386,9 +423,10 @@ COMMENT ON COLUMN invoice_line_items.activity_classification IS 'National activi
 DO $$
 BEGIN
   RAISE NOTICE '✅ Jordan E-Invoicing System migration completed successfully';
-  RAISE NOTICE 'Created tables: invoices, invoice_line_items';
-  RAISE NOTICE 'Created enums: invoice_type, invoice_category, invoice_status, submission_status, buyer_id_type, invoice_item_type';
-  RAISE NOTICE 'Created function: generate_invoice_number()';
+  RAISE NOTICE 'Created/verified tables: invoices, invoice_line_items';
+  RAISE NOTICE 'Created/verified enums: invoice_type, invoice_category, invoice_status, submission_status, buyer_id_type, invoice_item_type';
+  RAISE NOTICE 'Created/verified function: generate_invoice_number()';
   RAISE NOTICE 'Enhanced suppliers table with tax registration fields';
   RAISE NOTICE 'RLS policies enabled for secure access';
+  RAISE NOTICE '⚡ This migration is IDEMPOTENT - safe to run multiple times';
 END $$;
