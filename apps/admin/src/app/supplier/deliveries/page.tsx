@@ -161,7 +161,7 @@ export default async function DeliveriesPage({
         {/* Deliveries List */}
         {deliveries.length > 0 ? (
           <div className="divide-y divide-gray-200">
-            {deliveries.map((delivery) => (
+            {(deliveries as any).map((delivery: any) => (
               <DeliveryCard key={delivery.id} delivery={delivery} />
             ))}
           </div>
