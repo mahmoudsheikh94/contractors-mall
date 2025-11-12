@@ -17,7 +17,7 @@
 -- SECURITY:
 -- Contractors:
 -- - Can only update payments for orders they own (orders.contractor_id = auth.uid())
--- - Can only change status from 'escrow_held' to 'released'
+-- - Can only change status from 'held' to 'released'
 -- - Can only set released_at timestamp
 -- Admins:
 -- - Can update any payment (role = 'admin' in profiles)
@@ -39,8 +39,8 @@ CREATE POLICY "Contractors can release payments for their orders"
       WHERE o.id = payments.order_id
       AND o.contractor_id = auth.uid()
     )
-    -- AND current payment status is escrow_held
-    AND status = 'escrow_held'
+    -- AND current payment status is held
+    AND status = 'held'
   )
   WITH CHECK (
     -- Contractor owns this order
@@ -76,7 +76,7 @@ CREATE POLICY "Admins can manage all payments"
 
 -- Add helpful comments
 COMMENT ON POLICY "Contractors can release payments for their orders" ON payments IS
-  'Allows contractors to release payments automatically during delivery confirmation. Restricted to orders they own and can only change status from escrow_held to released. Cannot refund or freeze payments.';
+  'Allows contractors to release payments automatically during delivery confirmation. Restricted to orders they own and can only change status from held to released. Cannot refund or freeze payments.';
 
 COMMENT ON POLICY "Admins can manage all payments" ON payments IS
   'Allows admins to manually release, refund, or freeze payments for any order. Used in escrow management dashboard for dispute resolution and QC operations.';

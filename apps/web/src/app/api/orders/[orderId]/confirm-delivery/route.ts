@@ -206,7 +206,7 @@ export async function POST(
             updated_at: now,
           })
           .eq('order_id', orderId)
-          .eq('status', 'escrow_held' as any)
+          .eq('status', 'held' as any)
 
         if (paymentError) {
           console.error('Error releasing payment:', paymentError)
