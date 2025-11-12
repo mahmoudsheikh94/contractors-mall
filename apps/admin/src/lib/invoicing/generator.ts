@@ -14,15 +14,21 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
+import {
+  InvoiceType,
+  InvoiceCategory,
+  BuyerIdType,
+  InvoiceItemType,
+  InvoiceStatus,
+  SubmissionStatus
+} from '@contractors-mall/shared'
 
 // ==========================================
 // TYPES
 // ==========================================
 
-export type InvoiceType = 'income' | 'sales_tax' | 'special_tax'
-export type InvoiceCategory = 'local' | 'export' | 'development_zone'
-export type BuyerIdType = 'national_id' | 'tax_number' | 'personal_number'
-export type InvoiceItemType = 'product' | 'service' | 'service_allowance'
+// Re-export for backward compatibility
+export { InvoiceType, InvoiceCategory, BuyerIdType, InvoiceItemType, InvoiceStatus, SubmissionStatus }
 
 export interface GenerateInvoiceParams {
   orderId: string

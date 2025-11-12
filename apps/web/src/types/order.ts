@@ -1,12 +1,6 @@
 // Order types
 
-export type OrderStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'in_delivery'
-  | 'delivered'
-  | 'completed'
-  | 'cancelled'
+import { OrderStatus, DeliveryZone } from '@contractors-mall/shared'
 
 export interface Order {
   id: string
@@ -20,7 +14,7 @@ export interface Order {
   total_jod: number
   vehicle_class_id: string | null
   vehicle_type: string | null // Vehicle type (pickup_1ton, truck_3_5ton, etc.) - now null as suppliers handle logistics
-  delivery_zone: 'zone_a' | 'zone_b' | null
+  delivery_zone: DeliveryZone | null
   delivery_address: string
   delivery_latitude: number
   delivery_longitude: number
@@ -86,7 +80,7 @@ export interface CreateOrderRequest {
   vehicleEstimate: {
     vehicle_class_id?: string // Optional - no longer using vehicle estimation
     delivery_fee_jod: number
-    delivery_zone: 'zone_a' | 'zone_b'
+    delivery_zone: DeliveryZone
   }
 }
 

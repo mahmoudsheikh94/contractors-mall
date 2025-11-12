@@ -1,6 +1,6 @@
 // Payment types
 
-export type PaymentStatus = 'pending' | 'held' | 'released' | 'refunded' | 'failed'
+import { PaymentStatus } from '@contractors-mall/shared'
 
 export interface Payment {
   id: string

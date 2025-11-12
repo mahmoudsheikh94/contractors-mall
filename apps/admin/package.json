@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@contractors-mall/shared": "workspace:*",
     "@contractors-mall/ui": "workspace:*",
     "@hookform/resolvers": "^3.3.0",
     "@sentry/nextjs": "^10.23.0",

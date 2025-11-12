@@ -3,21 +3,23 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { OrderStatus, ORDER_STATUS_LABELS } from '@contractors-mall/shared'
 
 interface ChangeOrderStatusFormProps {
   orderId: string
   currentStatus: string
 }
 
-type OrderStatus = 'pending' | 'confirmed' | 'in_delivery' | 'delivered' | 'completed' | 'cancelled'
-
 const STATUS_OPTIONS: { value: OrderStatus; label: string; color: string }[] = [
-  { value: 'pending', label: 'معلق', color: 'yellow' },
-  { value: 'confirmed', label: 'تم تأكيد الطلب', color: 'blue' },
-  { value: 'in_delivery', label: 'قيد التوصيل', color: 'purple' },
-  { value: 'delivered', label: 'تم التوصيل', color: 'green' },
-  { value: 'completed', label: 'مكتمل', color: 'green' },
-  { value: 'cancelled', label: 'ملغي', color: 'gray' },
+  { value: 'pending', label: ORDER_STATUS_LABELS.pending.ar, color: ORDER_STATUS_LABELS.pending.color },
+  { value: 'confirmed', label: ORDER_STATUS_LABELS.confirmed.ar, color: ORDER_STATUS_LABELS.confirmed.color },
+  { value: 'in_delivery', label: ORDER_STATUS_LABELS.in_delivery.ar, color: ORDER_STATUS_LABELS.in_delivery.color },
+  { value: 'delivered', label: ORDER_STATUS_LABELS.delivered.ar, color: ORDER_STATUS_LABELS.delivered.color },
+  { value: 'awaiting_contractor_confirmation', label: ORDER_STATUS_LABELS.awaiting_contractor_confirmation.ar, color: ORDER_STATUS_LABELS.awaiting_contractor_confirmation.color },
+  { value: 'completed', label: ORDER_STATUS_LABELS.completed.ar, color: ORDER_STATUS_LABELS.completed.color },
+  { value: 'cancelled', label: ORDER_STATUS_LABELS.cancelled.ar, color: ORDER_STATUS_LABELS.cancelled.color },
+  { value: 'rejected', label: ORDER_STATUS_LABELS.rejected.ar, color: ORDER_STATUS_LABELS.rejected.color },
+  { value: 'disputed', label: ORDER_STATUS_LABELS.disputed.ar, color: ORDER_STATUS_LABELS.disputed.color },
 ]
 
 export function ChangeOrderStatusForm({ orderId, currentStatus }: ChangeOrderStatusFormProps) {

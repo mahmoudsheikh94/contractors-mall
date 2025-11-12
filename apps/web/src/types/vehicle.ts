@@ -1,5 +1,7 @@
 // Vehicle estimation types
 
+import { DeliveryZone } from '@contractors-mall/shared'
+
 export interface VehicleEstimateItem {
   weight_kg: number
   volume_m3: number
@@ -18,7 +20,7 @@ export interface VehicleEstimate {
   vehicle_class_id: string
   vehicle_name_ar: string
   vehicle_name_en: string
-  zone: 'zone_a' | 'zone_b'
+  zone: DeliveryZone
   delivery_fee_jod: number
   capacity_headroom: {
     weight_utilization: number // percentage
