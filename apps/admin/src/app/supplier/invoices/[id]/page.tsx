@@ -20,7 +20,9 @@ interface PageProps {
 async function getInvoice(invoiceId: string, supplierId: string) {
   const supabase = await createClient()
 
-  const { data: invoice, error } = await supabase
+  // @ts-ignore - invoices table not in types until migration applied
+  const result = await supabase
+    // @ts-ignore
     .from('invoices')
     .select(`
       *,
@@ -40,12 +42,14 @@ async function getInvoice(invoiceId: string, supplierId: string) {
     .eq('supplier_id', supplierId)
     .single()
 
+  const { data: invoice, error } = result
+
   if (error) {
     console.error('Error fetching invoice:', error)
     return null
   }
 
-  return invoice
+  return invoice as any
 }
 
 export default async function InvoiceDetailPage({ params }: PageProps) {

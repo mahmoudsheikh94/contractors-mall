@@ -42,7 +42,9 @@ interface SearchParams {
 async function getInvoices(supplierId: string, searchParams: SearchParams) {
   const supabase = await createClient()
 
+  // @ts-ignore - invoices table not in types until migration applied
   let query = supabase
+    // @ts-ignore
     .from('invoices')
     .select(`
       id,
@@ -69,25 +71,26 @@ async function getInvoices(supplierId: string, searchParams: SearchParams) {
 
   // Apply filters
   if (searchParams.status) {
-    query = query.eq('status', searchParams.status)
+    query = (query as any).eq('status', searchParams.status)
   }
 
   if (searchParams.type) {
-    query = query.eq('invoice_type', searchParams.type)
+    query = (query as any).eq('invoice_type', searchParams.type)
   }
 
   if (searchParams.search) {
-    query = query.or(`invoice_number.ilike.%${searchParams.search}%,electronic_invoice_number.ilike.%${searchParams.search}%`)
+    query = (query as any).or(`invoice_number.ilike.%${searchParams.search}%,electronic_invoice_number.ilike.%${searchParams.search}%`)
   }
 
   if (searchParams.from) {
-    query = query.gte('issue_date', searchParams.from)
+    query = (query as any).gte('issue_date', searchParams.from)
   }
 
   if (searchParams.to) {
-    query = query.lte('issue_date', searchParams.to)
+    query = (query as any).lte('issue_date', searchParams.to)
   }
 
+  // @ts-ignore - Complex nested query causes type inference issues
   const { data, error } = await query
 
   if (error) {
@@ -101,7 +104,9 @@ async function getInvoices(supplierId: string, searchParams: SearchParams) {
 async function getInvoiceStats(supplierId: string) {
   const supabase = await createClient()
 
+  // @ts-ignore - invoices table not in types until migration applied
   const { data, error } = await supabase
+    // @ts-ignore
     .from('invoices')
     .select('status, grand_total_jod')
     .eq('supplier_id', supplierId)
@@ -116,12 +121,14 @@ async function getInvoiceStats(supplierId: string) {
     }
   }
 
+  const invoices = data as any
+
   return {
-    total: data.length,
-    draft: data.filter(i => i.status === 'draft').length,
-    issued: data.filter(i => i.status === 'issued').length,
-    submitted: data.filter(i => i.status === 'submitted_to_portal').length,
-    totalAmount: data.reduce((sum, i) => sum + parseFloat(i.grand_total_jod.toString()), 0)
+    total: invoices.length,
+    draft: invoices.filter((i: any) => i.status === 'draft').length,
+    issued: invoices.filter((i: any) => i.status === 'issued').length,
+    submitted: invoices.filter((i: any) => i.status === 'submitted_to_portal').length,
+    totalAmount: invoices.reduce((sum: number, i: any) => sum + parseFloat(i.grand_total_jod.toString()), 0)
   }
 }
 
@@ -355,7 +362,7 @@ export default async function SupplierInvoicesPage({
                   </td>
                 </tr>
               ) : (
-                invoices.map((invoice) => (
+                (invoices as any).map((invoice: any) => (
                   <InvoiceRow key={invoice.id} invoice={invoice} />
                 ))
               )}
