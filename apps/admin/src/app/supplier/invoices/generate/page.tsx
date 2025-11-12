@@ -90,7 +90,7 @@ export default async function GenerateInvoicePage() {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
 
   if (userError || !user) {
-    redirect('/login')
+    redirect('/auth/login')
   }
 
   // 2. Verify supplier role
