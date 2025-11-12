@@ -16,8 +16,9 @@
 -- SECURITY:
 -- - Contractors can only update orders they own (contractor_id = auth.uid())
 -- - OLD status must be 'awaiting_contractor_confirmation' (prevents arbitrary updates)
--- - NEW status must be 'delivered' or 'disputed' (only valid transitions)
+-- - NEW status must be 'delivered' or 'completed' (only valid transitions)
 -- - Only 'status' and 'updated_at' fields can be changed
+-- - Note: 'disputed' status handled separately via dispute creation flow
 -- ============================================
 
 -- Drop existing policy if it exists (idempotent)
@@ -36,15 +37,15 @@ CREATE POLICY "Contractors can update order status on delivery confirmation"
   WITH CHECK (
     -- Contractor owns this order
     contractor_id = auth.uid()
-    -- AND new status is valid (delivered or disputed)
-    AND status IN ('delivered', 'disputed', 'completed')
+    -- AND new status is valid (delivered or completed only)
+    AND status IN ('delivered', 'completed')
   );
 
 -- Add helpful comment
 COMMENT ON POLICY "Contractors can update order status on delivery confirmation" ON orders IS
   'Allows contractors to update order status ONLY during delivery confirmation. ' ||
   'Restricted to orders in awaiting_contractor_confirmation status. ' ||
-  'Can only change status to delivered, disputed, or completed. ' ||
+  'Can only change status to delivered or completed. ' ||
   'Prevents arbitrary order modifications.';
 
 -- ============================================
