@@ -125,10 +125,10 @@ export function DeliveryConfirmation({
 
       // Upload to Supabase Storage
       const fileName = `${deliveryId}-${Date.now()}.${photo.name.split('.').pop()}`
-      const filePath = `deliveries/${fileName}`
+      const filePath = `delivery-confirmations/${fileName}`
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('deliveries')
+        .from('delivery_proofs')
         .upload(filePath, photo, {
           cacheControl: '3600',
           upsert: false,
@@ -143,7 +143,7 @@ export function DeliveryConfirmation({
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('deliveries')
+        .from('delivery_proofs')
         .getPublicUrl(filePath)
 
       setUploadProgress(50)
