@@ -49,6 +49,27 @@ export async function POST(request: Request) {
       return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
+    // Get the supplier owned by this user
+    const { data: supplier, error: supplierError } = await supabase
+      .from('suppliers')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single()
+
+    if (supplierError || !supplier) {
+      console.error('Error fetching supplier:', supplierError)
+      const error = new ApiError(
+        ErrorCodes.FORBIDDEN,
+        'No supplier account found for this user',
+        403,
+        {
+          messageAr: 'لا يوجد حساب مورد لهذا المستخدم',
+          details: { reason: 'No supplier account' }
+        }
+      )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
+    }
+
     // Get delivery details with order information
     const { data: delivery, error: fetchError } = await supabase
       .from('deliveries')
@@ -86,7 +107,7 @@ export async function POST(request: Request) {
     const order = Array.isArray(delivery.order) ? delivery.order[0] : delivery.order
 
     // Verify supplier owns this order
-    if (order.supplier_id !== user.id) {
+    if (order.supplier_id !== supplier.id) {
       const error = new ApiError(
         ErrorCodes.FORBIDDEN,
         'You do not own this delivery',

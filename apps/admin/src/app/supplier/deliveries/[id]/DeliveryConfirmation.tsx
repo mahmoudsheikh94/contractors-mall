@@ -88,10 +88,14 @@ export function DeliveryConfirmation({
       const data = await response.json()
 
       if (!response.ok) {
-        if (data.remainingAttempts !== undefined) {
-          setError(`رمز PIN غير صحيح. المحاولات المتبقية: ${data.remainingAttempts}`)
+        // Handle the new error structure
+        if (data.error?.details?.remaining_attempts !== undefined) {
+          setError(`رمز PIN غير صحيح. المحاولات المتبقية: ${data.error.details.remaining_attempts}`)
         } else {
-          setError(data.error || 'حدث خطأ أثناء التحقق من PIN')
+          // Try to get the Arabic message first, then English, then fallback
+          const errorMessage = data.error?.message_ar || data.error?.message ||
+                              (typeof data.error === 'string' ? data.error : 'حدث خطأ أثناء التحقق من PIN')
+          setError(errorMessage)
         }
         setIsSubmitting(false)
         setPin('')
@@ -161,7 +165,11 @@ export function DeliveryConfirmation({
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'حدث خطأ أثناء تأكيد التوصيل')
+        // Handle the new error structure
+        // Try to get the Arabic message first, then English, then fallback
+        const errorMessage = data.error?.message_ar || data.error?.message ||
+                            (typeof data.error === 'string' ? data.error : 'حدث خطأ أثناء تأكيد التوصيل')
+        setError(errorMessage)
         setIsSubmitting(false)
         return
       }
