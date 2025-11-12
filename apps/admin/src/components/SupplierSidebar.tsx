@@ -70,6 +70,11 @@ export default function SupplierSidebar({ businessName, userName, isOpen = false
       icon: '💰',
     },
     {
+      label: 'الفواتير',
+      href: '/supplier/invoices',
+      icon: '📄',
+    },
+    {
       label: 'الملف التجاري',
       href: '/supplier/profile',
       icon: '🏢',
