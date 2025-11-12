@@ -960,35 +960,126 @@ Export orders to Excel/CSV (admin only).
 
 ## Standard Error Responses
 
+**Updated**: January 13, 2025 - All critical endpoints now use standardized `ApiError` format with bilingual messages.
+
+### Error Response Structure
+All API errors follow this standardized format:
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "English error message",
+    "message_ar": "رسالة الخطأ بالعربية",
+    "details": {
+      "field": "fieldName",
+      "issue": "specific issue description"
+    },
+    "timestamp": "2025-01-13T10:30:00.000Z",
+    "request_id": "optional-trace-id"
+  }
+}
+```
+
+### Error Codes
+Standardized error codes used across all endpoints:
+
+- `VALIDATION_ERROR` - Input validation failed (400)
+- `UNAUTHORIZED` - Authentication required or failed (401)
+- `FORBIDDEN` - Insufficient permissions (403)
+- `NOT_FOUND` - Resource not found (404)
+- `BUSINESS_RULE_VIOLATION` - Business logic constraint violated (422)
+- `DATABASE_ERROR` - Database operation failed (500)
+- `INTERNAL_ERROR` - Unexpected server error (500)
+- `PAYMENT_PROVIDER_ERROR` - External payment service error (502)
+
 ### 400 Bad Request
 ```json
 {
-  "error": "Invalid request parameters",
-  "details": "Order not found"
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed: PIN must be exactly 4 digits",
+    "message_ar": "رمز PIN يجب أن يكون 4 أرقام",
+    "details": {
+      "field": "pin",
+      "issue": "PIN must be exactly 4 digits"
+    },
+    "timestamp": "2025-01-13T10:30:00.000Z"
+  }
 }
 ```
 
 ### 401 Unauthorized
 ```json
 {
-  "error": "Unauthorized",
-  "details": "Invalid or expired token"
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Authentication required",
+    "message_ar": "يجب تسجيل الدخول",
+    "timestamp": "2025-01-13T10:30:00.000Z"
+  }
 }
 ```
 
 ### 403 Forbidden
 ```json
 {
-  "error": "Insufficient permissions",
-  "details": "Admin role required"
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "You do not own this delivery",
+    "message_ar": "غير مصرح لك بتأكيد هذا التوصيل",
+    "details": {
+      "reason": "Unauthorized supplier access"
+    },
+    "timestamp": "2025-01-13T10:30:00.000Z"
+  }
+}
+```
+
+### 404 Not Found
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Delivery not found",
+    "message_ar": "التوصيل غير موجود",
+    "details": {
+      "resource": "Delivery",
+      "id": "uuid-here"
+    },
+    "timestamp": "2025-01-13T10:30:00.000Z"
+  }
+}
+```
+
+### 422 Business Rule Violation
+```json
+{
+  "error": {
+    "code": "BUSINESS_RULE_VIOLATION",
+    "message": "Maximum PIN attempts (3) exceeded",
+    "message_ar": "تجاوزت الحد الأقصى لمحاولات PIN",
+    "details": {
+      "max_attempts": 3,
+      "current_attempts": 3
+    },
+    "timestamp": "2025-01-13T10:30:00.000Z"
+  }
 }
 ```
 
 ### 500 Internal Server Error
 ```json
 {
-  "error": "Internal server error",
-  "details": "Database connection failed"
+  "error": {
+    "code": "DATABASE_ERROR",
+    "message": "Database operation failed: update delivery",
+    "message_ar": "فشل تحديث التوصيل",
+    "details": {
+      "error": "connection timeout"
+    },
+    "timestamp": "2025-01-13T10:30:00.000Z"
+  }
 }
 ```
 
@@ -1006,3 +1097,295 @@ Allowed origins:
 - http://localhost:3001 (admin development)
 - https://app.contractorsmall.jo (production)
 - https://admin.contractorsmall.jo (admin production)
+
+---
+
+## Changelog
+
+### January 13, 2025 - API Stability & Validation Improvements ✅
+
+**Status**: Production deployed
+
+**Enhanced Endpoints** (5 critical routes):
+
+#### 1. POST `/api/orders` - Order Creation
+**Validation Added**:
+```typescript
+{
+  supplierId: string (UUID format)
+  items: Array<{
+    productId: string (UUID format)
+    quantity: number (positive integer)
+    unitPrice: number (positive)
+  }> (min 1 item)
+  deliveryAddress: {
+    address: string (min 10 chars)
+    phone: string (regex: /^\+?[0-9]{10,15}$/)
+    latitude: number (-90 to 90)
+    longitude: number (-180 to 180)
+  }
+  deliverySchedule: {
+    date: string (YYYY-MM-DD format)
+    time_slot: string (required)
+  }
+  vehicleEstimate: {
+    delivery_zone: "zone_a" | "zone_b"
+    delivery_fee_jod: number (non-negative)
+  }
+}
+```
+
+**Error Handling**:
+- Validation errors return proper field-level details
+- Transaction rollback on failure (deletes order, items, delivery, payment records)
+- Bilingual error messages for all failure scenarios
+
+**Response Changes**:
+- Added `created_at` timestamp to order object
+- Improved error details for payment provider failures
+
+---
+
+#### 2. POST `/api/orders/[orderId]/confirm-delivery` - Contractor Delivery Confirmation
+**Validation Added**:
+```typescript
+{
+  confirmed: boolean (required)
+  issues?: string (required if confirmed === false)
+}
+```
+
+**Custom Validation**:
+- If `confirmed === false`, `issues` field is mandatory
+- Returns error: "Issues description is required when reporting problems"
+
+**Business Logic**:
+- Validates order status is `awaiting_contractor_confirmation`
+- Checks supplier has confirmed first
+- If confirmed:
+  - Sets `contractor_confirmed = true`
+  - Updates order status to `delivered`
+  - Releases payment if no disputes
+  - Sets final status to `completed` when payment released
+- If not confirmed (dispute):
+  - Creates dispute record with `status = 'opened'`
+  - Sets order status to `disputed`
+  - Freezes payment (keeps as `held`)
+  - Creates order activity log
+
+**Error Codes Added**:
+- `BUSINESS_RULE_VIOLATION` - When supplier hasn't confirmed first
+- `BUSINESS_RULE_VIOLATION` - When contractor already confirmed
+- `BUSINESS_RULE_VIOLATION` - When order status is incorrect
+
+---
+
+#### 3. POST `/api/deliveries/confirm-photo` - Supplier Photo Confirmation
+**Validation Added**:
+```typescript
+{
+  deliveryId: string (UUID format)
+  photoUrl: string (valid URL, min 1 char)
+}
+```
+
+**Security Checks**:
+- Authenticates user via JWT
+- Verifies supplier owns the delivery's order
+- Checks delivery not already confirmed
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "تم تأكيد التوصيل من جانبك بنجاح. في انتظار تأكيد العميل لاستلام الطلب.",
+  "message_en": "Delivery confirmed successfully. Waiting for customer confirmation.",
+  "data": {
+    "order_id": "uuid",
+    "delivery_id": "uuid",
+    "status": "awaiting_contractor_confirmation",
+    "supplier_confirmed": true,
+    "contractor_confirmed": false,
+    "photo_url": "https://..."
+  }
+}
+```
+
+**Activity Logging**:
+- Creates `order_activities` record with type `delivery_confirmed_supplier`
+- Includes photo URL in metadata
+
+---
+
+#### 4. POST `/api/deliveries/verify-pin` - Supplier PIN Verification
+**Validation Added**:
+```typescript
+{
+  deliveryId: string (UUID format)
+  pin: string (exactly 4 digits, regex: /^\d{4}$/)
+}
+```
+
+**Security Features**:
+- Maximum 3 PIN attempts per delivery (enforced)
+- Increments `pin_attempts` on each failure
+- Returns remaining attempts in error response
+
+**Error Responses**:
+```json
+// Incorrect PIN
+{
+  "error": {
+    "code": "BUSINESS_RULE_VIOLATION",
+    "message": "Incorrect PIN code",
+    "message_ar": "رمز PIN غير صحيح",
+    "details": {
+      "remaining_attempts": 2,
+      "current_attempts": 1
+    }
+  }
+}
+
+// Max attempts exceeded
+{
+  "error": {
+    "code": "BUSINESS_RULE_VIOLATION",
+    "message": "Maximum PIN attempts (3) exceeded",
+    "message_ar": "تجاوزت الحد الأقصى لمحاولات PIN",
+    "details": {
+      "max_attempts": 3,
+      "current_attempts": 3
+    }
+  }
+}
+```
+
+**Success Response**:
+```json
+{
+  "success": true,
+  "message": "تم تأكيد التوصيل من جانبك بنجاح. في انتظار تأكيد العميل لاستلام الطلب.",
+  "message_en": "Delivery confirmed successfully. Waiting for customer confirmation.",
+  "data": {
+    "order_id": "uuid",
+    "delivery_id": "uuid",
+    "status": "awaiting_contractor_confirmation",
+    "supplier_confirmed": true,
+    "contractor_confirmed": false,
+    "pin_verified": true
+  }
+}
+```
+
+---
+
+#### 5. POST `/api/vehicle-estimate` - Delivery Fee Calculation
+**Validation Added**:
+```typescript
+{
+  supplierId: string (UUID format)
+  deliveryLat: number (-90 to 90)
+  deliveryLng: number (-180 to 180)
+}
+```
+
+**Enhanced Error Handling**:
+```json
+// Outside service area
+{
+  "error": {
+    "code": "BUSINESS_RULE_VIOLATION",
+    "message": "Delivery location is outside the supplier service area",
+    "message_ar": "موقع التوصيل خارج منطقة خدمة المورد",
+    "details": {
+      "error": "Distance exceeds maximum radius for zone"
+    }
+  }
+}
+
+// Zone not configured
+{
+  "error": {
+    "code": "BUSINESS_RULE_VIOLATION",
+    "message": "Supplier has not configured delivery fees for this zone",
+    "message_ar": "لم يقم المورد بتكوين رسوم التوصيل لهذه المنطقة",
+    "details": {
+      "error": "No zone_fees record found for supplier and zone"
+    }
+  }
+}
+
+// Supplier not found
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Supplier not found or not verified",
+    "message_ar": "المورد غير موجود أو غير موثق",
+    "details": {
+      "resource": "Supplier",
+      "id": "uuid",
+      "error": "Supplier account is inactive or pending verification"
+    }
+  }
+}
+```
+
+**Response Validation**:
+- Validates estimate structure before returning
+- Ensures zone, delivery_fee_jod, and distance_km are present and correct types
+
+---
+
+### Migration Applied
+
+**Migration**: `20251113000001_remove_accepted_status_safe.sql`
+**Applied**: January 13, 2025
+**Status**: ✅ Production verified
+
+**Changes**:
+- Removed redundant `accepted` order status from `order_status` enum
+- All orders now use simplified status flow
+- `disputed` status now available for contractor delivery confirmation
+
+**Status Flow**:
+```
+pending → confirmed → in_delivery → awaiting_contractor_confirmation → delivered → completed
+
+Branch flows:
+- cancelled (from pending or confirmed)
+- rejected (supplier rejects order)
+- disputed (contractor reports issue during confirmation)
+```
+
+---
+
+### Technical Improvements
+
+1. **Type Safety**:
+   - All endpoints use Zod for runtime validation
+   - Removed 'as any' type assertions
+   - Fixed TypeScript readonly property errors
+
+2. **Error Standardization**:
+   - Consistent error codes across all endpoints
+   - HTTP status codes properly mapped to business errors
+   - All errors include bilingual messages (Arabic/English)
+
+3. **Security**:
+   - PIN attempt limiting (max 3 attempts)
+   - Ownership verification on all delivery endpoints
+   - Authentication checks on protected routes
+
+4. **Audit Trail**:
+   - Order activity logging on all state changes
+   - Metadata includes relevant context (photo URLs, PIN verification, etc.)
+
+5. **Code Quality**:
+   - Transaction-like rollback mechanism for order creation
+   - Centralized error handling utilities
+   - Consistent validation patterns
+
+---
+
+*Last updated:* January 13, 2025
+*Maintained by:* Contractors Mall Development Team
