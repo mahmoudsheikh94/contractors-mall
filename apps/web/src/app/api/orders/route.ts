@@ -1,7 +1,43 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mockPaymentProvider } from '@/lib/services/payment/mockPaymentProvider'
-import type { CreateOrderRequest, CreateOrderResponse } from '@/types/order'
+import { ApiErrors, handleApiError } from '@contractors-mall/shared'
+import { z } from 'zod'
+import type { CreateOrderResponse } from '@/types/order'
+
+/**
+ * Zod validation schema for order creation
+ */
+const CreateOrderSchema = z.object({
+  supplierId: z.string().uuid('Invalid supplier ID format'),
+  items: z.array(
+    z.object({
+      productId: z.string().uuid('Invalid product ID format'),
+      productName: z.string().optional(),
+      productNameEn: z.string().optional(),
+      unit: z.string().optional(),
+      unitEn: z.string().optional(),
+      quantity: z.number().int().positive('Quantity must be positive'),
+      unitPrice: z.number().positive('Unit price must be positive'),
+    })
+  ).min(1, 'Order must contain at least one item'),
+  deliveryAddress: z.object({
+    address: z.string().min(10, 'Address must be at least 10 characters'),
+    phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Invalid phone number'),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+  }),
+  deliverySchedule: z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format (YYYY-MM-DD)'),
+    time_slot: z.string().min(1, 'Time slot is required'),
+  }),
+  vehicleEstimate: z.object({
+    delivery_zone: z.enum(['zone_a', 'zone_b'], {
+      errorMap: () => ({ message: 'Invalid delivery zone' })
+    }),
+    delivery_fee_jod: z.number().nonnegative('Delivery fee cannot be negative'),
+  }),
+})
 
 /**
  * Generate a unique order number
@@ -37,6 +73,22 @@ async function getPhotoThreshold(supabase: any): Promise<number> {
   return threshold ? parseFloat(threshold) : 120 // Default 120 JOD
 }
 
+/**
+ * Rollback helper - deletes order and all related records
+ */
+async function rollbackOrder(supabase: any, orderId: string): Promise<void> {
+  try {
+    // Delete in reverse order of creation to respect foreign keys
+    await supabase.from('payments').delete().eq('order_id', orderId)
+    await supabase.from('deliveries').delete().eq('order_id', orderId)
+    await supabase.from('order_items').delete().eq('order_id', orderId)
+    await supabase.from('orders').delete().eq('id', orderId)
+  } catch (rollbackError) {
+    console.error('Rollback failed:', rollbackError)
+    // Log to monitoring service in production
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -48,10 +100,11 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      const error = ApiErrors.unauthorized()
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    // Check if contractor's email is verified
+    // Check contractor profile and email verification
     const { data: profile } = await supabase
       .from('profiles')
       .select('email_verified, role')
@@ -59,41 +112,34 @@ export async function POST(request: Request) {
       .single()
 
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      const error = ApiErrors.notFound('Profile', user.id)
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     // Only contractors need email verification to place orders
     if (profile.role === 'contractor' && !profile.email_verified) {
-      return NextResponse.json(
-        {
-          error: 'يرجى تأكيد بريدك الإلكتروني قبل إتمام الطلب',
-          error_en: 'Please verify your email address before placing an order',
-          error_code: 'EMAIL_NOT_VERIFIED'
-        },
-        { status: 403 }
+      const error = ApiErrors.businessRuleViolation(
+        'Please verify your email address before placing an order',
+        'يرجى تأكيد بريدك الإلكتروني قبل إتمام الطلب'
       )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    // Parse request body
-    const body: CreateOrderRequest = await request.json()
+    // Parse and validate request body
+    const rawBody = await request.json()
+    const validationResult = CreateOrderSchema.safeParse(rawBody)
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0]
+      const error = ApiErrors.validationError(
+        firstError.path.join('.'),
+        firstError.message
+      )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
+    }
+
+    const body = validationResult.data
     const { supplierId, deliveryAddress, deliverySchedule, vehicleEstimate } = body
-
-    // Validate required fields (vehicleEstimate is now optional, but we still need delivery zone and fee)
-    if (
-      !supplierId ||
-      !body.items ||
-      body.items.length === 0 ||
-      !deliveryAddress ||
-      !deliverySchedule ||
-      !vehicleEstimate ||
-      !vehicleEstimate.delivery_zone ||
-      !vehicleEstimate.delivery_fee_jod
-    ) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
 
     // Calculate totals
     const subtotal = body.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
@@ -107,14 +153,10 @@ export async function POST(request: Request) {
     // Generate order number
     const orderNumber = generateOrderNumber()
 
-    // Start a transaction (using Supabase RPC or multiple queries)
-    // Note: Supabase doesn't support transactions in the same way as raw SQL,
-    // but we can handle errors and rollback manually if needed
-
-    // 1. Create the order (vehicle_class_id and vehicle_type are now null - suppliers handle logistics)
-    const { data: order, error: orderError } = await (supabase
+    // 1. Create the order
+    const { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert as any)({
+      .insert({
         order_number: orderNumber,
         contractor_id: user.id,
         supplier_id: supplierId,
@@ -122,8 +164,8 @@ export async function POST(request: Request) {
         subtotal_jod: subtotal,
         delivery_fee_jod: deliveryFee,
         total_jod: total,
-        vehicle_class_id: null, // No longer using vehicle estimation
-        vehicle_type: null, // Suppliers handle their own logistics (vehicle selection)
+        vehicle_class_id: null,
+        vehicle_type: null,
         delivery_zone: vehicleEstimate.delivery_zone,
         delivery_address: deliveryAddress.address,
         delivery_neighborhood: 'Amman',  // TODO: Get from address breakdown
@@ -131,51 +173,46 @@ export async function POST(request: Request) {
         delivery_phone: deliveryAddress.phone,
         delivery_latitude: deliveryAddress.latitude,
         delivery_longitude: deliveryAddress.longitude,
-        scheduled_delivery_date: deliverySchedule.date,     // Correct column name
-        scheduled_delivery_time: deliverySchedule.time_slot, // Correct column name
+        scheduled_delivery_date: deliverySchedule.date,
+        scheduled_delivery_time: deliverySchedule.time_slot,
       })
       .select()
       .single()
 
     if (orderError || !order) {
       console.error('Order creation error:', orderError)
-      return NextResponse.json(
-        { error: 'Failed to create order', details: orderError?.message },
-        { status: 500 }
-      )
+      const error = ApiErrors.databaseError('create order', orderError)
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    // 2. Create order items (with product details for order history)
+    // 2. Create order items
     const orderItems = body.items.map((item) => ({
       order_id: order.id,
       product_id: item.productId,
-      product_name: item.productName || item.productNameEn || 'Unknown Product', // Use Arabic name, fallback to English
-      unit: item.unit || item.unitEn || 'unit', // Use Arabic unit, fallback to English
+      product_name: item.productName || item.productNameEn || 'Unknown Product',
+      unit: item.unit || item.unitEn || 'unit',
       quantity: item.quantity,
-      unit_price: item.unitPrice, // Database expects unit_price, not unit_price_jod
-      total_price: item.unitPrice * item.quantity, // Database expects total_price, not total_jod
+      unit_price: item.unitPrice,
+      total_price: item.unitPrice * item.quantity,
     }))
 
-    const { error: itemsError } = await (supabase.from('order_items').insert as any)(orderItems)
+    const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
 
     if (itemsError) {
       console.error('Order items creation error:', itemsError)
-      // Rollback: delete the order
-      await supabase.from('orders').delete().eq('id', order.id)
-      return NextResponse.json(
-        { error: 'Failed to create order items', details: itemsError.message },
-        { status: 500 }
-      )
+      await rollbackOrder(supabase, order.id)
+      const error = ApiErrors.databaseError('create order items', itemsError)
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    // 3. Create delivery record with all required fields
+    // 3. Create delivery record
     const deliveryData: any = {
       order_id: order.id,
-      scheduled_date: deliverySchedule.date, // Scheduled delivery date
-      scheduled_time_slot: deliverySchedule.time_slot, // Scheduled time slot
-      address_line: deliveryAddress.address, // Full address string
-      phone: deliveryAddress.phone, // Recipient phone
-      recipient_phone: deliveryAddress.phone, // Also set recipient_phone for backward compatibility
+      scheduled_date: deliverySchedule.date,
+      scheduled_time_slot: deliverySchedule.time_slot,
+      address_line: deliveryAddress.address,
+      phone: deliveryAddress.phone,
+      recipient_phone: deliveryAddress.phone,
     }
 
     // Generate PIN if order amount >= threshold
@@ -184,41 +221,46 @@ export async function POST(request: Request) {
       deliveryData.pin_verified = false
     }
 
-    const { data: delivery, error: deliveryError } = await (supabase
+    const { data: delivery, error: deliveryError } = await supabase
       .from('deliveries')
-      .insert as any)(deliveryData)
+      .insert(deliveryData)
       .select()
       .single()
 
     if (deliveryError || !delivery) {
       console.error('Delivery creation error:', deliveryError)
-      // Rollback
-      await supabase.from('orders').delete().eq('id', order.id)
-      return NextResponse.json(
-        { error: 'Failed to create delivery record', details: deliveryError?.message },
-        { status: 500 }
-      )
+      await rollbackOrder(supabase, order.id)
+      const error = ApiErrors.databaseError('create delivery record', deliveryError)
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     // 4. Create payment intent via payment provider
-    const paymentIntent = await mockPaymentProvider.createPaymentIntent({
-      amount: total * 100, // Convert to fils (smallest unit)
-      currency: 'JOD',
-      metadata: {
-        order_id: order.id,
-        order_number: orderNumber,
-        contractor_id: user.id,
-        supplier_id: supplierId,
-      },
-    })
+    let paymentIntent
+    try {
+      paymentIntent = await mockPaymentProvider.createPaymentIntent({
+        amount: total * 100, // Convert to fils
+        currency: 'JOD',
+        metadata: {
+          order_id: order.id,
+          order_number: orderNumber,
+          contractor_id: user.id,
+          supplier_id: supplierId,
+        },
+      })
 
-    // 5. Hold (capture) the payment immediately
-    await mockPaymentProvider.holdPayment(paymentIntent.id)
+      // 5. Hold (capture) the payment immediately
+      await mockPaymentProvider.holdPayment(paymentIntent.id)
+    } catch (paymentProviderError) {
+      console.error('Payment provider error:', paymentProviderError)
+      await rollbackOrder(supabase, order.id)
+      const error = ApiErrors.paymentProviderError()
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
+    }
 
     // 6. Create payment record in database
-    const { data: payment, error: paymentError } = await (supabase
+    const { data: payment, error: paymentError } = await supabase
       .from('payments')
-      .insert as any)({
+      .insert({
         order_id: order.id,
         payment_intent_id: paymentIntent.id,
         payment_method: 'mock_card',
@@ -235,26 +277,24 @@ export async function POST(request: Request) {
 
     if (paymentError || !payment) {
       console.error('Payment creation error:', paymentError)
-      // Rollback
-      await supabase.from('orders').delete().eq('id', order.id)
-      return NextResponse.json(
-        { error: 'Failed to create payment record', details: paymentError?.message },
-        { status: 500 }
-      )
+      await rollbackOrder(supabase, order.id)
+      const error = ApiErrors.databaseError('create payment record', paymentError)
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     // 7. Update order status to 'confirmed' since payment is held
-    await (supabase
+    await supabase
       .from('orders')
-      .update as any)({ status: 'confirmed' })
-      .eq('order_id', order.order_id)
+      .update({ status: 'confirmed' })
+      .eq('id', order.id)
 
     // Return the created order and payment info
     const response: CreateOrderResponse = {
       order: {
         ...order,
         status: 'confirmed',
-      },
+        created_at: order.created_at || new Date().toISOString(), // Ensure non-null
+      } as any, // Type assertion due to Supabase type mismatch
       payment: {
         id: payment.id,
         payment_intent_id: paymentIntent.id,
@@ -265,9 +305,7 @@ export async function POST(request: Request) {
     return NextResponse.json(response)
   } catch (error) {
     console.error('Order creation API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
+    const apiError = handleApiError(error)
+    return NextResponse.json(apiError.toResponseObject(), { status: apiError.status })
   }
 }

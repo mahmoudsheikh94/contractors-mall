@@ -1,17 +1,30 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { ApiErrors, handleApiError, OrderStatus } from '@contractors-mall/shared'
+import { z } from 'zod'
 
-type OrderStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'accepted'
-  | 'in_delivery'
-  | 'awaiting_contractor_confirmation'
-  | 'delivered'
-  | 'completed'
-  | 'cancelled'
-  | 'rejected'
-  | 'disputed'
+/**
+ * Zod validation schema for delivery confirmation
+ */
+const ConfirmDeliverySchema = z.object({
+  confirmed: z.boolean({
+    required_error: 'Confirmation status is required',
+    invalid_type_error: 'Confirmation must be a boolean',
+  }),
+  issues: z.string().optional(),
+}).refine(
+  (data) => {
+    // If not confirmed, issues must be provided
+    if (data.confirmed === false && !data.issues?.trim()) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'Issues description is required when reporting problems',
+    path: ['issues'],
+  }
+)
 
 interface DeliveryConfirmation {
   delivery_id: string
@@ -45,36 +58,33 @@ interface DeliveryConfirmation {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const orderId = params.orderId
+    const { orderId } = await params
 
-    // Parse request body
-    const body = await request.json()
-    const { confirmed, issues } = body
+    // Parse and validate request body
+    const rawBody = await request.json()
+    const validationResult = ConfirmDeliverySchema.safeParse(rawBody)
 
-    // Validate input
-    if (typeof confirmed !== 'boolean') {
-      return NextResponse.json(
-        { error: 'Invalid request: confirmed must be a boolean' },
-        { status: 400 }
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0]
+      const error = ApiErrors.validationError(
+        firstError.path.join('.'),
+        firstError.message
       )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    if (confirmed === false && !issues?.trim()) {
-      return NextResponse.json(
-        { error: 'يرجى تحديد المشكلة قبل الإبلاغ' },
-        { status: 400 }
-      )
-    }
+    const { confirmed, issues } = validationResult.data
 
     // Get current user and verify authentication
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      const error = ApiErrors.unauthorized()
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     // Get the order and verify contractor ownership
@@ -85,29 +95,24 @@ export async function POST(
       .single()
 
     if (orderError || !order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+      const error = ApiErrors.notFound('Order', orderId)
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
-
-    // Type assertion for order status
-    const orderStatus = order.status as OrderStatus
 
     // Verify contractor ownership
     if (order.contractor_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized - you do not own this order' },
-        { status: 403 }
-      )
+      const error = ApiErrors.forbidden({ reason: 'You do not own this order' })
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     // Validate order status
+    const orderStatus = order.status as OrderStatus
     if (orderStatus !== 'awaiting_contractor_confirmation') {
-      return NextResponse.json(
-        {
-          error: 'Invalid order status',
-          message: `Order must be awaiting your confirmation. Current status: ${orderStatus}`,
-        },
-        { status: 400 }
+      const error = ApiErrors.businessRuleViolation(
+        `Order must be awaiting your confirmation. Current status: ${orderStatus}`,
+        `يجب أن يكون الطلب بانتظار تأكيدك. الحالة الحالية: ${orderStatus}`
       )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     // Get delivery record and verify supplier confirmed first
@@ -118,33 +123,26 @@ export async function POST(
       .single()
 
     if (deliveryError || !deliveryData) {
-      return NextResponse.json(
-        { error: 'Delivery record not found' },
-        { status: 404 }
-      )
+      const error = ApiErrors.notFound('Delivery record', orderId)
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    // Type assertion for delivery with new confirmation columns
     const delivery = deliveryData as unknown as DeliveryConfirmation
 
     if (!delivery.supplier_confirmed) {
-      return NextResponse.json(
-        {
-          error: 'Supplier must confirm delivery first',
-          message: 'المورد لم يؤكد التوصيل بعد. يرجى الانتظار.',
-        },
-        { status: 400 }
+      const error = ApiErrors.businessRuleViolation(
+        'Supplier must confirm delivery first',
+        'المورد لم يؤكد التوصيل بعد. يرجى الانتظار.'
       )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     if (delivery.contractor_confirmed) {
-      return NextResponse.json(
-        {
-          error: 'Already confirmed',
-          message: 'لقد قمت بتأكيد استلام هذا الطلب بالفعل.',
-        },
-        { status: 400 }
+      const error = ApiErrors.businessRuleViolation(
+        'You have already confirmed receipt of this delivery',
+        'لقد قمت بتأكيد استلام هذا الطلب بالفعل.'
       )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
     const now = new Date().toISOString()
@@ -166,10 +164,8 @@ export async function POST(
 
       if (confirmError) {
         console.error('Error marking contractor confirmation:', confirmError)
-        return NextResponse.json(
-          { error: 'Failed to confirm delivery' },
-          { status: 500 }
-        )
+        const error = ApiErrors.databaseError('confirm delivery', confirmError)
+        return NextResponse.json(error.toResponseObject(), { status: error.status })
       }
 
       // 2. Update order status to delivered
@@ -191,7 +187,7 @@ export async function POST(
         .from('disputes')
         .select('id, status')
         .eq('order_id', orderId)
-        .in('status', ['opened', 'investigating', 'escalated'] as any)
+        .in('status', ['opened', 'investigating', 'escalated'])
         .maybeSingle()
 
       let paymentReleased = false
@@ -201,12 +197,12 @@ export async function POST(
         const { error: paymentError } = await supabase
           .from('payments')
           .update({
-            status: 'released' as any,
+            status: 'released',
             released_at: now,
             updated_at: now,
           })
           .eq('order_id', orderId)
-          .eq('status', 'held' as any)
+          .eq('status', 'held')
 
         if (paymentError) {
           console.error('Error releasing payment:', paymentError)
@@ -260,42 +256,43 @@ export async function POST(
     // REPORT ISSUE PATH (DISPUTE)
     // ==========================================
     else {
+      // NOTE: 'disputed' status not yet in production database
+      // Will fail until migration 20251113000000 is applied
+      // TODO: Remove type casts after running migrations in production
+
       // 1. Create dispute
       const { data: newDispute, error: disputeError } = await supabase
         .from('disputes')
         .insert({
           order_id: orderId,
           opened_by: user.id,
-          reason: issues,
+          reason: issues!, // Non-null assertion safe due to Zod validation
           description: null,
-          status: 'opened' as any,
+          status: 'opened',
         })
         .select()
         .single()
 
       if (disputeError) {
         console.error('Error creating dispute:', disputeError)
-        return NextResponse.json(
-          { error: 'Failed to create dispute' },
-          { status: 500 }
-        )
+        const error = ApiErrors.databaseError('create dispute', disputeError)
+        return NextResponse.json(error.toResponseObject(), { status: error.status })
       }
 
       // 2. Update order status to disputed
       await supabase
         .from('orders')
         .update({
-          status: 'disputed' as any,
+          status: 'disputed' as any, // Cast required until migration applied
           updated_at: now,
         })
         .eq('id', orderId)
 
-      // 3. Freeze payment
+      // 3. Freeze payment (note: 'frozen' status may not exist in production yet)
       await supabase
         .from('payments')
         .update({
-          status: 'frozen' as any,
-          frozen_at: now,
+          status: 'held', // Keep as held instead of frozen until schema updated
           updated_at: now,
         })
         .eq('order_id', orderId)
@@ -330,9 +327,7 @@ export async function POST(
     }
   } catch (error: any) {
     console.error('Confirm delivery error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to process delivery confirmation' },
-      { status: 500 }
-    )
+    const apiError = handleApiError(error)
+    return NextResponse.json(apiError.toResponseObject(), { status: apiError.status })
   }
 }
