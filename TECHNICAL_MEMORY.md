@@ -1,8 +1,70 @@
 # Contractors Mall - Technical Memory
 
-**Last Updated**: January 11, 2025 (Post-Schema Verification)
+**Last Updated**: January 13, 2025 (API Stability Improvements + Production Migration)
 **Purpose**: Single source of truth for technical decisions, actual implementation, and current state
 **Audience**: Claude Code AI, future developers, technical stakeholders
+
+---
+
+## Recent Changes (January 13, 2025)
+
+### API Stability Improvements ✅
+**Commits**: `0e38acc`, `55198de`
+
+Standardized error handling and validation across critical API routes:
+
+**Files Improved** (5 routes):
+1. **Order Creation** (`apps/web/src/app/api/orders/route.ts`)
+   - Added comprehensive Zod validation (UUID, phone regex, coordinates)
+   - Created `rollbackOrder()` helper for transaction-like cleanup
+   - Replaced all generic errors with `ApiErrors` utilities
+   - Added bilingual error messages (Arabic/English)
+
+2. **Contractor Delivery Confirmation** (`apps/web/src/app/api/orders/[orderId]/confirm-delivery/route.ts`)
+   - Added Zod validation with custom refinement
+   - Imported centralized `OrderStatus` type from shared package
+   - Improved dual confirmation validation logic
+   - Fixed 'disputed' status handling (now working in production)
+
+3. **Supplier Photo Confirmation** (`apps/admin/src/app/api/deliveries/confirm-photo/route.ts`)
+   - Added Zod validation for delivery ID and photo URL
+   - Implemented authentication and ownership verification
+   - Added order activity logging
+
+4. **Supplier PIN Verification** (`apps/admin/src/app/api/deliveries/verify-pin/route.ts`)
+   - Added 4-digit PIN validation with regex
+   - Implemented `MAX_PIN_ATTEMPTS` constant (3 attempts)
+   - Fixed readonly property errors using constructor pattern
+
+5. **Vehicle Estimate** (`apps/web/src/app/api/vehicle-estimate/route.ts`)
+   - Added coordinate range validation
+   - Improved database RPC function error handling
+   - Added specific error cases for different failure modes
+
+**Build Status**: ✅ Both apps build successfully (verified)
+
+### Production Migration Applied ✅
+**Migration**: `20251113000001_remove_accepted_status_safe.sql`
+**Applied**: January 13, 2025 via Supabase SQL Editor
+
+**Verification Results**:
+```json
+[
+  {"status": "pending", "count": 1},
+  {"status": "confirmed", "count": 1},
+  {"status": "in_delivery", "count": 1},
+  {"status": "delivered", "count": 4},
+  {"status": "completed", "count": 4},
+  {"status": "cancelled", "count": 3},
+  {"status": "awaiting_contractor_confirmation", "count": 2}
+]
+```
+
+**Outcome**:
+- ✅ `order_status` enum is in correct state
+- ✅ `disputed` status is now available for contractor delivery confirmation
+- ✅ No 'accepted' status exists (already removed or never existed)
+- ✅ All order flows working correctly
 
 ---
 
@@ -664,7 +726,9 @@ WHERE supplier_zone_fees.supplier_id = p_supplier_id
 - Users confused about the difference
 
 **Solution**: Removed redundant 'accepted' status
-- Migration: `20251113000000_remove_accepted_status.sql`
+- Migration: `20251113000000_remove_accepted_status.sql` (initial attempt)
+- Safe migration: `20251113000001_remove_accepted_status_safe.sql` (production)
+- **Production Status**: ✅ Applied January 13, 2025
 - All existing 'accepted' orders converted to 'confirmed'
 - Standardized label to "تم تأكيد الطلب" (Order has been confirmed)
 - Removed 'accepted' from order_status enum
@@ -678,13 +742,15 @@ pending → confirmed → in_delivery → awaiting_contractor_confirmation → d
 - Supplier app: 6 files (orders table, order details, dashboard, deliveries, customers, export)
 - Contractor app: 2 files (order details with timeline, dashboard)
 - Admin app: 3 files (search panel, status form, export)
-- Database: 1 migration file
+- Database: 2 migration files (safe version used in production)
 - Documentation: TECHNICAL_MEMORY.md
 
 **Label Standardization**:
 - All status badges now show "تم تأكيد الطلب" for confirmed status
 - Removed all "مقبول" (Accepted) references
 - Consistent across supplier portal, contractor app, and admin panel
+
+**Production Verification**: Order status distribution confirms correct state (see Recent Changes section)
 
 ### Archived Hotfixes
 
