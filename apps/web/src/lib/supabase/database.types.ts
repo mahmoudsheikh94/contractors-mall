@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_conversation_participants: {
@@ -492,6 +517,243 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_line_items: {
+        Row: {
+          activity_classification: string | null
+          created_at: string
+          description: string
+          discount_jod: number | null
+          general_tax_amount_jod: number | null
+          general_tax_rate: number | null
+          id: string
+          invoice_id: string
+          item_type: Database["public"]["Enums"]["invoice_item_type"]
+          line_total_jod: number
+          product_id: string | null
+          quantity: number
+          special_tax_value_jod: number | null
+          subtotal_jod: number
+          unit_price_jod: number
+        }
+        Insert: {
+          activity_classification?: string | null
+          created_at?: string
+          description: string
+          discount_jod?: number | null
+          general_tax_amount_jod?: number | null
+          general_tax_rate?: number | null
+          id?: string
+          invoice_id: string
+          item_type: Database["public"]["Enums"]["invoice_item_type"]
+          line_total_jod: number
+          product_id?: string | null
+          quantity: number
+          special_tax_value_jod?: number | null
+          subtotal_jod: number
+          unit_price_jod: number
+        }
+        Update: {
+          activity_classification?: string | null
+          created_at?: string
+          description?: string
+          discount_jod?: number | null
+          general_tax_amount_jod?: number | null
+          general_tax_rate?: number | null
+          id?: string
+          invoice_id?: string
+          item_type?: Database["public"]["Enums"]["invoice_item_type"]
+          line_total_jod?: number
+          product_id?: string | null
+          quantity?: number
+          special_tax_value_jod?: number | null
+          subtotal_jod?: number
+          unit_price_jod?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          buyer_city: string | null
+          buyer_id_number: string | null
+          buyer_id_type: Database["public"]["Enums"]["buyer_id_type"] | null
+          buyer_name: string
+          buyer_phone: string | null
+          buyer_postal_code: string | null
+          contractor_id: string
+          created_at: string
+          created_by: string
+          currency: string
+          discount_total_jod: number
+          electronic_invoice_number: string | null
+          general_tax_total_jod: number
+          grand_total_jod: number
+          id: string
+          invoice_category: Database["public"]["Enums"]["invoice_category"]
+          invoice_number: string
+          invoice_type: Database["public"]["Enums"]["invoice_type"]
+          is_return: boolean
+          issue_date: string
+          notes: string | null
+          order_id: string
+          original_invoice_id: string | null
+          pdf_url: string | null
+          return_reason: string | null
+          seller_address: string | null
+          seller_city: string | null
+          seller_name: string
+          seller_name_en: string | null
+          seller_phone: string | null
+          seller_tax_number: string
+          special_tax_total_jod: number
+          status: Database["public"]["Enums"]["invoice_status"]
+          submission_error: string | null
+          submission_status:
+            | Database["public"]["Enums"]["submission_status"]
+            | null
+          submitted_at: string | null
+          subtotal_jod: number
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_city?: string | null
+          buyer_id_number?: string | null
+          buyer_id_type?: Database["public"]["Enums"]["buyer_id_type"] | null
+          buyer_name: string
+          buyer_phone?: string | null
+          buyer_postal_code?: string | null
+          contractor_id: string
+          created_at?: string
+          created_by: string
+          currency?: string
+          discount_total_jod?: number
+          electronic_invoice_number?: string | null
+          general_tax_total_jod?: number
+          grand_total_jod: number
+          id?: string
+          invoice_category?: Database["public"]["Enums"]["invoice_category"]
+          invoice_number: string
+          invoice_type: Database["public"]["Enums"]["invoice_type"]
+          is_return?: boolean
+          issue_date?: string
+          notes?: string | null
+          order_id: string
+          original_invoice_id?: string | null
+          pdf_url?: string | null
+          return_reason?: string | null
+          seller_address?: string | null
+          seller_city?: string | null
+          seller_name: string
+          seller_name_en?: string | null
+          seller_phone?: string | null
+          seller_tax_number: string
+          special_tax_total_jod?: number
+          status?: Database["public"]["Enums"]["invoice_status"]
+          submission_error?: string | null
+          submission_status?:
+            | Database["public"]["Enums"]["submission_status"]
+            | null
+          submitted_at?: string | null
+          subtotal_jod: number
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_city?: string | null
+          buyer_id_number?: string | null
+          buyer_id_type?: Database["public"]["Enums"]["buyer_id_type"] | null
+          buyer_name?: string
+          buyer_phone?: string | null
+          buyer_postal_code?: string | null
+          contractor_id?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          discount_total_jod?: number
+          electronic_invoice_number?: string | null
+          general_tax_total_jod?: number
+          grand_total_jod?: number
+          id?: string
+          invoice_category?: Database["public"]["Enums"]["invoice_category"]
+          invoice_number?: string
+          invoice_type?: Database["public"]["Enums"]["invoice_type"]
+          is_return?: boolean
+          issue_date?: string
+          notes?: string | null
+          order_id?: string
+          original_invoice_id?: string | null
+          pdf_url?: string | null
+          return_reason?: string | null
+          seller_address?: string | null
+          seller_city?: string | null
+          seller_name?: string
+          seller_name_en?: string | null
+          seller_phone?: string | null
+          seller_tax_number?: string
+          special_tax_total_jod?: number
+          status?: Database["public"]["Enums"]["invoice_status"]
+          submission_error?: string | null
+          submission_status?:
+            | Database["public"]["Enums"]["submission_status"]
+            | null
+          submitted_at?: string | null
+          subtotal_jod?: number
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_original_invoice_id_fkey"
+            columns: ["original_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -1455,12 +1717,18 @@ export type Database = {
           longitude: number
           owner_id: string
           phone: string
+          portal_api_configured_at: string | null
+          portal_api_enabled: boolean | null
+          portal_api_key: string | null
+          portal_username: string | null
           radius_km_zone_a: number | null
           radius_km_zone_b: number | null
           rating_average: number | null
           rating_count: number | null
           street: string | null
           tax_number: string | null
+          tax_registration_name: string | null
+          tax_registration_name_en: string | null
           updated_at: string | null
           verified_at: string | null
           wallet_available: number | null
@@ -1484,12 +1752,18 @@ export type Database = {
           longitude: number
           owner_id: string
           phone: string
+          portal_api_configured_at?: string | null
+          portal_api_enabled?: boolean | null
+          portal_api_key?: string | null
+          portal_username?: string | null
           radius_km_zone_a?: number | null
           radius_km_zone_b?: number | null
           rating_average?: number | null
           rating_count?: number | null
           street?: string | null
           tax_number?: string | null
+          tax_registration_name?: string | null
+          tax_registration_name_en?: string | null
           updated_at?: string | null
           verified_at?: string | null
           wallet_available?: number | null
@@ -1513,12 +1787,18 @@ export type Database = {
           longitude?: number
           owner_id?: string
           phone?: string
+          portal_api_configured_at?: string | null
+          portal_api_enabled?: boolean | null
+          portal_api_key?: string | null
+          portal_username?: string | null
           radius_km_zone_a?: number | null
           radius_km_zone_b?: number | null
           rating_average?: number | null
           rating_count?: number | null
           street?: string | null
           tax_number?: string | null
+          tax_registration_name?: string | null
+          tax_registration_name_en?: string | null
           updated_at?: string | null
           verified_at?: string | null
           wallet_available?: number | null
@@ -1893,6 +2173,10 @@ export type Database = {
           zone: Database["public"]["Enums"]["delivery_zone"]
         }[]
       }
+      generate_invoice_number: {
+        Args: { p_supplier_id: string }
+        Returns: string
+      }
       generate_order_number: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
@@ -2141,6 +2425,7 @@ export type Database = {
               maxdecimaldigits?: number
               nprefix?: string
               options?: number
+              version: number
             }
             Returns: string
           }
@@ -2151,7 +2436,6 @@ export type Database = {
               maxdecimaldigits?: number
               nprefix?: string
               options?: number
-              version: number
             }
             Returns: string
           }
@@ -2342,11 +2626,11 @@ export type Database = {
         Returns: unknown
       }
       st_generatepoints:
+        | { Args: { area: unknown; npoints: number }; Returns: unknown }
         | {
             Args: { area: unknown; npoints: number; seed: number }
             Returns: unknown
           }
-        | { Args: { area: unknown; npoints: number }; Returns: unknown }
       st_geogfromtext: { Args: { "": string }; Returns: unknown }
       st_geographyfromtext: { Args: { "": string }; Returns: unknown }
       st_geohash:
@@ -2680,8 +2964,13 @@ export type Database = {
       }
     }
     Enums: {
+      buyer_id_type: "national_id" | "tax_number" | "personal_number"
       delivery_zone: "zone_a" | "zone_b"
       dispute_status: "opened" | "investigating" | "resolved" | "escalated"
+      invoice_category: "local" | "export" | "development_zone"
+      invoice_item_type: "product" | "service" | "service_allowance"
+      invoice_status: "draft" | "issued" | "submitted_to_portal" | "cancelled"
+      invoice_type: "income" | "sales_tax" | "special_tax"
       language: "ar" | "en"
       order_status:
         | "pending"
@@ -2693,6 +2982,7 @@ export type Database = {
         | "awaiting_contractor_confirmation"
       payment_status: "pending" | "held" | "released" | "refunded" | "failed"
       preferred_language: "ar" | "en"
+      submission_status: "pending" | "success" | "failed"
       user_role: "contractor" | "supplier_admin" | "driver" | "admin"
     }
     CompositeTypes: {
@@ -2827,10 +3117,18 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
+      buyer_id_type: ["national_id", "tax_number", "personal_number"],
       delivery_zone: ["zone_a", "zone_b"],
       dispute_status: ["opened", "investigating", "resolved", "escalated"],
+      invoice_category: ["local", "export", "development_zone"],
+      invoice_item_type: ["product", "service", "service_allowance"],
+      invoice_status: ["draft", "issued", "submitted_to_portal", "cancelled"],
+      invoice_type: ["income", "sales_tax", "special_tax"],
       language: ["ar", "en"],
       order_status: [
         "pending",
@@ -2843,6 +3141,7 @@ export const Constants = {
       ],
       payment_status: ["pending", "held", "released", "refunded", "failed"],
       preferred_language: ["ar", "en"],
+      submission_status: ["pending", "success", "failed"],
       user_role: ["contractor", "supplier_admin", "driver", "admin"],
     },
   },

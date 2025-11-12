@@ -5,7 +5,8 @@
  * with bilingual support (Arabic/English) and proper HTTP status codes
  */
 
-import { NextResponse } from 'next/server'
+// Note: NextResponse import removed to avoid Next.js dependency in shared package
+// Consumers of this package should handle response creation
 
 /**
  * Standard API Error Codes
@@ -103,22 +104,20 @@ export class ApiError extends Error {
   }
 
   /**
-   * Convert to NextResponse
+   * Convert to response object
+   * Consumers should use this with their framework's response method
    */
-  toResponse(): NextResponse<ApiErrorResponse> {
-    return NextResponse.json(
-      {
-        error: {
-          code: this.code,
-          message: this.message,
-          message_ar: this.messageAr,
-          details: this.details,
-          timestamp: new Date().toISOString(),
-          request_id: this.requestId,
-        }
-      },
-      { status: this.status }
-    )
+  toResponseObject(): ApiErrorResponse {
+    return {
+      error: {
+        code: this.code,
+        message: this.message,
+        message_ar: this.messageAr,
+        details: this.details,
+        timestamp: new Date().toISOString(),
+        request_id: this.requestId,
+      }
+    }
   }
 }
 
@@ -353,27 +352,20 @@ export const ApiErrors = {
 
 /**
  * Error Handler Wrapper
- * Use this to wrap API route handlers for consistent error handling
+ * Framework-agnostic error handling wrapper
+ * Consumers should adapt this for their specific framework (Next.js, Express, etc.)
  */
-export function withErrorHandling<T = any>(
-  handler: (req: Request) => Promise<NextResponse<T>>
-) {
-  return async (req: Request): Promise<NextResponse<T | ApiErrorResponse>> => {
-    try {
-      return await handler(req)
-    } catch (error) {
-      // If it's already an ApiError, return its response
-      if (error instanceof ApiError) {
-        return error.toResponse()
-      }
-
-      // Log unexpected errors
-      console.error('Unexpected API error:', error)
-
-      // Return generic internal error for unexpected errors
-      return ApiErrors.internalError(error).toResponse()
-    }
+export function handleApiError(error: unknown): ApiError {
+  // If it's already an ApiError, return it
+  if (error instanceof ApiError) {
+    return error
   }
+
+  // Log unexpected errors
+  console.error('Unexpected API error:', error)
+
+  // Return generic internal error for unexpected errors
+  return ApiErrors.internalError(error)
 }
 
 /**

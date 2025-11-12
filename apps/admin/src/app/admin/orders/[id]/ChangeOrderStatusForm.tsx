@@ -10,6 +10,8 @@ interface ChangeOrderStatusFormProps {
   currentStatus: string
 }
 
+// TODO: Enable 'rejected' and 'disputed' statuses after migrations are applied to production
+// These statuses exist in the database migrations but haven't been applied to production yet
 const STATUS_OPTIONS: { value: OrderStatus; label: string; color: string }[] = [
   { value: 'pending', label: ORDER_STATUS_LABELS.pending.ar, color: ORDER_STATUS_LABELS.pending.color },
   { value: 'confirmed', label: ORDER_STATUS_LABELS.confirmed.ar, color: ORDER_STATUS_LABELS.confirmed.color },
@@ -18,8 +20,9 @@ const STATUS_OPTIONS: { value: OrderStatus; label: string; color: string }[] = [
   { value: 'awaiting_contractor_confirmation', label: ORDER_STATUS_LABELS.awaiting_contractor_confirmation.ar, color: ORDER_STATUS_LABELS.awaiting_contractor_confirmation.color },
   { value: 'completed', label: ORDER_STATUS_LABELS.completed.ar, color: ORDER_STATUS_LABELS.completed.color },
   { value: 'cancelled', label: ORDER_STATUS_LABELS.cancelled.ar, color: ORDER_STATUS_LABELS.cancelled.color },
-  { value: 'rejected', label: ORDER_STATUS_LABELS.rejected.ar, color: ORDER_STATUS_LABELS.rejected.color },
-  { value: 'disputed', label: ORDER_STATUS_LABELS.disputed.ar, color: ORDER_STATUS_LABELS.disputed.color },
+  // Temporarily disabled until migrations are applied to production:
+  // { value: 'rejected', label: ORDER_STATUS_LABELS.rejected.ar, color: ORDER_STATUS_LABELS.rejected.color },
+  // { value: 'disputed', label: ORDER_STATUS_LABELS.disputed.ar, color: ORDER_STATUS_LABELS.disputed.color },
 ]
 
 export function ChangeOrderStatusForm({ orderId, currentStatus }: ChangeOrderStatusFormProps) {
@@ -42,10 +45,12 @@ export function ChangeOrderStatusForm({ orderId, currentStatus }: ChangeOrderSta
       const supabase = createClient()
 
       // Update order status
+      // Cast to 'any' temporarily until database migrations are applied to production
+      // The production database doesn't have 'rejected' and 'disputed' statuses yet
       const { error: orderError } = await supabase
         .from('orders')
         .update({
-          status: selectedStatus,
+          status: selectedStatus as any,
         })
         .eq('id', orderId)
 

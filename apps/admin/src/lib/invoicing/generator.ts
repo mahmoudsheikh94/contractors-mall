@@ -28,7 +28,7 @@ import {
 // ==========================================
 
 // Re-export for backward compatibility
-export { InvoiceType, InvoiceCategory, BuyerIdType, InvoiceItemType, InvoiceStatus, SubmissionStatus }
+export type { InvoiceType, InvoiceCategory, BuyerIdType, InvoiceItemType, InvoiceStatus, SubmissionStatus }
 
 export interface GenerateInvoiceParams {
   orderId: string

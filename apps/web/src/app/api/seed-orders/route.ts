@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   // SECURITY: Block seed endpoint in production
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== 'true') {
     return NextResponse.json(

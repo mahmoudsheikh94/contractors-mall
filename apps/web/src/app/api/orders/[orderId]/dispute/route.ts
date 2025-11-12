@@ -107,10 +107,13 @@ export async function POST(
     }
 
     // Update order status to 'disputed'
+    // NOTE: 'disputed' status is not yet in production database.
+    // Will fail until migrations are applied to production.
+    // TODO: Run migration 20251113000000 in production to enable disputed status
     const { error: orderUpdateError } = await (supabase
       .from('orders')
       .update as any)({
-        status: 'disputed',
+        status: 'disputed' as any, // Cast required until database is updated
         disputed_at: new Date().toISOString(),
         dispute_reason: body.description,
       })
