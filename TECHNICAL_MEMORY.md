@@ -3090,6 +3090,181 @@ PGPASSWORD="***" psql "postgresql://postgres.***@***:6543/postgres" \
 **Tax Calculations**: ✅ Match Jordan tax law (16% sales tax)
 **Sequential Numbering**: ✅ Gapless as required by law
 
+## 17. Delivery Confirmation System (January 13, 2025)
+
+### Overview
+
+Dual-confirmation system where both supplier and contractor must confirm delivery before payment release. Implements different verification methods based on order value thresholds.
+
+### Confirmation Flow
+
+```
+Order Flow:
+pending → confirmed → in_delivery → awaiting_contractor_confirmation → delivered → completed
+                ↓                                                              ↓
+            rejected                                                      disputed
+```
+
+### Confirmation Methods
+
+| Order Value | Supplier Method | Contractor Method | Payment Release |
+|------------|----------------|-------------------|-----------------|
+| < 120 JOD | Photo upload | Button click | After both confirm |
+| ≥ 120 JOD | 4-digit PIN | Button click | After both confirm |
+
+### Critical Issues Fixed
+
+#### 1. Missing Enum Values (✅ FIXED)
+**Problem**: Production missing 'disputed' and 'awaiting_contractor_confirmation' in order_status enum
+**Impact**: ALL order updates failed with "invalid input value for enum order_status: disputed"
+**Root Cause**: notify_order_status_change() trigger referenced non-existent values
+**Fix**: Added missing enum values via `scripts/fix-enum-safe-production.sql`
+
+#### 2. RLS Policy for Contractors (✅ FIXED)
+**Problem**: Contractors couldn't update order status during delivery confirmation
+**Fix Applied**:
+```sql
+CREATE POLICY "Contractors can update order status on delivery confirmation"
+  ON orders FOR UPDATE
+  TO authenticated
+  USING (
+    contractor_id = auth.uid()
+    AND status = 'awaiting_contractor_confirmation'
+  )
+  WITH CHECK (
+    contractor_id = auth.uid()
+    AND status IN ('delivered', 'completed', 'disputed')
+  );
+```
+
+#### 3. Supplier Ownership Verification (✅ FIXED)
+**Problem**: API compared supplier.id with user.id instead of checking owner_id
+**Fix**: Query suppliers table to get supplier owned by authenticated user
+
+#### 4. Error Handling (✅ FIXED)
+**Problem**: API swallowed errors and returned success
+**Fix**: Return detailed errors with PostgreSQL error codes and bilingual messages
+
+### API Endpoints
+
+#### Supplier Endpoints
+
+**POST /api/deliveries/verify-pin**
+- For orders ≥ 120 JOD
+- Max 3 PIN attempts
+- Updates: `supplier_confirmed = true`
+- Changes order status to `awaiting_contractor_confirmation`
+
+**POST /api/deliveries/confirm-photo**
+- For orders < 120 JOD
+- Uploads to Supabase Storage
+- Updates: `supplier_confirmed = true`
+- Changes order status to `awaiting_contractor_confirmation`
+
+#### Contractor Endpoint
+
+**POST /api/orders/[orderId]/confirm-delivery**
+```typescript
+Body: {
+  confirmed: boolean,  // true = confirm, false = dispute
+  issues?: string     // Required if confirmed = false
+}
+
+If confirmed = true:
+  - Updates: contractor_confirmed = true
+  - Order status → 'delivered'
+  - If no disputes → release payment, status → 'completed'
+
+If confirmed = false:
+  - Creates dispute
+  - Order status → 'disputed'
+  - Payment frozen
+```
+
+### Database Tables
+
+#### deliveries Table
+```sql
+- supplier_confirmed: BOOLEAN
+- supplier_confirmed_at: TIMESTAMPTZ
+- contractor_confirmed: BOOLEAN
+- contractor_confirmed_at: TIMESTAMPTZ
+- confirmation_pin: TEXT (4 digits)
+- pin_attempts: INTEGER (max 3)
+- pin_verified: BOOLEAN
+- photo_url: TEXT
+- completed_at: TIMESTAMPTZ
+```
+
+### RLS Policies Required
+
+```sql
+-- Contractors update orders
+"Contractors can update order status on delivery confirmation"
+
+-- Contractors update deliveries
+"Contractors can update their deliveries"
+
+-- Suppliers update deliveries
+"Suppliers can update their deliveries"
+
+-- Payment release on confirmation
+"System can update payments on delivery confirmation"
+```
+
+### Testing Checklist
+
+- [ ] Supplier photo upload (< 120 JOD)
+- [ ] Supplier PIN verification (≥ 120 JOD)
+- [ ] PIN attempts limit (max 3)
+- [ ] Contractor confirmation
+- [ ] Payment auto-release
+- [ ] Dispute creation
+- [ ] Status transitions
+- [ ] Error messages (AR/EN)
+
+### Diagnostic Scripts
+
+Located in `/scripts/`:
+- `diagnose-contractor-order-update.sql` - Check RLS policies
+- `fix-contractor-order-update.sql` - Apply contractor RLS policy
+- `fix-enum-safe-production.sql` - Add missing enum values
+- `complete-delivery-confirmation-fix.sql` - Apply all fixes
+- `test-contractor-order-update-supabase.sql` - Test in SQL Editor
+- `test-api-order-update.mjs` - Test with real auth
+
+### Monitoring Points
+
+```javascript
+// Log all critical steps
+console.log('[DELIVERY_CONFIRMATION]', {
+  step: 'supplier_confirmation' | 'contractor_confirmation',
+  orderId,
+  userId: auth.uid(),
+  success: boolean,
+  error?: any,
+  timestamp: new Date().toISOString()
+})
+```
+
+### Common Issues & Solutions
+
+**Order stuck in 'awaiting_contractor_confirmation'**
+- Check `supplier_confirmed = true` in deliveries
+- Verify contractor owns the order
+- Check RLS policy exists
+- Look for API error logs
+
+**PIN verification failing**
+- Check `pin_attempts < 3`
+- Verify PIN matches `confirmation_pin`
+- Check supplier ownership
+
+**Payment not released**
+- Both confirmations must be true
+- No active disputes
+- Payment status must be 'held'
+
 ---
 
 **Last Updated**: January 13, 2025
