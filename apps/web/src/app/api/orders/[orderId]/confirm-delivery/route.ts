@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { ApiErrors, handleApiError, OrderStatus } from '@contractors-mall/shared'
+import { ApiErrors, ApiError, ErrorCodes, handleApiError, OrderStatus } from '@contractors-mall/shared'
 import { z } from 'zod'
 
 /**
@@ -169,18 +169,59 @@ export async function POST(
       }
 
       // 2. Update order status to delivered
-      const { error: orderUpdateError } = await supabase
+      // DIAGNOSTIC: Log auth context before update
+      console.log('[DIAGNOSTIC] Attempting order status update:', {
+        orderId,
+        orderNumber: order.order_number,
+        currentStatus: order.status,
+        targetStatus: 'delivered',
+        contractorId: order.contractor_id,
+        authenticatedUserId: user.id,
+        authContextMatch: order.contractor_id === user.id,
+      })
+
+      const { data: orderUpdateData, error: orderUpdateError } = await supabase
         .from('orders')
         .update({
           status: 'delivered',
           updated_at: now,
         })
         .eq('id', orderId)
+        .select()
 
       if (orderUpdateError) {
-        console.error('Error updating order status:', orderUpdateError)
-        // Continue - confirmation succeeded
+        console.error('❌ ERROR updating order status:', {
+          error: orderUpdateError,
+          code: orderUpdateError.code,
+          message: orderUpdateError.message,
+          details: orderUpdateError.details,
+          hint: orderUpdateError.hint,
+        })
+
+        // CRITICAL: Order status update failed!
+        // This means payment won't be released and order will be stuck
+        // Return error to user instead of silently continuing
+        const error = new ApiError(
+          ErrorCodes.DATABASE_ERROR,
+          `Failed to update order status: ${orderUpdateError.message || 'Unknown error'}`,
+          500,
+          {
+            messageAr: 'فشل تحديث حالة الطلب. يرجى الاتصال بالدعم.',
+            details: {
+              step: 'order_status_update',
+              delivery_confirmed: true, // Delivery was confirmed successfully
+              order_status_updated: false,
+              postgres_error_code: orderUpdateError.code,
+              postgres_error_message: orderUpdateError.message,
+              postgres_error_details: orderUpdateError.details,
+              postgres_error_hint: orderUpdateError.hint,
+            }
+          }
+        )
+        return NextResponse.json(error.toResponseObject(), { status: error.status })
       }
+
+      console.log('✅ Order status updated successfully:', orderUpdateData)
 
       // 3. Check if there are any active disputes
       const { data: dispute } = await supabase
