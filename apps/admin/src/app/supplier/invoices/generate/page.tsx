@@ -108,7 +108,7 @@ export default async function GenerateInvoicePage() {
   const { data: supplier } = await supabase
     .from('suppliers')
     .select('id, business_name, tax_number, phone, address, city')
-    .eq('id', user.id)
+    .eq('owner_id', user.id)
     .single()
 
   if (!supplier) {

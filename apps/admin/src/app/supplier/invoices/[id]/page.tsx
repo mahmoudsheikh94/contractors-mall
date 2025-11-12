@@ -73,8 +73,19 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
     redirect('/dashboard')
   }
 
-  // 3. Fetch invoice
-  const invoice = await getInvoice(params.id, user.id)
+  // 3. Get supplier ID
+  const { data: supplier } = await supabase
+    .from('suppliers')
+    .select('id')
+    .eq('owner_id', user.id)
+    .single()
+
+  if (!supplier) {
+    redirect('/dashboard')
+  }
+
+  // 4. Fetch invoice
+  const invoice = await getInvoice(params.id, supplier.id)
 
   if (!invoice) {
     return (
