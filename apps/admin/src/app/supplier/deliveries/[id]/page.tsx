@@ -83,7 +83,7 @@ export default async function DeliveryDetailPage({
         breadcrumbs={[
           { label: 'لوحة التحكم', href: '/supplier/dashboard' },
           { label: 'التوصيل', href: '/supplier/deliveries' },
-          { label: `توصيل #${delivery.delivery_id.slice(0, 8)}...` },
+          { label: `توصيل #${delivery.id.slice(0, 8)}...` },
         ]}
       />
 
@@ -136,7 +136,7 @@ export default async function DeliveryDetailPage({
               </div>
             ) : (
               <DeliveryConfirmation
-                deliveryId={delivery.delivery_id}
+                deliveryId={delivery.id}
                 orderTotal={order.total_jod}
                 requiresPin={requiresPin}
                 pinAttempts={delivery.pin_attempts}

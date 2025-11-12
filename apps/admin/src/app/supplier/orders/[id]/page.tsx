@@ -148,7 +148,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
   if (order.status === 'in_delivery') {
     const { data: deliveryData } = await supabase
       .from('deliveries')
-      .select('id, delivery_id, order_id')
+      .select('id, order_id')
       .eq('order_id', order.id)
       .maybeSingle()
     delivery = deliveryData
@@ -237,7 +237,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                     </div>
                   </div>
                   <Link
-                    href={`/supplier/deliveries/${delivery.delivery_id}`}
+                    href={`/supplier/deliveries/${delivery.id}`}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
                   >
                     تأكيد التوصيل الآن
