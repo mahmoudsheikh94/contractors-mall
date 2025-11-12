@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { ApiErrors, ApiError, ErrorCodes, handleApiError } from '@contractors-mall/shared'
+import { z } from 'zod'
 
-// Simplified request/response types (no longer need items for delivery fee calculation)
-interface DeliveryFeeRequest {
-  supplierId: string
-  deliveryLat: number
-  deliveryLng: number
-}
+/**
+ * Zod validation schema for delivery fee estimation
+ */
+const DeliveryFeeRequestSchema = z.object({
+  supplierId: z.string().uuid('Invalid supplier ID format'),
+  deliveryLat: z.number()
+    .min(-90, 'Latitude must be between -90 and 90')
+    .max(90, 'Latitude must be between -90 and 90'),
+  deliveryLng: z.number()
+    .min(-180, 'Longitude must be between -180 and 180')
+    .max(180, 'Longitude must be between -180 and 180'),
+})
 
 interface DeliveryFeeEstimate {
   zone: 'zone_a' | 'zone_b'
@@ -14,32 +22,49 @@ interface DeliveryFeeEstimate {
   distance_km: number
 }
 
+/**
+ * POST /api/vehicle-estimate
+ *
+ * Calculate delivery fee based on supplier location and delivery coordinates.
+ * Uses database function fn_calculate_delivery_fee for zone-based pricing.
+ *
+ * Request body:
+ * {
+ *   supplierId: string (UUID)
+ *   deliveryLat: number (-90 to 90)
+ *   deliveryLng: number (-180 to 180)
+ * }
+ *
+ * Response:
+ * {
+ *   estimate: {
+ *     zone: 'zone_a' | 'zone_b'
+ *     delivery_fee_jod: number
+ *     distance_km: number
+ *   }
+ * }
+ */
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
-    // Parse request body
-    const body: DeliveryFeeRequest = await request.json()
-    const { supplierId, deliveryLat, deliveryLng } = body
+    // Parse and validate request body
+    const rawBody = await request.json()
+    const validationResult = DeliveryFeeRequestSchema.safeParse(rawBody)
 
-    // Validate required fields
-    if (!supplierId || !deliveryLat || !deliveryLng) {
-      return NextResponse.json(
-        { error: 'Missing required fields: supplierId, deliveryLat, deliveryLng' },
-        { status: 400 }
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0]
+      const error = ApiErrors.validationError(
+        firstError.path.join('.'),
+        firstError.message
       )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    // Validate coordinates
-    if (deliveryLat < -90 || deliveryLat > 90 || deliveryLng < -180 || deliveryLng > 180) {
-      return NextResponse.json(
-        { error: 'Invalid coordinates' },
-        { status: 400 }
-      )
-    }
+    const { supplierId, deliveryLat, deliveryLng } = validationResult.data
 
-    // Call the simplified database function
-    const { data, error } = await (supabase.rpc as any)('fn_calculate_delivery_fee', {
+    // Call the database function for delivery fee calculation
+    const { data, error } = await supabase.rpc('fn_calculate_delivery_fee', {
       p_supplier_id: supplierId,
       p_delivery_lat: deliveryLat,
       p_delivery_lng: deliveryLng,
@@ -48,59 +73,90 @@ export async function POST(request: Request) {
     if (error) {
       console.error('Delivery fee calculation error:', error)
 
-      // Check for specific error messages
+      // Check for specific error messages from the database function
       if (error.message?.includes('outside service area')) {
-        return NextResponse.json(
+        const apiError = new ApiError(
+          ErrorCodes.BUSINESS_RULE_VIOLATION,
+          'Delivery location is outside the supplier service area',
+          422,
           {
-            error: 'Delivery location is outside the supplier service area',
-            details: error.message
-          },
-          { status: 400 }
+            messageAr: 'موقع التوصيل خارج منطقة خدمة المورد',
+            details: { error: error.message }
+          }
         )
+        return NextResponse.json(apiError.toResponseObject(), { status: apiError.status })
       }
 
       if (error.message?.includes('not configured')) {
-        return NextResponse.json(
+        const apiError = new ApiError(
+          ErrorCodes.BUSINESS_RULE_VIOLATION,
+          'Supplier has not configured delivery fees for this zone',
+          422,
           {
-            error: 'Supplier has not configured delivery fees for this zone',
-            details: error.message
-          },
-          { status: 400 }
+            messageAr: 'لم يقم المورد بتكوين رسوم التوصيل لهذه المنطقة',
+            details: { error: error.message }
+          }
         )
+        return NextResponse.json(apiError.toResponseObject(), { status: apiError.status })
       }
 
       if (error.message?.includes('not found or not verified')) {
-        return NextResponse.json(
+        const apiError = new ApiError(
+          ErrorCodes.NOT_FOUND,
+          'Supplier not found or not verified',
+          404,
           {
-            error: 'Supplier not found or not verified',
-            details: error.message
-          },
-          { status: 404 }
+            messageAr: 'المورد غير موجود أو غير موثق',
+            details: { resource: 'Supplier', id: supplierId, error: error.message }
+          }
         )
+        return NextResponse.json(apiError.toResponseObject(), { status: apiError.status })
       }
 
-      return NextResponse.json(
-        { error: 'Failed to calculate delivery fee', details: error.message },
-        { status: 500 }
-      )
+      // Generic database error
+      const apiError = ApiErrors.databaseError('calculate delivery fee', error)
+      return NextResponse.json(apiError.toResponseObject(), { status: apiError.status })
     }
 
     // The function returns an array with one row
     const estimate = data?.[0] as DeliveryFeeEstimate
 
     if (!estimate) {
-      return NextResponse.json(
-        { error: 'No delivery fee estimate returned' },
-        { status: 500 }
+      const error = new ApiError(
+        ErrorCodes.INTERNAL_ERROR,
+        'No delivery fee estimate returned from database',
+        500,
+        {
+          messageAr: 'لم يتم إرجاع تقدير رسوم التوصيل'
+        }
       )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
     }
 
-    return NextResponse.json({ estimate })
+    // Validate estimate structure
+    if (!estimate.zone || typeof estimate.delivery_fee_jod !== 'number' || typeof estimate.distance_km !== 'number') {
+      const error = new ApiError(
+        ErrorCodes.INTERNAL_ERROR,
+        'Invalid delivery fee estimate format',
+        500,
+        {
+          messageAr: 'تنسيق تقدير رسوم التوصيل غير صالح',
+          details: { estimate }
+        }
+      )
+      return NextResponse.json(error.toResponseObject(), { status: error.status })
+    }
+
+    return NextResponse.json({
+      estimate: {
+        zone: estimate.zone,
+        delivery_fee_jod: estimate.delivery_fee_jod,
+        distance_km: estimate.distance_km,
+      }
+    })
   } catch (error) {
     console.error('Delivery fee API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    const apiError = handleApiError(error)
+    return NextResponse.json(apiError.toResponseObject(), { status: apiError.status })
   }
 }
