@@ -24,8 +24,8 @@ interface Invoice {
   id: string
   invoice_number: string
   invoice_type: string
-  total_amount: number
-  tax_amount: number
+  grand_total_jod: number
+  general_tax_total_jod: number
   created_at: string
   status: string
 }
@@ -44,7 +44,7 @@ export function InvoiceSection({ orderId, orderNumber, orderStatus }: InvoiceSec
         const { data, error } = await supabase
           // @ts-ignore
           .from('invoices')
-          .select('id, invoice_number, invoice_type, total_amount, tax_amount, created_at, status')
+          .select('id, invoice_number, invoice_type, grand_total_jod, general_tax_total_jod, created_at, status')
           .eq('order_id', orderId)
           .eq('is_return', false)
           .maybeSingle()
@@ -118,7 +118,7 @@ export function InvoiceSection({ orderId, orderNumber, orderStatus }: InvoiceSec
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-1">المبلغ الإجمالي</h3>
-              <p className="text-gray-900 font-semibold">{invoice.total_amount.toFixed(2)} د.أ</p>
+              <p className="text-gray-900 font-semibold">{invoice.grand_total_jod.toFixed(2)} د.أ</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-1">تاريخ الإصدار</h3>
