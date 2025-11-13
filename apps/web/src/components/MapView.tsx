@@ -252,7 +252,7 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
       })
 
       // Keep popup open when hovering over it
-      el.addEventListener('mouseleave', (e) => {
+      el.addEventListener('mouseleave', () => {
         // Check if we're hovering over the popup
         setTimeout(() => {
           const popupElement = document.querySelector('.supplier-popup')
