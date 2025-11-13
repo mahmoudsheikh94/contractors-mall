@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
         buyerCity: body.buyerCity,
         buyerPostalCode: body.buyerPostalCode
       },
-      supplier.id  // ✅ Fixed: Pass supplier.id instead of user.id
+      supplier.id,  // Supplier record ID for supplier_id field
+      user.id       // Auth user ID for created_by field
     )
 
     // 7. Return success response

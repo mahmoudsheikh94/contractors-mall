@@ -94,7 +94,8 @@ export const ACTIVITY_CLASSIFICATIONS = [
 
 export async function generateJordanInvoice(
   params: GenerateInvoiceParams,
-  supplierId: string
+  supplierId: string,
+  userId: string  // Auth user ID for created_by field
 ): Promise<GeneratedInvoice> {
   const supabase = await createClient()
 
@@ -281,7 +282,7 @@ export async function generateJordanInvoice(
       buyer_id_type: params.buyerIdType,
       buyer_id_number: params.buyerIdNumber,
       buyer_phone: params.buyerPhone || contractor?.phone,
-      buyer_city: params.buyerCity || contractor?.city || order.delivery_address,
+      buyer_city: params.buyerCity || order.delivery_address,  // Removed contractor?.city (doesn't exist)
       buyer_postal_code: params.buyerPostalCode,
 
       // Financial totals
@@ -296,7 +297,7 @@ export async function generateJordanInvoice(
 
       // Metadata
       notes: params.notes,
-      created_by: supplierId
+      created_by: userId  // Use auth user ID for created_by
     })
     .select()
     .single()
