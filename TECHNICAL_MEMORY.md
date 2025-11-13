@@ -1,8 +1,9 @@
 # Contractors Mall - Technical Memory
 
-**Last Updated**: January 14, 2025 (Mapbox Integration Complete)
+**Last Updated**: January 14, 2025 (Roadmap & Phase Planning)
 **Purpose**: Single source of truth for technical decisions, actual implementation, and current state
 **Audience**: Claude Code AI, future developers, technical stakeholders
+**Roadmap**: See [ROADMAP.md](./ROADMAP.md) for detailed phase planning and timeline
 
 ---
 
