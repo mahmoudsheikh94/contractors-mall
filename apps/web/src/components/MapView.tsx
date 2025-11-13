@@ -97,7 +97,26 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
     )
 
     map.current.on('load', () => {
+      console.log('✅ Mapbox map loaded successfully')
       setMapLoaded(true)
+
+      // Debug: Check if map container is visible
+      if (mapContainer.current) {
+        const rect = mapContainer.current.getBoundingClientRect()
+        console.log('📐 Map container dimensions:', {
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          left: rect.left,
+          visible: rect.width > 0 && rect.height > 0
+        })
+      }
+
+      // Force a resize to ensure map renders properly
+      setTimeout(() => {
+        map.current?.resize()
+        console.log('🔄 Triggered map resize')
+      }, 100)
     })
 
     map.current.on('error', (e) => {
@@ -476,10 +495,11 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
   }
 
   return (
-    <div className="relative w-full h-full min-h-[600px]">
+    <div className="relative w-full h-full min-h-[600px]" style={{ backgroundColor: '#f3f4f6' }}>
       <div
         ref={mapContainer}
         className="absolute inset-0 rounded-lg overflow-hidden"
+        style={{ width: '100%', height: '100%', backgroundColor: '#e5e7eb' }}
       />
 
       {/* Loading indicator */}
