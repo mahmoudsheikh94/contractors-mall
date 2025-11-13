@@ -66,41 +66,12 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
   // Initialize map
   useEffect(() => {
-    console.log('🔍 Map Init:', {
-      hasContainer: !!mapContainer.current,
-      hasMap: !!map.current,
-      isConfigured: isMapboxConfigured(),
-      tokenExists: !!MAPBOX_ACCESS_TOKEN,
-      tokenLength: MAPBOX_ACCESS_TOKEN?.length
-    });
-
-    if (!mapContainer.current) {
-      console.error('❌ No container');
-      return;
-    }
-
-    if (map.current) {
-      console.log('⚠️ Map already exists');
-      return;
-    }
-
-    if (!isMapboxConfigured()) {
-      console.error('❌ Mapbox not configured');
-      return;
-    }
+    if (!mapContainer.current || map.current || !isMapboxConfigured()) return
 
     try {
       const center: [number, number] = userLocation
         ? [userLocation.lng, userLocation.lat]
         : MAPBOX_DEFAULTS.defaultCenter
-
-      console.log('🗺️ Creating map at center:', center);
-      console.log('📦 Container dimensions:', {
-        offsetWidth: mapContainer.current.offsetWidth,
-        offsetHeight: mapContainer.current.offsetHeight,
-        clientWidth: mapContainer.current.clientWidth,
-        clientHeight: mapContainer.current.clientHeight
-      });
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -109,8 +80,6 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         zoom: userLocation ? MAPBOX_DEFAULTS.userLocationZoom : MAPBOX_DEFAULTS.defaultZoom,
         attributionControl: false,
       })
-
-      console.log('✅ Map created successfully');
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
@@ -129,11 +98,10 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
     map.current.on('load', () => {
       setMapLoaded(true)
-      console.log('✅ Mapbox map loaded successfully')
     })
 
     map.current.on('error', (e) => {
-      console.error('❌ Mapbox error:', e)
+      console.error('Mapbox error:', e)
       setError(MAPBOX_ERRORS.loadFailed.ar)
     })
     } catch (err) {
@@ -264,11 +232,12 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
       `
 
       const popup = new mapboxgl.Popup({
-        offset: 25,
+        offset: 35, // Increased offset to prevent covering marker
         closeButton: true,
         closeOnClick: false,
         maxWidth: '320px',
-        className: 'supplier-popup'
+        className: 'supplier-popup',
+        anchor: 'bottom' // Popup appears above marker
       }).setHTML(popupContent)
 
       // Create marker
@@ -277,33 +246,58 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         .setPopup(popup)
         .addTo(map.current!)
 
-      // Show popup on hover
+      // Track hover state for this specific marker/popup pair
+      let hoverTimeout: NodeJS.Timeout | null = null;
+      let isHoveringMarker = false;
+      let isHoveringPopup = false;
+
+      // Show popup on marker hover
       el.addEventListener('mouseenter', () => {
+        isHoveringMarker = true;
+        if (hoverTimeout) {
+          clearTimeout(hoverTimeout);
+          hoverTimeout = null;
+        }
         popup.addTo(map.current!)
       })
 
-      // Keep popup open when hovering over it
+      // Marker mouse leave - wait before closing
       el.addEventListener('mouseleave', () => {
-        // Check if we're hovering over the popup
-        setTimeout(() => {
-          const popupElement = document.querySelector('.supplier-popup')
-          if (popupElement && !popupElement.matches(':hover')) {
+        isHoveringMarker = false;
+        // Wait 250ms to see if user is moving to popup
+        hoverTimeout = setTimeout(() => {
+          if (!isHoveringMarker && !isHoveringPopup) {
             popup.remove()
+            el.style.transform = 'scale(1)' // Reset marker scale
           }
-        }, 100)
+        }, 250)
       })
 
-      // Handle popup hover
+      // Handle popup hover to keep it open
       popup.on('open', () => {
-        const popupElement = document.querySelector('.supplier-popup')
-        if (popupElement) {
-          popupElement.addEventListener('mouseenter', () => {
-            // Keep popup open
-          })
-          popupElement.addEventListener('mouseleave', () => {
-            popup.remove()
-          })
-        }
+        // Small delay to ensure popup is in DOM
+        setTimeout(() => {
+          const popupElement = document.querySelector('.supplier-popup')
+          if (popupElement) {
+            popupElement.addEventListener('mouseenter', () => {
+              isHoveringPopup = true;
+              if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+                hoverTimeout = null;
+              }
+            })
+            popupElement.addEventListener('mouseleave', () => {
+              isHoveringPopup = false;
+              // Close popup when leaving it
+              hoverTimeout = setTimeout(() => {
+                if (!isHoveringMarker && !isHoveringPopup) {
+                  popup.remove()
+                  el.style.transform = 'scale(1)'
+                }
+              }, 250)
+            })
+          }
+        }, 10)
       })
 
       markers.push(marker)
@@ -489,42 +483,11 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
   }
 
   return (
-    <div
-      className="relative w-full h-full min-h-[600px]"
-      style={{
-        border: '3px solid red',
-        backgroundColor: '#fef2f2'
-      }}
-    >
+    <div className="relative w-full h-full min-h-[600px]">
       <div
         ref={mapContainer}
         className="absolute inset-0 rounded-lg overflow-hidden"
-        style={{
-          backgroundColor: '#e5e7eb',
-          width: '100%',
-          height: '100%',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0
-        }}
-      >
-        {/* Debug info */}
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '10px',
-          background: 'yellow',
-          padding: '10px',
-          zIndex: 9999,
-          fontSize: '12px'
-        }}>
-          Map Container<br/>
-          mapLoaded: {mapLoaded ? 'YES' : 'NO'}<br/>
-          suppliers: {suppliers.length}
-        </div>
-      </div>
+      />
 
       {/* Loading indicator */}
       {!mapLoaded && !error && (
