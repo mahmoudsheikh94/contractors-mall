@@ -195,7 +195,32 @@ export async function POST(
 
     console.log('✅ PDF generated successfully:', pdfUrl)
 
-    // 10. Return success response
+    // 10. Create notification for contractor
+    if (invoice.contractor_id) {
+      const { error: notificationError } = await supabase
+        .from('in_app_notifications')
+        .insert({
+          user_id: invoice.contractor_id,
+          type: 'invoice_ready',
+          title: 'الفاتورة الضريبية جاهزة',
+          message: `فاتورتك الضريبية للطلب رقم ${order?.order_number || 'N/A'} جاهزة للتحميل`,
+          link: `/orders/${invoice.order_id}`,
+          data: {
+            invoice_id: invoiceId,
+            order_id: invoice.order_id,
+            invoice_number: invoice.invoice_number
+          }
+        })
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError)
+        // Don't fail the whole request if notification fails
+      } else {
+        console.log('✅ Notification created for contractor')
+      }
+    }
+
+    // 11. Return success response
     return NextResponse.json({
       success: true,
       message: 'تم إنشاء ملف PDF بنجاح (PDF generated successfully)',

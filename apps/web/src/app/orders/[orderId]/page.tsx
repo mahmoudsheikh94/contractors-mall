@@ -429,6 +429,11 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
           </div>
         )}
 
+        {/* Invoice Section */}
+        {order.status === 'completed' && (
+          <InvoiceSection orderId={order.order_id} />
+        )}
+
         {/* Supplier Information */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">معلومات المورد</h2>
@@ -799,6 +804,138 @@ function IssueReportModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Invoice Section Component
+ */
+function InvoiceSection({ orderId }: { orderId: string }) {
+  const [invoice, setInvoice] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchInvoice() {
+      try {
+        const supabase = createClient()
+        // @ts-ignore - invoices table exists in database
+        const { data, error } = await supabase
+          // @ts-ignore
+          .from('invoices')
+          .select('id, invoice_number, issue_date, grand_total_jod, pdf_url, status')
+          .eq('order_id', orderId)
+          .maybeSingle()
+
+        if (error) {
+          console.error('Error fetching invoice:', error)
+          setError(error.message)
+          setLoading(false)
+          return
+        }
+
+        if (data) {
+          console.log('Invoice found:', data)
+          setInvoice(data)
+        } else {
+          console.log('No invoice found for order:', orderId)
+        }
+      } catch (err) {
+        console.error('Error fetching invoice:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchInvoice()
+  }, [orderId])
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    console.error('Invoice section error:', error)
+    return null
+  }
+
+  if (!invoice) {
+    return null
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <span className="text-2xl">📄</span>
+        الفاتورة الضريبية
+      </h2>
+
+      <div className="space-y-3 mb-4">
+        <div className="flex justify-between py-2 border-b">
+          <span className="text-gray-600">رقم الفاتورة</span>
+          <span className="font-semibold">{invoice.invoice_number}</span>
+        </div>
+
+        <div className="flex justify-between py-2 border-b">
+          <span className="text-gray-600">تاريخ الإصدار</span>
+          <span className="font-semibold">
+            {new Date(invoice.issue_date).toLocaleDateString('ar-JO')}
+          </span>
+        </div>
+
+        <div className="flex justify-between py-2 border-b">
+          <span className="text-gray-600">المبلغ الإجمالي</span>
+          <span className="font-semibold text-blue-600">
+            {invoice.grand_total_jod.toFixed(2)} د.أ
+          </span>
+        </div>
+
+        <div className="flex justify-between py-2">
+          <span className="text-gray-600">حالة الفاتورة</span>
+          <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+            {invoice.status === 'issued' ? 'صادرة' :
+             invoice.status === 'submitted_to_portal' ? 'مرسلة للبوابة' :
+             invoice.status === 'draft' ? 'مسودة' : invoice.status}
+          </span>
+        </div>
+      </div>
+
+      {invoice.pdf_url ? (
+        <a
+          href={invoice.pdf_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full bg-blue-600 text-white text-center py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-semibold inline-flex items-center justify-center gap-2"
+        >
+          <span className="text-xl">⬇️</span>
+          تحميل الفاتورة PDF
+        </a>
+      ) : (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+          <p className="text-yellow-800 text-sm">
+            ⏳ جاري إنشاء ملف PDF للفاتورة...
+          </p>
+        </div>
+      )}
+
+      <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-blue-800 text-sm">
+          💡 هذه فاتورة ضريبية معتمدة من دائرة ضريبة الدخل والمبيعات الأردنية
+        </p>
       </div>
     </div>
   )
