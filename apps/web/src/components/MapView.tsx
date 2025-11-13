@@ -175,14 +175,6 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         </div>
       `
 
-      // Hover effect
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.2)'
-      })
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)'
-      })
-
       // Create popup content with better styling
       const popupContent = `
         <div class="p-4 min-w-[280px]" dir="rtl" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -254,6 +246,7 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
       // Show popup on marker hover
       el.addEventListener('mouseenter', () => {
         isHoveringMarker = true;
+        el.style.transform = 'scale(1.2)'; // Scale up marker on hover
         if (hoverTimeout) {
           clearTimeout(hoverTimeout);
           hoverTimeout = null;
