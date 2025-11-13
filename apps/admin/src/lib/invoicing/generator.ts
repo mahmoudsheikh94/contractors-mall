@@ -104,7 +104,7 @@ export async function generateJordanInvoice(
     .select(`
       *,
       order_items (
-        id,
+        item_id,
         product_id,
         quantity,
         unit_price_jod,
@@ -130,8 +130,7 @@ export async function generateJordanInvoice(
         id,
         full_name,
         phone,
-        email,
-        city
+        email
       )
     `)
     .eq('id', params.orderId)
