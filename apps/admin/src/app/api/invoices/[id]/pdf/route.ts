@@ -11,7 +11,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF } from '@/lib/invoicing/InvoicePDFTemplate'
 import { trackAPIError } from '@/lib/monitoring'
@@ -120,30 +119,29 @@ export async function POST(
         buyer_phone: invoice.buyer_phone,
         buyer_city: invoice.buyer_city,
         buyer_postal_code: invoice.buyer_postal_code,
-        subtotal_jod: parseFloat(invoice.subtotal_jod),
-        discount_total_jod: parseFloat(invoice.discount_total_jod),
-        general_tax_total_jod: parseFloat(invoice.general_tax_total_jod),
-        special_tax_total_jod: parseFloat(invoice.special_tax_total_jod),
-        grand_total_jod: parseFloat(invoice.grand_total_jod),
+        subtotal_jod: invoice.subtotal_jod,
+        discount_total_jod: invoice.discount_total_jod,
+        general_tax_total_jod: invoice.general_tax_total_jod,
+        special_tax_total_jod: invoice.special_tax_total_jod,
+        grand_total_jod: invoice.grand_total_jod,
         currency: invoice.currency,
         notes: invoice.notes
       },
       lineItems: lineItems.map((item: any) => ({
         description: item.description,
-        quantity: parseFloat(item.quantity),
-        unit_price_jod: parseFloat(item.unit_price_jod),
-        discount_jod: parseFloat(item.discount_jod || 0),
-        general_tax_rate: parseFloat(item.general_tax_rate || 0),
-        general_tax_amount_jod: parseFloat(item.general_tax_amount_jod || 0),
-        line_total_jod: parseFloat(item.line_total_jod)
+        quantity: item.quantity,
+        unit_price_jod: item.unit_price_jod,
+        discount_jod: item.discount_jod || 0,
+        general_tax_rate: item.general_tax_rate || 0,
+        general_tax_amount_jod: item.general_tax_amount_jod || 0,
+        line_total_jod: item.line_total_jod
       })),
       orderNumber: order?.order_number
     }
 
     // 6. Generate PDF
-    const pdfBuffer = await renderToBuffer(
-      React.createElement(InvoicePDF, pdfData)
-    )
+    const pdfDocument = InvoicePDF(pdfData)
+    const pdfBuffer = await renderToBuffer(pdfDocument)
 
     // 7. Upload to Supabase Storage
     const fileName = `${supplier.id}/${invoiceId}.pdf`

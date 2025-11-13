@@ -291,16 +291,16 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                     {lineItems.map((item: any) => (
                       <tr key={item.id}>
                         <td className="px-4 py-3 text-gray-900">{item.description}</td>
-                        <td className="px-4 py-3 text-gray-700">{parseFloat(item.quantity).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-gray-700">{parseFloat(item.unit_price_jod).toFixed(2)} د.أ</td>
-                        <td className="px-4 py-3 text-gray-700">{parseFloat(item.discount_jod || 0).toFixed(2)} د.أ</td>
+                        <td className="px-4 py-3 text-gray-700">{item.quantity.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-gray-700">{item.unit_price_jod.toFixed(2)} د.أ</td>
+                        <td className="px-4 py-3 text-gray-700">{(item.discount_jod || 0).toFixed(2)} د.أ</td>
                         {invoice.invoice_type !== 'income' && (
                           <td className="px-4 py-3 text-gray-700">
-                            {parseFloat(item.general_tax_amount_jod || 0).toFixed(2)} د.أ
-                            {item.general_tax_rate > 0 && ` (${parseFloat(item.general_tax_rate).toFixed(0)}%)`}
+                            {(item.general_tax_amount_jod || 0).toFixed(2)} د.أ
+                            {item.general_tax_rate > 0 && ` (${item.general_tax_rate.toFixed(0)}%)`}
                           </td>
                         )}
-                        <td className="px-4 py-3 font-medium text-gray-900">{parseFloat(item.line_total_jod).toFixed(2)} د.أ</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{item.line_total_jod.toFixed(2)} د.أ</td>
                       </tr>
                     ))}
                   </tbody>
@@ -313,29 +313,29 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               <div className="w-full md:w-96 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">المجموع الفرعي:</span>
-                  <span className="font-medium">{parseFloat(invoice.subtotal_jod).toFixed(2)} د.أ</span>
+                  <span className="font-medium">{invoice.subtotal_jod.toFixed(2)} د.أ</span>
                 </div>
-                {parseFloat(invoice.discount_total_jod) > 0 && (
+                {invoice.discount_total_jod > 0 && (
                   <div className="flex justify-between text-sm text-red-600">
                     <span>الخصم:</span>
-                    <span>-{parseFloat(invoice.discount_total_jod).toFixed(2)} د.أ</span>
+                    <span>-{invoice.discount_total_jod.toFixed(2)} د.أ</span>
                   </div>
                 )}
-                {invoice.invoice_type !== 'income' && parseFloat(invoice.general_tax_total_jod) > 0 && (
+                {invoice.invoice_type !== 'income' && invoice.general_tax_total_jod > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">ضريبة المبيعات العامة:</span>
-                    <span className="font-medium">{parseFloat(invoice.general_tax_total_jod).toFixed(2)} د.أ</span>
+                    <span className="font-medium">{invoice.general_tax_total_jod.toFixed(2)} د.أ</span>
                   </div>
                 )}
-                {invoice.invoice_type === 'special_tax' && parseFloat(invoice.special_tax_total_jod) > 0 && (
+                {invoice.invoice_type === 'special_tax' && invoice.special_tax_total_jod > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">الضريبة الخاصة:</span>
-                    <span className="font-medium">{parseFloat(invoice.special_tax_total_jod).toFixed(2)} د.أ</span>
+                    <span className="font-medium">{invoice.special_tax_total_jod.toFixed(2)} د.أ</span>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-bold border-t pt-3">
                   <span>الإجمالي:</span>
-                  <span className="text-blue-600">{parseFloat(invoice.grand_total_jod).toFixed(2)} د.أ</span>
+                  <span className="text-blue-600">{invoice.grand_total_jod.toFixed(2)} د.أ</span>
                 </div>
               </div>
             </div>
