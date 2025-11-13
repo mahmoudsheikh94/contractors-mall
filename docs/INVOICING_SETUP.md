@@ -2,14 +2,19 @@
 
 ## Overview
 
-This document provides instructions for setting up the Jordan E-Invoicing System compliance feature for Contractors Mall.
+This document provides instructions for the Jordan E-Invoicing System compliance feature for Contractors Mall.
+
+**Status**: ✅ **FULLY OPERATIONAL** (as of January 13, 2025)
+
+All migrations have been applied and invoice generation is working in production.
 
 ## Migration Application
 
-The Jordan e-invoicing schema is defined in:
-```
-supabase/migrations/20250113000000_create_invoicing_system.sql
-```
+✅ **COMPLETE** - All migrations applied to production database:
+
+1. `supabase/migrations/20250113000000_create_invoicing_system.sql` - Core schema
+2. `supabase/migrations/20250113150000_fix_invoice_rls_policies.sql` - RLS fixes
+3. `supabase/migrations/20250113160000_fix_invoice_line_items_rls.sql` - Line items RLS
 
 ### Method 1: Supabase Dashboard (Recommended)
 
@@ -186,6 +191,39 @@ WHERE typname IN ('invoice_type', 'invoice_category', 'invoice_status');
 -- Test invoice number generation
 SELECT generate_invoice_number(auth.uid()::uuid);
 ```
+
+## Troubleshooting
+
+### Common Issues (RESOLVED)
+
+All critical bugs have been fixed as of January 13, 2025. Documented here for reference:
+
+#### 1. Foreign Key Violation (created_by)
+**Error**: `violates foreign key constraint "invoices_created_by_fkey"`
+**Cause**: Passing wrong ID type (supplier.id instead of user.id)
+**Fixed**: ✅ In generator.ts and route.ts
+
+#### 2. RLS Policy Failures
+**Error**: `new row violates row-level security policy`
+**Cause**: Policies checked `supplier_id = auth.uid()` (wrong ID types)
+**Fixed**: ✅ Migrations 20250113150000 and 20250113160000
+
+#### 3. Missing Column Error
+**Error**: `column profiles_1.city does not exist`
+**Cause**: Referenced non-existent contractor.city column
+**Fixed**: ✅ Removed from generator.ts
+
+#### 4. Null Value Errors
+**Error**: `Cannot read properties of null (reading 'toString')`
+**Cause**: Order items with null unit_price_jod
+**Solution**: Added validation to detect and report missing data
+
+### Current Limitations
+
+1. **No PDF Generation**: Invoices created but PDFs not auto-generated (Phase 2)
+2. **No Portal Submission**: Manual submission only (Phase 2 API integration)
+3. **No Return Invoices**: UI not implemented (database supports it)
+4. **No Bulk Operations**: Generate one invoice at a time
 
 ## Support
 

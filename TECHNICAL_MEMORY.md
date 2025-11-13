@@ -2545,10 +2545,11 @@ setMessages([...messages, data.message])
 
 ## 16. Jordan E-Invoicing System (January 13, 2025)
 
-### ✅ Implementation Status: Complete
+### ✅ Implementation Status: FULLY OPERATIONAL
 
 **Implementation Date**: January 13, 2025
-**Status**: Database schema complete, UI components ready, migration pending
+**Status**: Complete and production-ready
+**Last Updated**: January 13, 2025 (bugs fixed, invoice generation working)
 **Compliance**: Jordan Income and Sales Tax Department
 **Portal**: portal.jofotara.gov.jo
 **Standard**: National Invoicing System User Manual (2024)
@@ -2559,12 +2560,15 @@ Jordan's National Invoicing System integration enables suppliers to generate tax
 
 ### Database Schema
 
-**Migration File**: `supabase/migrations/20250113000000_create_invoicing_system.sql`
+**Migration Files**:
+- `supabase/migrations/20250113000000_create_invoicing_system.sql` ✅ APPLIED
+- `supabase/migrations/20250113150000_fix_invoice_rls_policies.sql` ✅ APPLIED
+- `supabase/migrations/20250113160000_fix_invoice_line_items_rls.sql` ✅ APPLIED
 
-**Migration Status**: ⚠️ **Pending Application**
-- Schema defined and ready
-- Must be applied manually via Supabase Dashboard or SQL client
-- See `docs/INVOICING_SETUP.md` for application instructions
+**Migration Status**: ✅ **COMPLETE**
+- All migrations applied to production database
+- Invoice generation fully operational
+- See "Critical Bugs Fixed" section below for details
 
 #### New Tables
 
@@ -2744,6 +2748,87 @@ CREATE POLICY "Admins can view all invoices" ON invoices FOR ALL
 CREATE POLICY "Users can view line items for invoices they can see" ...
 CREATE POLICY "Suppliers can create line items for own invoices" ...
 ```
+
+### Critical Bugs Fixed (January 13, 2025)
+
+Invoice generation encountered 4 critical issues during initial testing. All have been resolved and deployed to production.
+
+#### Bug #1: Foreign Key Violation (created_by field) ✅ FIXED
+**Error**: `insert or update on table "invoices" violates foreign key constraint "invoices_created_by_fkey"`
+
+**Root Cause**: The `created_by` field was being set to `supplier.id` (UUID from suppliers table) instead of `user.id` (auth user ID from profiles table).
+
+**Fix Applied**:
+- Updated `generateJordanInvoice()` function signature to accept both `supplierId` and `userId`
+- Changed `created_by: supplierId` to `created_by: userId`
+- API route now passes both IDs: `generateJordanInvoice(params, supplier.id, user.id)`
+
+**Files Modified**:
+- `apps/admin/src/lib/invoicing/generator.ts`
+- `apps/admin/src/app/api/invoices/generate/route.ts`
+
+#### Bug #2: RLS Policy Mismatch (invoices table) ✅ FIXED
+**Error**: Initial RLS policies checked `supplier_id = auth.uid()`, but these are different ID types.
+
+**Root Cause**:
+- `supplier_id` = UUID from suppliers table (e.g., `b7676a45-2003-44cc-ad91-db0132f1258e`)
+- `auth.uid()` = Auth user ID / `owner_id` (e.g., `2816737b-0c32-4678-942c-5dd24b0864db`)
+
+**Fix Applied**:
+```sql
+-- Changed from:
+supplier_id = auth.uid()  -- ❌ Wrong
+
+-- To:
+EXISTS (
+  SELECT 1 FROM suppliers
+  WHERE suppliers.id = invoices.supplier_id
+  AND suppliers.owner_id = auth.uid()
+)  -- ✅ Correct
+```
+
+**Migration**: `20250113150000_fix_invoice_rls_policies.sql`
+- Fixed INSERT, SELECT, and UPDATE policies on `invoices` table
+- Properly checks supplier ownership via JOIN
+
+#### Bug #3: RLS Policy Mismatch (invoice_line_items table) ✅ FIXED
+**Error**: Line items insertion would fail due to same supplier_id mismatch.
+
+**Fix Applied**:
+```sql
+CREATE POLICY "Suppliers can create line items for own invoices"
+ON invoice_line_items FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM invoices i
+    JOIN suppliers s ON s.id = i.supplier_id
+    WHERE i.id = invoice_line_items.invoice_id
+    AND s.owner_id = auth.uid()
+    AND i.status = 'draft'
+  )
+);
+```
+
+**Migration**: `20250113160000_fix_invoice_line_items_rls.sql`
+- Fixed INSERT and SELECT policies on `invoice_line_items` table
+- Also updated SELECT policy to allow admin, supplier, and contractor access
+
+#### Bug #4: Missing Column Reference (contractor.city) ✅ FIXED
+**Error**: Undefined behavior when accessing `contractor?.city`
+
+**Root Cause**: The `profiles` table doesn't have a `city` column.
+
+**Fix Applied**:
+```typescript
+// Changed from:
+buyer_city: params.buyerCity || contractor?.city || order.delivery_address  // ❌
+
+// To:
+buyer_city: params.buyerCity || order.delivery_address  // ✅
+```
+
+**File Modified**: `apps/admin/src/lib/invoicing/generator.ts`
 
 ### Tax Calculation Rules
 

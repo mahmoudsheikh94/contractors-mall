@@ -8,8 +8,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Download, FileText, Calendar, User, Building2, Receipt } from 'lucide-react'
+import { FileText, Calendar, User, Building2, Receipt } from 'lucide-react'
 import Link from 'next/link'
+import { DownloadPDFButton } from '@/components/invoices/DownloadPDFButton'
 
 interface PageProps {
   params: {
@@ -150,19 +151,11 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             ← العودة إلى الفواتير
           </Link>
 
-          <div className="flex gap-3">
-            {invoice.pdf_url && (
-              <a
-                href={invoice.pdf_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                <Download className="h-4 w-4" />
-                <span>تحميل PDF</span>
-              </a>
-            )}
-          </div>
+          <DownloadPDFButton
+            invoiceId={invoice.id}
+            pdfUrl={invoice.pdf_url}
+            invoiceNumber={invoice.invoice_number}
+          />
         </div>
 
         {/* Invoice Header */}
