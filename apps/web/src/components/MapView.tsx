@@ -95,6 +95,12 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         : MAPBOX_DEFAULTS.defaultCenter
 
       console.log('🗺️ Creating map at center:', center);
+      console.log('📦 Container dimensions:', {
+        offsetWidth: mapContainer.current.offsetWidth,
+        offsetHeight: mapContainer.current.offsetHeight,
+        clientWidth: mapContainer.current.clientWidth,
+        clientHeight: mapContainer.current.clientHeight
+      });
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -398,9 +404,20 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         console.log('  ➕ Added user location:', [userLocation.lng, userLocation.lat]);
       }
 
+      const sw = bounds.getSouthWest();
+      const ne = bounds.getNorthEast();
       console.log('🗺️ Fitting bounds:', {
-        sw: bounds.getSouthWest(),
-        ne: bounds.getNorthEast()
+        southwest: { lng: sw.lng, lat: sw.lat },
+        northeast: { lng: ne.lng, lat: ne.lat }
+      });
+
+      // Check if map container has canvas
+      const canvas = mapContainer.current?.querySelector('canvas');
+      console.log('🎨 Canvas element:', {
+        exists: !!canvas,
+        width: canvas?.width,
+        height: canvas?.height,
+        style: canvas?.style.cssText
       });
 
       // Fit the map to show everything
@@ -483,9 +500,31 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         ref={mapContainer}
         className="absolute inset-0 rounded-lg overflow-hidden"
         style={{
-          backgroundColor: '#e5e7eb'
+          backgroundColor: '#e5e7eb',
+          width: '100%',
+          height: '100%',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
         }}
-      />
+      >
+        {/* Debug info */}
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          background: 'yellow',
+          padding: '10px',
+          zIndex: 9999,
+          fontSize: '12px'
+        }}>
+          Map Container<br/>
+          mapLoaded: {mapLoaded ? 'YES' : 'NO'}<br/>
+          suppliers: {suppliers.length}
+        </div>
+      </div>
 
       {/* Loading indicator */}
       {!mapLoaded && !error && (
