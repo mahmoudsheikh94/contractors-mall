@@ -141,7 +141,9 @@ export async function POST(
     }
 
     // 6. Generate PDF
-    const pdfBuffer = await renderToBuffer(<InvoicePDF {...pdfData} />)
+    const pdfBuffer = await renderToBuffer(
+      React.createElement(InvoicePDF, pdfData)
+    )
 
     // 7. Upload to Supabase Storage
     const fileName = `${supplier.id}/${invoiceId}.pdf`
