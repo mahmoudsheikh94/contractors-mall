@@ -379,23 +379,40 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
       }
     })
 
-    // Fit bounds to show all suppliers
+    // Fit bounds to show all suppliers (and user location if available)
     if (suppliers.length > 0 && map.current) {
+      console.log('📊 Fitting bounds for suppliers:', suppliers.length);
       const bounds = new mapboxgl.LngLatBounds()
 
+      // Add all supplier locations to bounds
       suppliers.forEach((supplier) => {
         if (supplier.latitude && supplier.longitude) {
           bounds.extend([supplier.longitude, supplier.latitude])
+          console.log('  ➕ Added supplier:', supplier.business_name, [supplier.longitude, supplier.latitude]);
         }
       })
 
+      // Add user location to bounds if available
       if (userLocation) {
         bounds.extend([userLocation.lng, userLocation.lat])
+        console.log('  ➕ Added user location:', [userLocation.lng, userLocation.lat]);
       }
 
+      console.log('🗺️ Fitting bounds:', {
+        sw: bounds.getSouthWest(),
+        ne: bounds.getNorthEast()
+      });
+
+      // Fit the map to show everything
       map.current.fitBounds(bounds, {
-        padding: 100,
-        maxZoom: 14,
+        padding: {
+          top: 100,
+          bottom: 100,
+          left: 100,
+          right: 100
+        },
+        maxZoom: userLocation ? 12 : 14, // Zoom out more if showing distant user location
+        duration: 1000 // Smooth animation
       })
     }
 

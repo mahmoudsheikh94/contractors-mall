@@ -42,10 +42,11 @@ export default function SuppliersPage() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          })
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          console.log('📍 Browser Location:', { lat, lng });
+          setUserLocation({ lat, lng });
         },
         (error) => {
           console.error('Error getting location:', error)
