@@ -161,13 +161,21 @@ export async function POST(
       )
     }
 
-    // 8. Get public URL
-    const { data: urlData } = supabase
+    // 8. Generate signed URL (1 hour expiration)
+    const { data: urlData, error: urlError } = await supabase
       .storage
       .from('invoices')
-      .getPublicUrl(fileName)
+      .createSignedUrl(fileName, 3600) // 1 hour = 3600 seconds
 
-    const pdfUrl = urlData.publicUrl
+    if (urlError || !urlData) {
+      console.error('Error creating signed URL:', urlError)
+      return NextResponse.json(
+        { error: 'فشل في إنشاء رابط التحميل (Failed to create download link)' },
+        { status: 500 }
+      )
+    }
+
+    const pdfUrl = urlData.signedUrl
 
     // 9. Update invoice with PDF URL
     // @ts-ignore
