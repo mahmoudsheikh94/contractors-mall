@@ -21,8 +21,13 @@ export const metadata = {
   description: 'إنشاء فاتورة إلكترونية من طلب مكتمل'
 }
 
-async function getDeliveredOrders(supplierId: string) {
+async function getDeliveredOrders(supplierId: string, specificOrderId?: string) {
   const supabase = await createClient()
+
+  console.log('🔍 [Invoice Generation] Fetching eligible orders:', {
+    supplierId,
+    specificOrderId
+  })
 
   // Get all delivered/completed orders that don't have an invoice yet
   // @ts-ignore - invoices table not in types until migration applied
@@ -35,6 +40,8 @@ async function getDeliveredOrders(supplierId: string) {
       delivery_fee_jod,
       created_at,
       delivery_address,
+      status,
+      supplier_id,
       contractor:profiles!contractor_id (
         id,
         full_name,
@@ -61,11 +68,39 @@ async function getDeliveredOrders(supplierId: string) {
   const { data: orders, error } = result
 
   if (error) {
-    console.error('Error fetching orders:', error)
+    console.error('❌ Error fetching orders:', error)
     return []
   }
 
+  console.log('📋 Orders found (before invoice filter):', {
+    count: orders?.length || 0,
+    orderIds: orders?.map((o: any) => ({ id: o.id, number: o.order_number, status: o.status })) || []
+  })
+
   if (!orders || orders.length === 0) {
+    console.log('⚠️ No delivered/completed orders found for supplier:', supplierId)
+
+    // If specific order requested, try to fetch it to see why it's not showing
+    if (specificOrderId) {
+      const { data: specificOrder } = await supabase
+        .from('orders')
+        .select('id, order_number, status, supplier_id')
+        .eq('id', specificOrderId)
+        .single()
+
+      if (specificOrder) {
+        console.log('🔍 Specific order details:', {
+          orderId: specificOrder.id,
+          orderNumber: specificOrder.order_number,
+          status: specificOrder.status,
+          supplierId: specificOrder.supplier_id,
+          matchesCurrentSupplier: specificOrder.supplier_id === supplierId
+        })
+      } else {
+        console.log('❌ Specific order not found:', specificOrderId)
+      }
+    }
+
     return []
   }
 
@@ -80,7 +115,19 @@ async function getDeliveredOrders(supplierId: string) {
 
   const invoicedOrderIds = new Set((existingInvoices as any)?.map((inv: any) => inv.order_id) || [])
 
-  return (orders as any).filter((order: any) => !invoicedOrderIds.has(order.id))
+  console.log('📄 Existing invoices:', {
+    count: existingInvoices?.length || 0,
+    invoicedOrderIds: Array.from(invoicedOrderIds)
+  })
+
+  const filteredOrders = (orders as any).filter((order: any) => !invoicedOrderIds.has(order.id))
+
+  console.log('✅ Final eligible orders:', {
+    count: filteredOrders.length,
+    orders: filteredOrders.map((o: any) => ({ id: o.id, number: o.order_number }))
+  })
+
+  return filteredOrders
 }
 
 interface GenerateInvoicePageProps {
@@ -148,7 +195,7 @@ export default async function GenerateInvoicePage({ searchParams }: GenerateInvo
   }
 
   // 4. Get delivered orders without invoices
-  const deliveredOrders = await getDeliveredOrders(supplier.id)
+  const deliveredOrders = await getDeliveredOrders(supplier.id, initialOrderId)
 
   return (
     <div className="container mx-auto px-4 py-8" dir="rtl">
@@ -197,9 +244,22 @@ export default async function GenerateInvoicePage({ searchParams }: GenerateInvo
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               لا توجد طلبات مؤهلة لإصدار فاتورة
             </h3>
-            <p className="text-gray-600 mb-6">
-              لإصدار فاتورة، يجب أن يكون لديك طلبات مكتملة بدون فواتير سابقة.
-            </p>
+            {initialOrderId ? (
+              <>
+                <p className="text-gray-600 mb-2">
+                  الطلب المحدد غير مؤهل لإصدار الفاتورة.
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  الأسباب المحتملة: الطلب غير مكتمل، تم إصدار فاتورة بالفعل، أو الطلب لا ينتمي إلى حسابك.
+                  <br />
+                  تحقق من سجلات المتصفح (Console) للحصول على تفاصيل أكثر.
+                </p>
+              </>
+            ) : (
+              <p className="text-gray-600 mb-6">
+                لإصدار فاتورة، يجب أن يكون لديك طلبات مكتملة بدون فواتير سابقة.
+              </p>
+            )}
             <a
               href="/supplier/orders"
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
