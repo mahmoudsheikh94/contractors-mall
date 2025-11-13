@@ -49,7 +49,7 @@ async function getDeliveredOrders(supplierId: string, specificOrderId?: string) 
         email
       ),
       order_items (
-        id,
+        item_id,
         quantity,
         unit_price_jod,
         total_jod,

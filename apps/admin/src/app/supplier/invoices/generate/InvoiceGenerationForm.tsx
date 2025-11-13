@@ -25,7 +25,7 @@ interface Order {
     city: string
   }
   order_items: Array<{
-    id: string
+    item_id: string
     quantity: number
     unit_price_jod: number
     total_jod: number
