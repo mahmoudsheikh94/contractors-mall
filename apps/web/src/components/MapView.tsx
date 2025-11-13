@@ -66,12 +66,41 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current || !isMapboxConfigured()) return
+    console.log('🔍 MapView Init Effect - Start', {
+      hasContainer: !!mapContainer.current,
+      hasMap: !!map.current,
+      isConfigured: isMapboxConfigured(),
+      token: MAPBOX_ACCESS_TOKEN?.substring(0, 20) + '...'
+    });
+
+    if (!mapContainer.current) {
+      console.error('❌ Map container ref is null');
+      return;
+    }
+
+    if (map.current) {
+      console.log('⚠️ Map already exists, skipping initialization');
+      return;
+    }
+
+    if (!isMapboxConfigured()) {
+      console.error('❌ Mapbox not configured');
+      return;
+    }
 
     try {
+      console.log('📦 Map container dimensions:', {
+        width: mapContainer.current.offsetWidth,
+        height: mapContainer.current.offsetHeight,
+        clientWidth: mapContainer.current.clientWidth,
+        clientHeight: mapContainer.current.clientHeight
+      });
+
       const center: [number, number] = userLocation
         ? [userLocation.lng, userLocation.lat]
         : MAPBOX_DEFAULTS.defaultCenter
+
+      console.log('🌍 Creating map with center:', center);
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -80,6 +109,8 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         zoom: userLocation ? MAPBOX_DEFAULTS.userLocationZoom : MAPBOX_DEFAULTS.defaultZoom,
         attributionControl: false,
       })
+
+      console.log('✅ Map instance created:', map.current);
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
@@ -146,12 +177,45 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
   // Add supplier markers and zones
   useEffect(() => {
-    if (!map.current || !mapLoaded || !suppliers.length) return
+    console.log('🏪 Supplier markers effect', {
+      hasMap: !!map.current,
+      mapLoaded,
+      suppliersCount: suppliers.length,
+      suppliers: suppliers.map(s => ({
+        name: s.business_name,
+        lat: s.latitude,
+        lng: s.longitude
+      }))
+    });
+
+    if (!map.current) {
+      console.warn('⚠️ Map not ready for suppliers');
+      return;
+    }
+
+    if (!mapLoaded) {
+      console.warn('⚠️ Map not loaded yet');
+      return;
+    }
+
+    if (!suppliers.length) {
+      console.warn('⚠️ No suppliers to display');
+      return;
+    }
 
     const markers: mapboxgl.Marker[] = []
 
-    suppliers.forEach((supplier) => {
-      if (!supplier.latitude || !supplier.longitude) return
+    suppliers.forEach((supplier, index) => {
+      if (!supplier.latitude || !supplier.longitude) {
+        console.warn(`⚠️ Supplier ${supplier.business_name} missing coordinates`);
+        return;
+      }
+
+      console.log(`📍 Adding marker ${index + 1}/${suppliers.length}:`, {
+        name: supplier.business_name,
+        lat: supplier.latitude,
+        lng: supplier.longitude
+      });
 
       // Create custom marker element
       const el = document.createElement('div')
@@ -386,9 +450,26 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
     )
   }
 
+  // Log component state on each render
+  console.log('🎨 MapView Render:', {
+    mapLoaded,
+    error,
+    suppliersCount: suppliers.length,
+    hasUserLocation: !!userLocation
+  });
+
   return (
-    <div className="relative w-full h-full min-h-[600px]">
-      <div ref={mapContainer} className="absolute inset-0 rounded-lg overflow-hidden" />
+    <div className="relative w-full h-full min-h-[600px]" style={{ border: '2px solid red' }}>
+      {/* Added red border for debugging visibility */}
+      <div
+        ref={mapContainer}
+        className="absolute inset-0 rounded-lg overflow-hidden"
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#f0f0f0' // Gray background to see if container is visible
+        }}
+      />
 
       {/* Loading indicator */}
       {!mapLoaded && !error && (

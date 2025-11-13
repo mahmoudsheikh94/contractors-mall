@@ -242,13 +242,15 @@ export default function SuppliersPage() {
           </div>
         ) : viewMode === 'map' ? (
           /* Map View */
-          <MapView
-            suppliers={suppliers}
-            userLocation={userLocation || undefined}
-            onSupplierClick={(supplier) => {
-              window.location.href = `/products?supplierId=${supplier.id}`
-            }}
-          />
+          <div className="h-[calc(100vh-200px)] min-h-[600px] w-full">
+            <MapView
+              suppliers={suppliers}
+              userLocation={userLocation || undefined}
+              onSupplierClick={(supplier) => {
+                window.location.href = `/products?supplierId=${supplier.id}`
+              }}
+            />
+          </div>
         ) : (
           /* List View */
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
