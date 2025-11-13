@@ -1,0 +1,451 @@
+/**
+ * Notification Queue System
+ * ========================
+ * Uses BullMQ for reliable notification processing
+ */
+
+import { Queue, Worker, QueueEvents } from 'bullmq'
+import Redis from 'ioredis'
+import {
+  Notification,
+  NotificationChannel,
+  NotificationJob,
+  NotificationStatus,
+  NotificationError,
+  NotificationErrorCode,
+  EmailNotification,
+  SMSNotification,
+  NotificationType
+} from './types'
+import { SendGridProvider, ResendProvider } from './providers/sendgrid'
+import { TwilioProvider } from './providers/twilio'
+import { createClient } from '@/lib/supabase/server'
+
+// Redis connection
+const redisConfig = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null
+}
+
+const connection = new Redis(redisConfig)
+
+// Queue configuration
+const defaultJobOptions = {
+  removeOnComplete: {
+    age: 3600, // Keep completed jobs for 1 hour
+    count: 100 // Keep max 100 completed jobs
+  },
+  removeOnFail: {
+    age: 24 * 3600 // Keep failed jobs for 24 hours
+  },
+  attempts: 3,
+  backoff: {
+    type: 'exponential',
+    delay: 5000 // Start with 5 second delay
+  }
+}
+
+export class NotificationQueue {
+  private emailQueue: Queue
+  private smsQueue: Queue
+  private pushQueue: Queue
+  private emailWorker?: Worker
+  private smsWorker?: Worker
+  private pushWorker?: Worker
+  private emailProvider: SendGridProvider | ResendProvider
+  private smsProvider: TwilioProvider
+  private isRunning: boolean = false
+
+  constructor() {
+    // Initialize queues
+    this.emailQueue = new Queue('email-notifications', { connection })
+    this.smsQueue = new Queue('sms-notifications', { connection })
+    this.pushQueue = new Queue('push-notifications', { connection })
+
+    // Initialize providers
+    const emailProviderType = process.env.EMAIL_PROVIDER || 'sendgrid'
+
+    if (emailProviderType === 'sendgrid') {
+      this.emailProvider = new SendGridProvider({
+        apiKey: process.env.SENDGRID_API_KEY!,
+        fromEmail: process.env.EMAIL_FROM || 'noreply@contractorsmall.jo',
+        fromName: process.env.EMAIL_FROM_NAME || 'Contractors Mall',
+        sandboxMode: process.env.NODE_ENV !== 'production'
+      })
+    } else {
+      this.emailProvider = new ResendProvider({
+        apiKey: process.env.RESEND_API_KEY!,
+        fromEmail: process.env.EMAIL_FROM || 'noreply@contractorsmall.jo',
+        fromName: process.env.EMAIL_FROM_NAME || 'Contractors Mall'
+      })
+    }
+
+    this.smsProvider = new TwilioProvider({
+      accountSid: process.env.TWILIO_ACCOUNT_SID!,
+      authToken: process.env.TWILIO_AUTH_TOKEN!,
+      fromNumber: process.env.TWILIO_FROM_NUMBER!,
+      sandboxMode: process.env.NODE_ENV !== 'production'
+    })
+  }
+
+  // Start processing queues
+  async start() {
+    if (this.isRunning) return
+
+    // Email worker
+    this.emailWorker = new Worker(
+      'email-notifications',
+      async (job) => {
+        const notification = job.data as EmailNotification
+        await this.processEmailNotification(notification)
+      },
+      { connection }
+    )
+
+    // SMS worker
+    this.smsWorker = new Worker(
+      'sms-notifications',
+      async (job) => {
+        const notification = job.data as SMSNotification
+        await this.processSMSNotification(notification)
+      },
+      { connection }
+    )
+
+    // Push worker (placeholder for now)
+    this.pushWorker = new Worker(
+      'push-notifications',
+      async (job) => {
+        const notification = job.data
+        console.log('Processing push notification:', notification)
+        // TODO: Implement push notification logic
+      },
+      { connection }
+    )
+
+    // Set up error handlers
+    this.emailWorker.on('failed', this.handleJobFailure.bind(this))
+    this.smsWorker.on('failed', this.handleJobFailure.bind(this))
+    this.pushWorker.on('failed', this.handleJobFailure.bind(this))
+
+    this.isRunning = true
+    console.log('Notification queue workers started')
+  }
+
+  // Stop processing queues
+  async stop() {
+    if (!this.isRunning) return
+
+    await Promise.all([
+      this.emailWorker?.close(),
+      this.smsWorker?.close(),
+      this.pushWorker?.close()
+    ])
+
+    this.isRunning = false
+    console.log('Notification queue workers stopped')
+  }
+
+  // Add notification to queue
+  async enqueue(notification: Notification): Promise<string> {
+    let queue: Queue
+    let jobOptions = { ...defaultJobOptions }
+
+    // Select queue based on channel
+    switch (notification.channel) {
+      case NotificationChannel.EMAIL:
+        queue = this.emailQueue
+        break
+      case NotificationChannel.SMS:
+        queue = this.smsQueue
+        // SMS might need higher priority
+        jobOptions.priority = notification.priority === 'critical' ? 1 : 10
+        break
+      case NotificationChannel.PUSH:
+        queue = this.pushQueue
+        break
+      default:
+        throw new NotificationError(
+          `Unsupported channel: ${notification.channel}`,
+          NotificationErrorCode.CONFIGURATION_ERROR,
+          400
+        )
+    }
+
+    // Add delay if scheduled
+    if (notification.scheduledFor) {
+      const delay = new Date(notification.scheduledFor).getTime() - Date.now()
+      if (delay > 0) {
+        jobOptions = { ...jobOptions, delay }
+      }
+    }
+
+    // Add to queue
+    const job = await queue.add(
+      notification.type,
+      notification,
+      jobOptions
+    )
+
+    // Log to database
+    const supabase = await createClient()
+    await supabase
+      .from('notification_logs')
+      .insert({
+        notification_id: notification.id,
+        type: notification.type,
+        channel: notification.channel,
+        recipient: notification.recipient.email || notification.recipient.phone,
+        status: NotificationStatus.QUEUED,
+        metadata: {
+          jobId: job.id,
+          priority: notification.priority,
+          scheduledFor: notification.scheduledFor
+        }
+      })
+
+    return job.id as string
+  }
+
+  // Enqueue multiple notifications
+  async enqueueBatch(notifications: Notification[]): Promise<string[]> {
+    const jobIds: string[] = []
+
+    for (const notification of notifications) {
+      try {
+        const jobId = await this.enqueue(notification)
+        jobIds.push(jobId)
+      } catch (error) {
+        console.error('Failed to enqueue notification:', error)
+      }
+    }
+
+    return jobIds
+  }
+
+  // Process email notification
+  private async processEmailNotification(notification: EmailNotification) {
+    const supabase = await createClient()
+    const startTime = Date.now()
+
+    try {
+      // Update status to sending
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: NotificationStatus.SENDING,
+          sent_at: new Date().toISOString()
+        })
+        .eq('notification_id', notification.id)
+
+      // Send email
+      const result = await this.emailProvider.send(notification)
+
+      // Update status to sent
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: NotificationStatus.SENT,
+          delivered_at: result.deliveredAt?.toISOString(),
+          provider_response: {
+            messageId: result.providerMessageId,
+            processingTime: Date.now() - startTime
+          }
+        })
+        .eq('notification_id', notification.id)
+
+      console.log(`Email sent: ${notification.id} to ${notification.recipient.email}`)
+    } catch (error: any) {
+      // Update status to failed
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: NotificationStatus.FAILED,
+          failed_at: new Date().toISOString(),
+          error_message: error.message,
+          retry_count: supabase.raw('retry_count + 1')
+        })
+        .eq('notification_id', notification.id)
+
+      throw error // Re-throw to trigger retry
+    }
+  }
+
+  // Process SMS notification
+  private async processSMSNotification(notification: SMSNotification) {
+    const supabase = await createClient()
+    const startTime = Date.now()
+
+    try {
+      // Check quiet hours if configured
+      if (notification.recipient.timezone) {
+        const isQuietHours = await this.isInQuietHours(
+          notification.recipient.timezone
+        )
+        if (isQuietHours && notification.priority !== 'critical') {
+          // Reschedule for morning
+          const nextMorning = this.getNextMorningTime(notification.recipient.timezone)
+          await this.smsQueue.add(
+            notification.type,
+            notification,
+            { ...defaultJobOptions, delay: nextMorning.getTime() - Date.now() }
+          )
+          return
+        }
+      }
+
+      // Update status to sending
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: NotificationStatus.SENDING,
+          sent_at: new Date().toISOString()
+        })
+        .eq('notification_id', notification.id)
+
+      // Send SMS
+      const result = await this.smsProvider.send(notification)
+
+      // Update status to sent
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: result.status,
+          delivered_at: result.deliveredAt?.toISOString(),
+          provider_response: {
+            messageId: result.providerMessageId,
+            processingTime: Date.now() - startTime
+          }
+        })
+        .eq('notification_id', notification.id)
+
+      console.log(`SMS sent: ${notification.id} to ${notification.recipient.phone}`)
+    } catch (error: any) {
+      // Update status to failed
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: NotificationStatus.FAILED,
+          failed_at: new Date().toISOString(),
+          error_message: error.message,
+          retry_count: supabase.raw('retry_count + 1')
+        })
+        .eq('notification_id', notification.id)
+
+      throw error // Re-throw to trigger retry
+    }
+  }
+
+  // Handle job failure
+  private async handleJobFailure(job: any, error: Error) {
+    console.error(`Job ${job.id} failed:`, error)
+
+    const notification = job.data as Notification
+    const supabase = await createClient()
+
+    // Check if max retries reached
+    if (job.attemptsMade >= (job.opts.attempts || 3)) {
+      // Mark as permanently failed
+      await supabase
+        .from('notification_logs')
+        .update({
+          status: NotificationStatus.FAILED,
+          failed_at: new Date().toISOString(),
+          error_message: `Failed after ${job.attemptsMade} attempts: ${error.message}`,
+          metadata: {
+            ...notification.metadata,
+            permanentlyFailed: true
+          }
+        })
+        .eq('notification_id', notification.id)
+
+      // Send alert to admin for critical notifications
+      if (notification.priority === 'critical') {
+        await this.sendAdminAlert(notification, error)
+      }
+    }
+  }
+
+  // Send admin alert for critical failures
+  private async sendAdminAlert(notification: Notification, error: Error) {
+    const adminNotification: EmailNotification = {
+      id: `admin-alert-${Date.now()}`,
+      type: NotificationType.SYSTEM_ALERT,
+      channel: NotificationChannel.EMAIL,
+      priority: 'high' as any,
+      recipient: {
+        id: 'admin',
+        email: process.env.ADMIN_EMAIL || 'admin@contractorsmall.jo',
+        name: 'System Admin'
+      },
+      subject: `Critical Notification Failure: ${notification.type}`,
+      html: `
+        <h2>Critical Notification Failed</h2>
+        <p>A critical notification has failed to deliver after multiple attempts.</p>
+        <h3>Details:</h3>
+        <ul>
+          <li>Notification ID: ${notification.id}</li>
+          <li>Type: ${notification.type}</li>
+          <li>Channel: ${notification.channel}</li>
+          <li>Recipient: ${notification.recipient.email || notification.recipient.phone}</li>
+          <li>Error: ${error.message}</li>
+        </ul>
+        <p>Please investigate immediately.</p>
+      `,
+      data: {}
+    }
+
+    try {
+      await this.emailProvider.send(adminNotification)
+    } catch (alertError) {
+      console.error('Failed to send admin alert:', alertError)
+    }
+  }
+
+  // Check if current time is in quiet hours
+  private async isInQuietHours(timezone: string): Promise<boolean> {
+    // Simple implementation - would need proper timezone library
+    const now = new Date()
+    const hour = now.getHours()
+    return hour >= 22 || hour < 8 // 10 PM to 8 AM
+  }
+
+  // Get next morning time for scheduling
+  private getNextMorningTime(timezone: string): Date {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(8, 0, 0, 0) // 8 AM tomorrow
+    return tomorrow
+  }
+
+  // Get queue statistics
+  async getStats() {
+    const [emailStats, smsStats, pushStats] = await Promise.all([
+      this.getQueueStats(this.emailQueue),
+      this.getQueueStats(this.smsQueue),
+      this.getQueueStats(this.pushQueue)
+    ])
+
+    return {
+      email: emailStats,
+      sms: smsStats,
+      push: pushStats
+    }
+  }
+
+  private async getQueueStats(queue: Queue) {
+    const [waiting, active, completed, failed] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getCompletedCount(),
+      queue.getFailedCount()
+    ])
+
+    return { waiting, active, completed, failed }
+  }
+}
+
+// Export singleton instance
+export const notificationQueue = new NotificationQueue()
