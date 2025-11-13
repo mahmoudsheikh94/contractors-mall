@@ -1,8 +1,45 @@
 # Contractors Mall - Technical Memory
 
-**Last Updated**: January 13, 2025 (API Stability Improvements + Production Migration)
+**Last Updated**: January 14, 2025 (Mapbox Integration Complete)
 **Purpose**: Single source of truth for technical decisions, actual implementation, and current state
 **Audience**: Claude Code AI, future developers, technical stakeholders
+
+---
+
+## Recent Changes (January 14, 2025)
+
+### Mapbox Integration Complete ✅
+**Commits**: `aafc5f8`, `679c366`, `68876f6`
+
+Successfully implemented and fixed interactive map view for suppliers:
+
+**Implementation Details**:
+1. **Map Component** (`apps/web/src/components/MapView.tsx`)
+   - Displays suppliers with zone-colored markers (green/yellow/gray)
+   - Shows user location (even from different countries)
+   - Auto-fits bounds to show all suppliers AND user location
+   - Interactive hover popups with supplier details
+   - Zone circles visualization (Zone A inner, Zone B outer)
+
+2. **Configuration** (`apps/web/src/lib/mapbox-config.ts`)
+   - Centralized Mapbox token management
+   - Default center: Amman, Jordan [35.9106, 31.9454]
+   - Environment variable: `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`
+   - Token embedded at build time for client-side access
+
+3. **Issues Fixed**:
+   - ✅ Environment variable loading in client components
+   - ✅ Mapbox CSS not loading in production (added CDN link)
+   - ✅ Map centering logic (now shows both user and suppliers)
+   - ✅ Duplicate hover event listeners causing flickering
+   - ✅ Container sizing issues preventing map visibility
+
+**Current Features**:
+- Toggle between List/Map view in suppliers page
+- Hover markers for popup with ratings, distance, zone
+- Click "عرض منتجات المورد" to view products
+- Responsive design with mobile support
+- RTL-aware UI with Arabic labels
 
 ---
 
