@@ -138,8 +138,23 @@ export async function generateJordanInvoice(
     .single()
 
   if (orderError || !order) {
+    console.error('❌ Order fetch error:', orderError)
     throw new Error('Order not found or access denied')
   }
+
+  console.log('📦 Order data fetched:', {
+    orderId: order.id,
+    orderNumber: order.order_number,
+    status: order.status,
+    itemCount: Array.isArray(order.order_items) ? order.order_items.length : 0,
+    items: order.order_items?.map((item: any) => ({
+      item_id: item.item_id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      unit_price_jod: item.unit_price_jod,
+      has_product: !!item.product
+    }))
+  })
 
   // Step 2: Validate order is delivered
   if (order.status !== 'delivered' && order.status !== 'completed') {
@@ -196,8 +211,22 @@ export async function generateJordanInvoice(
 
   // Step 8: Prepare line items with tax calculations
   const orderItems: any = Array.isArray(order.order_items) ? order.order_items : []
-  const lineItems: InvoiceLineItemData[] = orderItems.map((item: any) => {
+
+  // Validate order items
+  if (orderItems.length === 0) {
+    throw new Error('الطلب لا يحتوي على عناصر (Order has no items)')
+  }
+
+  const lineItems: InvoiceLineItemData[] = orderItems.map((item: any, index: number) => {
     const product = Array.isArray(item.product) ? item.product[0] : item.product
+
+    // Validate required fields
+    if (!item.quantity || item.quantity <= 0) {
+      throw new Error(`عنصر ${index + 1}: الكمية مطلوبة (Item ${index + 1}: Quantity required)`)
+    }
+    if (item.unit_price_jod === null || item.unit_price_jod === undefined) {
+      throw new Error(`عنصر ${index + 1}: سعر الوحدة مطلوب (Item ${index + 1}: Unit price required)`)
+    }
 
     // Determine tax rate based on invoice type and category
     let generalTaxRate = 0

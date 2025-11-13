@@ -90,6 +90,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Generate invoice
+    console.log('📄 Generating invoice:', {
+      orderId: body.orderId,
+      supplierId: supplier.id,
+      invoiceType: body.invoiceType
+    })
+
     const invoice = await generateJordanInvoice(
       {
         orderId: body.orderId,
