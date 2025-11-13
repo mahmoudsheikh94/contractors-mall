@@ -7,7 +7,7 @@
  * Client-side form for generating Jordan-compliant invoices
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 
@@ -51,17 +51,18 @@ interface Supplier {
 interface InvoiceGenerationFormProps {
   orders: Order[]
   supplier: Supplier
+  initialOrderId?: string
 }
 
 type InvoiceType = 'income' | 'sales_tax' | 'special_tax'
 type InvoiceCategory = 'local' | 'export' | 'development_zone'
 type BuyerIdType = 'national_id' | 'tax_number' | 'personal_number'
 
-export function InvoiceGenerationForm({ orders, supplier }: InvoiceGenerationFormProps) {
+export function InvoiceGenerationForm({ orders, supplier, initialOrderId }: InvoiceGenerationFormProps) {
   const router = useRouter()
 
   // Form state
-  const [selectedOrderId, setSelectedOrderId] = useState<string>('')
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(initialOrderId || '')
   const [invoiceType, setInvoiceType] = useState<InvoiceType>('sales_tax')
   const [invoiceCategory, setInvoiceCategory] = useState<InvoiceCategory>('local')
   const [buyerName, setBuyerName] = useState('')
@@ -79,6 +80,19 @@ export function InvoiceGenerationForm({ orders, supplier }: InvoiceGenerationFor
 
   // Get selected order
   const selectedOrder = orders.find(o => o.id === selectedOrderId)
+
+  // Pre-fill buyer details if initial order is provided
+  useEffect(() => {
+    if (initialOrderId && orders.length > 0) {
+      const order = orders.find(o => o.id === initialOrderId)
+      if (order) {
+        const contractor = Array.isArray(order.contractor) ? order.contractor[0] : order.contractor
+        setBuyerName(contractor?.full_name || '')
+        setBuyerPhone(contractor?.phone || '')
+        setBuyerCity(contractor?.city || '')
+      }
+    }
+  }, [initialOrderId, orders])
 
   // Auto-fill buyer details when order is selected
   const handleOrderSelect = (orderId: string) => {

@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { OrderActions } from './OrderActions'
 import { StartDeliveryButton } from './StartDeliveryButton'
+import { CompleteOrderButton } from '@/components/supplier/orders/CompleteOrderButton'
+import { InvoiceSection } from '@/components/supplier/orders/InvoiceSection'
 import { OrderTimeline as OrderActivityTimeline } from '@/components/supplier/orders/OrderTimeline'
 import { OrderNotes } from '@/components/supplier/orders/OrderNotes'
 import { OrderDetailsEditor } from '@/components/supplier/orders/OrderDetailsEditor'
@@ -154,6 +156,17 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
     delivery = deliveryData
   }
 
+  // Get payment status if order is delivered (for complete order button)
+  let paymentStatus = null
+  if (order.status === 'delivered') {
+    const { data: paymentData } = await supabase
+      .from('payments')
+      .select('status')
+      .eq('order_id', order.id)
+      .maybeSingle()
+    paymentStatus = paymentData?.status
+  }
+
   return (
     <div>
       {/* Header with Back Link */}
@@ -247,6 +260,61 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
               </div>
             </div>
           )}
+
+          {/* Complete Order (for delivered status with released payment) */}
+          {order.status === 'delivered' && (
+            <div id="complete-order" className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <span className="text-3xl">✅</span>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-green-900 mb-2">
+                    جاهز لإكمال الطلب
+                  </h3>
+                  <p className="text-green-700 mb-3">
+                    تم التوصيل بنجاح! يمكنك الآن إكمال الطلب وإصدار الفاتورة.
+                  </p>
+                  {paymentStatus === 'released' ? (
+                    <div className="bg-white border border-green-200 rounded-lg p-3 mb-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-xl">💰</span>
+                        <div>
+                          <span className="font-semibold text-green-900">تم تحرير الدفعة</span>
+                          <p className="text-green-700 text-xs mt-1">
+                            المبلغ: {order.total_jod.toFixed(2)} د.أ
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 mb-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-xl">⏳</span>
+                        <div>
+                          <span className="font-semibold text-yellow-900">في انتظار تحرير الدفعة</span>
+                          <p className="text-yellow-700 text-xs mt-1">
+                            حالة الدفع: {paymentStatus || 'غير محددة'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <CompleteOrderButton
+                    orderId={order.id}
+                    orderNumber={order.order_number}
+                    orderStatus={order.status}
+                    paymentStatus={paymentStatus || undefined}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Invoice Section (for delivered/completed orders) */}
+          <InvoiceSection
+            orderId={order.id}
+            orderNumber={order.order_number}
+            orderStatus={order.status}
+          />
 
           {/* Order Items */}
           <div className="bg-white rounded-lg shadow-sm">

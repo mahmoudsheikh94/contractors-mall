@@ -246,16 +246,35 @@ export async function POST(
           .eq('status', 'held')
 
         if (paymentError) {
-          console.error('Error releasing payment:', paymentError)
+          console.error('❌ Error releasing payment:', {
+            orderId,
+            code: paymentError.code,
+            message: paymentError.message,
+            details: paymentError.details,
+          })
           // Don't fail the request - payment can be released manually
         } else {
           paymentReleased = true
+          console.log('✅ Payment released successfully for order:', orderId)
 
           // 5. Update order status to completed
-          await supabase
+          const { error: completionError } = await supabase
             .from('orders')
             .update({ status: 'completed', updated_at: now })
             .eq('id', orderId)
+
+          if (completionError) {
+            console.error('❌ Error updating order to completed:', {
+              orderId,
+              code: completionError.code,
+              message: completionError.message,
+              details: completionError.details,
+              hint: completionError.hint,
+            })
+            // Don't fail - order is still marked as delivered
+          } else {
+            console.log('✅ Order status updated to completed:', orderId)
+          }
         }
       }
 

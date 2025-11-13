@@ -83,8 +83,13 @@ async function getDeliveredOrders(supplierId: string) {
   return (orders as any).filter((order: any) => !invoicedOrderIds.has(order.id))
 }
 
-export default async function GenerateInvoicePage() {
+interface GenerateInvoicePageProps {
+  searchParams: Promise<{ orderId?: string }>
+}
+
+export default async function GenerateInvoicePage({ searchParams }: GenerateInvoicePageProps) {
   const supabase = await createClient()
+  const { orderId: initialOrderId } = await searchParams
 
   // 1. Check authentication
   const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -207,6 +212,7 @@ export default async function GenerateInvoicePage() {
             <InvoiceGenerationForm
               orders={deliveredOrders}
               supplier={supplier}
+              initialOrderId={initialOrderId}
             />
           </Suspense>
         )}
