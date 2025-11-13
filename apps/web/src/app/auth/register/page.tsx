@@ -79,6 +79,13 @@ export default function RegisterPage() {
         }
       }
 
+      // Send welcome email (don't block on it)
+      fetch('/api/auth/send-welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, name: formData.fullName }),
+      }).catch((err) => console.error('Failed to send welcome email:', err))
+
       setSuccess(true)
     } catch (err: any) {
       setError(err.message || 'حدث خطأ في التسجيل')
