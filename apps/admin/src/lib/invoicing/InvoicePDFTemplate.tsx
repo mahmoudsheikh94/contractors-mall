@@ -27,8 +27,9 @@ const styles = StyleSheet.create({
   page: {
     padding: 40,
     fontFamily: 'NotoSansArabic',
-    fontSize: 10,
-    direction: 'rtl'
+    fontSize: 11,
+    direction: 'rtl',
+    lineHeight: 1.5
   },
   header: {
     marginBottom: 20,
@@ -43,8 +44,8 @@ const styles = StyleSheet.create({
     textAlign: 'right'
   },
   subtitle: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 13,
+    color: '#475569',
     textAlign: 'right'
   },
   invoiceNumber: {
@@ -83,16 +84,19 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: 'row-reverse',
-    marginBottom: 4,
-    fontSize: 9
+    marginBottom: 8,
+    fontSize: 10,
+    lineHeight: 1.6
   },
   label: {
-    color: '#64748B',
-    marginLeft: 8
+    color: '#475569',
+    marginLeft: 8,
+    width: '45%'
   },
   value: {
-    color: '#1E293B',
-    fontWeight: 'bold'
+    color: '#0F172A',
+    fontWeight: 'bold',
+    flex: 1
   },
   table: {
     marginTop: 20,
@@ -100,26 +104,28 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row-reverse',
-    backgroundColor: '#F1F5F9',
-    padding: 8,
+    backgroundColor: '#E2E8F0',
+    padding: '10 8',
     borderRadius: 4,
     marginBottom: 4
   },
   tableHeaderCell: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 'bold',
-    color: '#475569',
+    color: '#334155',
     textAlign: 'right'
   },
   tableRow: {
     flexDirection: 'row-reverse',
-    padding: 8,
-    borderBottom: '0.5 solid #E2E8F0'
+    padding: '8 6',
+    borderBottom: '0.5 solid #E2E8F0',
+    minHeight: 32
   },
   tableCell: {
-    fontSize: 9,
-    color: '#1E293B',
-    textAlign: 'right'
+    fontSize: 10,
+    color: '#0F172A',
+    textAlign: 'right',
+    paddingVertical: 4
   },
   totalsSection: {
     marginTop: 20,
@@ -130,18 +136,18 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 8,
     paddingRight: 10,
     paddingLeft: 10
   },
   totalLabel: {
-    fontSize: 10,
-    color: '#64748B'
+    fontSize: 11,
+    color: '#475569'
   },
   totalValue: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 'bold',
-    color: '#1E293B'
+    color: '#0F172A'
   },
   grandTotalRow: {
     flexDirection: 'row-reverse',
@@ -166,9 +172,10 @@ const styles = StyleSheet.create({
     marginTop: 30,
     paddingTop: 15,
     borderTop: '1 solid #E2E8F0',
-    fontSize: 8,
-    color: '#64748B',
-    textAlign: 'center'
+    fontSize: 9,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 1.6
   },
   notes: {
     marginTop: 20,
@@ -177,16 +184,17 @@ const styles = StyleSheet.create({
     borderRadius: 6
   },
   notesTitle: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#92400E',
-    marginBottom: 4,
+    marginBottom: 6,
     textAlign: 'right'
   },
   notesText: {
-    fontSize: 9,
+    fontSize: 10,
     color: '#78350F',
-    textAlign: 'right'
+    textAlign: 'right',
+    lineHeight: 1.6
   }
 })
 
