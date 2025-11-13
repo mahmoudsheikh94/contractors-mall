@@ -13,12 +13,14 @@ export const isMapboxConfigured = () => {
   return MAPBOX_ACCESS_TOKEN && MAPBOX_ACCESS_TOKEN !== '';
 };
 
-// Log configuration status (only in development)
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+// Log configuration status (always log for debugging)
+if (typeof window !== 'undefined') {
   console.log('🗺️ Mapbox Configuration:', {
     tokenExists: isMapboxConfigured(),
     tokenLength: MAPBOX_ACCESS_TOKEN?.length || 0,
-    tokenPrefix: MAPBOX_ACCESS_TOKEN?.substring(0, 10) + '...',
+    tokenPrefix: MAPBOX_ACCESS_TOKEN?.substring(0, 20) + '...',
+    fullToken: MAPBOX_ACCESS_TOKEN,
+    env: process.env.NODE_ENV
   });
 }
 

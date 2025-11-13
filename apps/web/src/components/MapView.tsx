@@ -66,12 +66,35 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current || !isMapboxConfigured()) return
+    console.log('🔍 Map Init:', {
+      hasContainer: !!mapContainer.current,
+      hasMap: !!map.current,
+      isConfigured: isMapboxConfigured(),
+      tokenExists: !!MAPBOX_ACCESS_TOKEN,
+      tokenLength: MAPBOX_ACCESS_TOKEN?.length
+    });
+
+    if (!mapContainer.current) {
+      console.error('❌ No container');
+      return;
+    }
+
+    if (map.current) {
+      console.log('⚠️ Map already exists');
+      return;
+    }
+
+    if (!isMapboxConfigured()) {
+      console.error('❌ Mapbox not configured');
+      return;
+    }
 
     try {
       const center: [number, number] = userLocation
         ? [userLocation.lng, userLocation.lat]
         : MAPBOX_DEFAULTS.defaultCenter
+
+      console.log('🗺️ Creating map at center:', center);
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -80,6 +103,8 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         zoom: userLocation ? MAPBOX_DEFAULTS.userLocationZoom : MAPBOX_DEFAULTS.defaultZoom,
         attributionControl: false,
       })
+
+      console.log('✅ Map created successfully');
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
@@ -430,10 +455,19 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
   }
 
   return (
-    <div className="relative w-full h-full min-h-[600px]">
+    <div
+      className="relative w-full h-full min-h-[600px]"
+      style={{
+        border: '3px solid red',
+        backgroundColor: '#fef2f2'
+      }}
+    >
       <div
         ref={mapContainer}
         className="absolute inset-0 rounded-lg overflow-hidden"
+        style={{
+          backgroundColor: '#e5e7eb'
+        }}
       />
 
       {/* Loading indicator */}
