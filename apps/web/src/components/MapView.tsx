@@ -15,9 +15,18 @@
 import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import {
+  MAPBOX_ACCESS_TOKEN,
+  isMapboxConfigured,
+  MAPBOX_DEFAULTS,
+  MAPBOX_ERRORS,
+  ZONE_COLORS
+} from '@/lib/mapbox-config'
 
-// Mapbox access token
-mapboxgl.accessToken = 'pk.eyJ1IjoibXNoZWlraDk0IiwiYSI6ImNtaHhnMmp5eDAwdnIybHNiendnZ3piNDEifQ.MNLaFv5se7nVvDxQq2hCqg'
+// Set Mapbox access token
+if (typeof window !== 'undefined' && isMapboxConfigured()) {
+  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+}
 
 interface Supplier {
   id: string
@@ -45,24 +54,32 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Check if Mapbox is configured
+  useEffect(() => {
+    if (!isMapboxConfigured()) {
+      setError(MAPBOX_ERRORS.missingToken.ar)
+      console.error('Mapbox token is not configured. Please add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to your environment variables.');
+    }
+  }, [])
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current) return
+    if (!mapContainer.current || map.current || !isMapboxConfigured()) return
 
-    // Default center: Amman, Jordan
-    const defaultCenter: [number, number] = [35.9106, 31.9454]
-    const center: [number, number] = userLocation
-      ? [userLocation.lng, userLocation.lat]
-      : defaultCenter
+    try {
+      const center: [number, number] = userLocation
+        ? [userLocation.lng, userLocation.lat]
+        : MAPBOX_DEFAULTS.defaultCenter
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: center,
-      zoom: userLocation ? 12 : 10,
-      attributionControl: false,
-    })
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: MAPBOX_DEFAULTS.style,
+        center: center,
+        zoom: userLocation ? MAPBOX_DEFAULTS.userLocationZoom : MAPBOX_DEFAULTS.defaultZoom,
+        attributionControl: false,
+      })
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
@@ -81,7 +98,17 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
     map.current.on('load', () => {
       setMapLoaded(true)
+      console.log('✅ Mapbox map loaded successfully')
     })
+
+    map.current.on('error', (e) => {
+      console.error('❌ Mapbox error:', e)
+      setError(MAPBOX_ERRORS.loadFailed.ar)
+    })
+    } catch (err) {
+      console.error('Failed to initialize map:', err)
+      setError(MAPBOX_ERRORS.loadFailed.ar)
+    }
 
     return () => {
       map.current?.remove()
@@ -238,11 +265,11 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
                 ],
                 base: 2,
               },
-              'circle-color': '#10B981',
-              'circle-opacity': 0.1,
+              'circle-color': ZONE_COLORS.zoneA.fill,
+              'circle-opacity': ZONE_COLORS.zoneA.fillOpacity,
               'circle-stroke-width': 2,
-              'circle-stroke-color': '#10B981',
-              'circle-stroke-opacity': 0.5,
+              'circle-stroke-color': ZONE_COLORS.zoneA.stroke,
+              'circle-stroke-opacity': ZONE_COLORS.zoneA.strokeOpacity,
             },
           })
         }
@@ -273,11 +300,11 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
                 ],
                 base: 2,
               },
-              'circle-color': '#F59E0B',
-              'circle-opacity': 0.05,
+              'circle-color': ZONE_COLORS.zoneB.fill,
+              'circle-opacity': ZONE_COLORS.zoneB.fillOpacity,
               'circle-stroke-width': 2,
-              'circle-stroke-color': '#F59E0B',
-              'circle-stroke-opacity': 0.3,
+              'circle-stroke-color': ZONE_COLORS.zoneB.stroke,
+              'circle-stroke-opacity': ZONE_COLORS.zoneB.strokeOpacity,
             },
           })
         }
@@ -332,9 +359,46 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
     }
   }, [mapLoaded, suppliers, userLocation, onSupplierClick])
 
+  // Show error message if map can't load
+  if (error) {
+    return (
+      <div className="relative w-full h-full min-h-[600px] bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="text-center p-8">
+          <svg
+            className="mx-auto h-16 w-16 text-gray-400 mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+            />
+          </svg>
+          <p className="text-lg font-medium text-gray-900 mb-2">{error}</p>
+          <p className="text-sm text-gray-500">
+            يمكنك الاستمرار في تصفح الموردين من القائمة
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative w-full h-full min-h-[600px]">
       <div ref={mapContainer} className="absolute inset-0 rounded-lg overflow-hidden" />
+
+      {/* Loading indicator */}
+      {!mapLoaded && !error && (
+        <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+            <p className="mt-2 text-sm text-gray-600">جاري تحميل الخريطة...</p>
+          </div>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-4 z-10" dir="rtl">
