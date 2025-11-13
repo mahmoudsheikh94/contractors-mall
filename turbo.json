@@ -16,7 +16,8 @@
     "POSTGRES_USER",
     "POSTGRES_HOST",
     "POSTGRES_PASSWORD",
-    "POSTGRES_DATABASE"
+    "POSTGRES_DATABASE",
+    "RESEND_API_KEY"
   ],
   "tasks": {
     "build": {
@@ -35,7 +36,8 @@
         "POSTGRES_USER",
         "POSTGRES_HOST",
         "POSTGRES_PASSWORD",
-        "POSTGRES_DATABASE"
+        "POSTGRES_DATABASE",
+        "RESEND_API_KEY"
       ]
     },
     "dev": {

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if order requires photo (< 120 JOD)
-    if (order.total_amount >= 120) {
+    if (Number(order.total_jod) >= 120) {
       return NextResponse.json(
         { error: 'هذا الطلب يتطلب رمز تأكيد وليس صورة' },
         { status: 400 }
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create delivery record
-    let delivery = order.delivery?.[0]
+    let delivery = (order.delivery as any)?.[0]
 
     if (!delivery && deliveryId) {
       const { data: deliveryData } = await supabase
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     // Upload photo to Supabase Storage
     const fileName = `delivery-proofs/${orderId}/${Date.now()}-${photo.name}`
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('delivery-proofs')
       .upload(fileName, photo, {
         contentType: photo.type,
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get payment transaction
-    const { data: transaction } = await supabase
+    const { data: transaction } = await (supabase as any)
       .from('payment_transactions')
       .select('*')
       .eq('order_id', orderId)
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
         await paymentService.confirmDelivery({
           orderId: orderId,
           transactionId: transaction.id,
-          supplierId: order.supplier.id
+          supplierId: (order.supplier as any).id
         })
       } catch (paymentError) {
         console.error('Failed to release payment:', paymentError)
@@ -318,10 +318,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       delivery: {
-        id: delivery.id,
-        photoUrl: delivery.proof_photo_url,
-        deliveredAt: delivery.delivered_at,
-        confirmedBy: delivery.confirmed_by
+        id: (delivery as any).id,
+        photoUrl: (delivery as any).proof_photo_url,
+        deliveredAt: (delivery as any).delivered_at,
+        confirmedBy: (delivery as any).confirmed_by
       }
     })
 

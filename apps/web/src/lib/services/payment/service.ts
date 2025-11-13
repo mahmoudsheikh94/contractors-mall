@@ -107,7 +107,7 @@ export class PaymentService implements IPaymentService {
       })
 
       // Store payment intent in database
-      const { error: dbError } = await supabase
+      const { error: dbError } = await (supabase as any)
         .from('payment_transactions')
         .insert({
           id: intent.id,
@@ -205,7 +205,7 @@ export class PaymentService implements IPaymentService {
       })
 
       // Update transaction status
-      const { error: txError } = await supabase
+      const { error: txError } = await (supabase as any)
         .from('payment_transactions')
         .update({
           status: 'released',
@@ -304,7 +304,7 @@ export class PaymentService implements IPaymentService {
       }
 
       // Freeze the payment
-      const { error: txError } = await supabase
+      const { error: txError } = await (supabase as any)
         .from('payment_transactions')
         .update({
           status: 'disputed',
@@ -359,7 +359,7 @@ export class PaymentService implements IPaymentService {
 
     try {
       // Get all transactions ready for release
-      const { data: transactions, error: fetchError } = await supabase
+      const { data: transactions, error: fetchError } = await (supabase as any)
         .from('payment_transactions')
         .select('*, order:orders!inner(*)')
         .eq('status', 'captured')
@@ -405,7 +405,7 @@ export class PaymentService implements IPaymentService {
 
     try {
       // Get all pending refunds
-      const { data: refunds, error: fetchError } = await supabase
+      const { data: refunds, error: fetchError } = await (supabase as any)
         .from('refund_requests')
         .select('*')
         .eq('status', 'pending')
@@ -427,7 +427,7 @@ export class PaymentService implements IPaymentService {
           })
 
           // Update refund status
-          await supabase
+          await (supabase as any)
             .from('refund_requests')
             .update({
               status: 'completed',
@@ -437,7 +437,7 @@ export class PaymentService implements IPaymentService {
             .eq('id', refund.id)
 
           // Update transaction
-          await supabase
+          await (supabase as any)
             .from('payment_transactions')
             .update({
               status: refund.amount === refund.original_amount
@@ -453,7 +453,7 @@ export class PaymentService implements IPaymentService {
           errors.push(`Refund ${refund.id}: ${error.message}`)
 
           // Mark refund as failed
-          await supabase
+          await (supabase as any)
             .from('refund_requests')
             .update({
               status: 'failed',
@@ -499,7 +499,7 @@ export class PaymentService implements IPaymentService {
         // Update transaction in database
         const supabase = await createClient()
 
-        await supabase
+        await (supabase as any)
           .from('payment_transactions')
           .update({
             status: result.transaction.status,

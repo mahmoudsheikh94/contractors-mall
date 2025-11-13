@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if order requires PIN (≥120 JOD)
-    if (order.total_amount < 120) {
+    if (Number(order.total_jod) < 120) {
       return NextResponse.json(
         { error: 'هذا الطلب لا يتطلب رمز تأكيد' },
         { status: 400 }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the delivery record
-    const delivery = order.delivery?.[0]
+    const delivery = (order.delivery as any)?.[0]
     if (!delivery) {
       return NextResponse.json(
         { error: 'لا توجد معلومات توصيل لهذا الطلب' },
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     // Verify PIN
     if (delivery.confirmation_pin !== pin) {
       // Log failed attempt
-      await supabase
+      await (supabase as any)
         .from('delivery_attempts')
         .insert({
           delivery_id: delivery.id,
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get payment transaction
-    const { data: transaction } = await supabase
+    const { data: transaction } = await (supabase as any)
       .from('payment_transactions')
       .select('*')
       .eq('order_id', orderId)
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         await paymentService.confirmDelivery({
           orderId: orderId,
           transactionId: transaction.id,
-          supplierId: order.supplier.id
+          supplierId: (order.supplier as any).id
         })
       } catch (paymentError) {
         console.error('Failed to release payment:', paymentError)
