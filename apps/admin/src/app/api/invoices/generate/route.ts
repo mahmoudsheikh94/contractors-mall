@@ -56,7 +56,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Parse request body
+    // 3. Get supplier details
+    const { data: supplier, error: supplierError } = await supabase
+      .from('suppliers')
+      .select('id')
+      .eq('owner_id', user.id)
+      .single()
+
+    if (supplierError || !supplier) {
+      return NextResponse.json(
+        { error: 'حساب مورد غير موجود (Supplier account not found)' },
+        { status: 403 }
+      )
+    }
+
+    // 4. Parse request body
     const body: GenerateInvoiceRequest = await request.json()
 
     if (!body.orderId || !body.invoiceType) {
@@ -66,7 +80,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Validate invoice type
+    // 5. Validate invoice type
     const validInvoiceTypes: InvoiceType[] = ['income', 'sales_tax', 'special_tax']
     if (!validInvoiceTypes.includes(body.invoiceType)) {
       return NextResponse.json(
@@ -75,7 +89,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 5. Generate invoice
+    // 6. Generate invoice
     const invoice = await generateJordanInvoice(
       {
         orderId: body.orderId,
@@ -89,10 +103,10 @@ export async function POST(request: NextRequest) {
         buyerCity: body.buyerCity,
         buyerPostalCode: body.buyerPostalCode
       },
-      user.id
+      supplier.id  // ✅ Fixed: Pass supplier.id instead of user.id
     )
 
-    // 6. Return success response
+    // 7. Return success response
     return NextResponse.json({
       success: true,
       message: `تم إنشاء الفاتورة ${invoice.invoiceNumber} بنجاح (Invoice generated successfully)`,
