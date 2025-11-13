@@ -46,8 +46,7 @@ async function getDeliveredOrders(supplierId: string, specificOrderId?: string) 
         id,
         full_name,
         phone,
-        email,
-        city
+        email
       ),
       order_items (
         id,
