@@ -66,41 +66,12 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
   // Initialize map
   useEffect(() => {
-    console.log('🔍 MapView Init Effect - Start', {
-      hasContainer: !!mapContainer.current,
-      hasMap: !!map.current,
-      isConfigured: isMapboxConfigured(),
-      token: MAPBOX_ACCESS_TOKEN?.substring(0, 20) + '...'
-    });
-
-    if (!mapContainer.current) {
-      console.error('❌ Map container ref is null');
-      return;
-    }
-
-    if (map.current) {
-      console.log('⚠️ Map already exists, skipping initialization');
-      return;
-    }
-
-    if (!isMapboxConfigured()) {
-      console.error('❌ Mapbox not configured');
-      return;
-    }
+    if (!mapContainer.current || map.current || !isMapboxConfigured()) return
 
     try {
-      console.log('📦 Map container dimensions:', {
-        width: mapContainer.current.offsetWidth,
-        height: mapContainer.current.offsetHeight,
-        clientWidth: mapContainer.current.clientWidth,
-        clientHeight: mapContainer.current.clientHeight
-      });
-
       const center: [number, number] = userLocation
         ? [userLocation.lng, userLocation.lat]
         : MAPBOX_DEFAULTS.defaultCenter
-
-      console.log('🌍 Creating map with center:', center);
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -109,8 +80,6 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         zoom: userLocation ? MAPBOX_DEFAULTS.userLocationZoom : MAPBOX_DEFAULTS.defaultZoom,
         attributionControl: false,
       })
-
-      console.log('✅ Map instance created:', map.current);
 
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
@@ -177,45 +146,12 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
 
   // Add supplier markers and zones
   useEffect(() => {
-    console.log('🏪 Supplier markers effect', {
-      hasMap: !!map.current,
-      mapLoaded,
-      suppliersCount: suppliers.length,
-      suppliers: suppliers.map(s => ({
-        name: s.business_name,
-        lat: s.latitude,
-        lng: s.longitude
-      }))
-    });
-
-    if (!map.current) {
-      console.warn('⚠️ Map not ready for suppliers');
-      return;
-    }
-
-    if (!mapLoaded) {
-      console.warn('⚠️ Map not loaded yet');
-      return;
-    }
-
-    if (!suppliers.length) {
-      console.warn('⚠️ No suppliers to display');
-      return;
-    }
+    if (!map.current || !mapLoaded || !suppliers.length) return
 
     const markers: mapboxgl.Marker[] = []
 
-    suppliers.forEach((supplier, index) => {
-      if (!supplier.latitude || !supplier.longitude) {
-        console.warn(`⚠️ Supplier ${supplier.business_name} missing coordinates`);
-        return;
-      }
-
-      console.log(`📍 Adding marker ${index + 1}/${suppliers.length}:`, {
-        name: supplier.business_name,
-        lat: supplier.latitude,
-        lng: supplier.longitude
-      });
+    suppliers.forEach((supplier) => {
+      if (!supplier.latitude || !supplier.longitude) return
 
       // Create custom marker element
       const el = document.createElement('div')
@@ -248,31 +184,50 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         el.style.transform = 'scale(1)'
       })
 
-      // Create popup content
+      // Create popup content with better styling
       const popupContent = `
-        <div class="p-3 min-w-[250px]" dir="rtl">
-          <h3 class="font-bold text-lg mb-2">${supplier.business_name}</h3>
-          <p class="text-sm text-gray-600 mb-2">${supplier.address}</p>
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-yellow-500">⭐</span>
-            <span class="font-semibold">${supplier.rating_average.toFixed(1)}</span>
-            <span class="text-gray-500 text-sm">(${supplier.rating_count} تقييم)</span>
+        <div class="p-4 min-w-[280px]" dir="rtl" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div class="mb-3">
+            <h3 class="font-bold text-xl mb-1 text-gray-900">${supplier.business_name}</h3>
+            <p class="text-sm text-gray-500">${supplier.business_name_en}</p>
           </div>
-          ${supplier.distance ? `
-            <div class="text-sm text-gray-600 mb-2">
-              📏 ${supplier.distance.toFixed(1)} كم
+
+          <div class="space-y-2 mb-3">
+            <div class="flex items-center gap-2">
+              <span style="font-size: 18px;">⭐</span>
+              <span class="font-bold text-lg text-gray-900">${supplier.rating_average.toFixed(1)}</span>
+              <span class="text-sm text-gray-500">(${supplier.rating_count} تقييم)</span>
             </div>
-          ` : ''}
-          <div class="mt-2">
-            ${supplier.delivery_zone === 'zone_a' ? '<span class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded">منطقة أ - توصيل مخفض</span>' :
-              supplier.delivery_zone === 'zone_b' ? '<span class="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">منطقة ب - توصيل عادي</span>' :
-              '<span class="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">خارج نطاق التوصيل</span>'}
+
+            ${supplier.distance ? `
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <span style="font-size: 16px;">📏</span>
+                <span>${supplier.distance.toFixed(1)} كم من موقعك</span>
+              </div>
+            ` : ''}
+
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <span style="font-size: 16px;">📍</span>
+              <span>${supplier.address}</span>
+            </div>
           </div>
+
+          <div class="mb-3">
+            ${supplier.delivery_zone === 'zone_a' ?
+              '<div class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-green-100 text-green-800 rounded-full"><span>✅</span> منطقة أ - توصيل مخفض</div>' :
+              supplier.delivery_zone === 'zone_b' ?
+              '<div class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-yellow-100 text-yellow-800 rounded-full"><span>⚠️</span> منطقة ب - توصيل عادي</div>' :
+              '<div class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-full"><span>❌</span> خارج نطاق التوصيل</div>'}
+          </div>
+
           <a
             href="/suppliers/${supplier.id}"
-            class="mt-3 block w-full text-center bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold"
+            class="block w-full text-center bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md text-sm font-bold"
+            style="text-decoration: none;"
+            onmouseover="this.style.transform='translateY(-1px)'"
+            onmouseout="this.style.transform='translateY(0)'"
           >
-            عرض المنتجات
+            🛒 عرض منتجات المورد
           </a>
         </div>
       `
@@ -281,6 +236,8 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         offset: 25,
         closeButton: true,
         closeOnClick: false,
+        maxWidth: '320px',
+        className: 'supplier-popup'
       }).setHTML(popupContent)
 
       // Create marker
@@ -289,10 +246,32 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
         .setPopup(popup)
         .addTo(map.current!)
 
-      // Handle click
-      el.addEventListener('click', () => {
-        if (onSupplierClick) {
-          onSupplierClick(supplier)
+      // Show popup on hover
+      el.addEventListener('mouseenter', () => {
+        popup.addTo(map.current!)
+      })
+
+      // Keep popup open when hovering over it
+      el.addEventListener('mouseleave', (e) => {
+        // Check if we're hovering over the popup
+        setTimeout(() => {
+          const popupElement = document.querySelector('.supplier-popup')
+          if (popupElement && !popupElement.matches(':hover')) {
+            popup.remove()
+          }
+        }, 100)
+      })
+
+      // Handle popup hover
+      popup.on('open', () => {
+        const popupElement = document.querySelector('.supplier-popup')
+        if (popupElement) {
+          popupElement.addEventListener('mouseenter', () => {
+            // Keep popup open
+          })
+          popupElement.addEventListener('mouseleave', () => {
+            popup.remove()
+          })
         }
       })
 
@@ -450,25 +429,11 @@ export function MapView({ suppliers, userLocation, onSupplierClick }: MapViewPro
     )
   }
 
-  // Log component state on each render
-  console.log('🎨 MapView Render:', {
-    mapLoaded,
-    error,
-    suppliersCount: suppliers.length,
-    hasUserLocation: !!userLocation
-  });
-
   return (
-    <div className="relative w-full h-full min-h-[600px]" style={{ border: '2px solid red' }}>
-      {/* Added red border for debugging visibility */}
+    <div className="relative w-full h-full min-h-[600px]">
       <div
         ref={mapContainer}
         className="absolute inset-0 rounded-lg overflow-hidden"
-        style={{
-          width: '100%',
-          height: '100%',
-          backgroundColor: '#f0f0f0' // Gray background to see if container is visible
-        }}
       />
 
       {/* Loading indicator */}
