@@ -23,6 +23,13 @@ export default function RootLayout({
 
   return (
     <html lang={locale} dir="rtl">
+      <head>
+        {/* Mapbox GL JS CSS - required for map rendering */}
+        <link
+          href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
+          rel="stylesheet"
+        />
+      </head>
       <body className={`${inter.variable} font-sans font-arabic`}>
         <CartProvider>
           <TopBar />
