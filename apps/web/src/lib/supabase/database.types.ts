@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_conversation_participants: {
@@ -483,6 +458,7 @@ export type Database = {
           data: Json | null
           id: string
           is_read: boolean | null
+          link: string | null
           message: string
           read_at: string | null
           title: string
@@ -494,6 +470,7 @@ export type Database = {
           data?: Json | null
           id?: string
           is_read?: boolean | null
+          link?: string | null
           message: string
           read_at?: string | null
           title: string
@@ -505,6 +482,7 @@ export type Database = {
           data?: Json | null
           id?: string
           is_read?: boolean | null
+          link?: string | null
           message?: string
           read_at?: string | null
           title?: string
@@ -2089,6 +2067,17 @@ export type Database = {
             }
             Returns: string
           }
+      check_delivery_confirmation_status: {
+        Args: { p_order_id: string }
+        Returns: {
+          can_contractor_update: boolean
+          contractor_confirmed: boolean
+          order_number: string
+          order_status: Database["public"]["Enums"]["order_status"]
+          payment_status: string
+          supplier_confirmed: boolean
+        }[]
+      }
       check_site_visit_requirement: {
         Args: { p_order_id: string }
         Returns: boolean
@@ -2425,7 +2414,6 @@ export type Database = {
               maxdecimaldigits?: number
               nprefix?: string
               options?: number
-              version: number
             }
             Returns: string
           }
@@ -2436,6 +2424,7 @@ export type Database = {
               maxdecimaldigits?: number
               nprefix?: string
               options?: number
+              version: number
             }
             Returns: string
           }
@@ -2626,11 +2615,11 @@ export type Database = {
         Returns: unknown
       }
       st_generatepoints:
-        | { Args: { area: unknown; npoints: number }; Returns: unknown }
         | {
             Args: { area: unknown; npoints: number; seed: number }
             Returns: unknown
           }
+        | { Args: { area: unknown; npoints: number }; Returns: unknown }
       st_geogfromtext: { Args: { "": string }; Returns: unknown }
       st_geographyfromtext: { Args: { "": string }; Returns: unknown }
       st_geohash:
@@ -2979,8 +2968,16 @@ export type Database = {
         | "delivered"
         | "completed"
         | "cancelled"
+        | "rejected"
         | "awaiting_contractor_confirmation"
-      payment_status: "pending" | "held" | "released" | "refunded" | "failed"
+        | "disputed"
+      payment_status:
+        | "pending"
+        | "held"
+        | "released"
+        | "refunded"
+        | "failed"
+        | "frozen"
       preferred_language: "ar" | "en"
       submission_status: "pending" | "success" | "failed"
       user_role: "contractor" | "supplier_admin" | "driver" | "admin"
@@ -3117,9 +3114,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       buyer_id_type: ["national_id", "tax_number", "personal_number"],
@@ -3137,9 +3131,18 @@ export const Constants = {
         "delivered",
         "completed",
         "cancelled",
+        "rejected",
         "awaiting_contractor_confirmation",
+        "disputed",
       ],
-      payment_status: ["pending", "held", "released", "refunded", "failed"],
+      payment_status: [
+        "pending",
+        "held",
+        "released",
+        "refunded",
+        "failed",
+        "frozen",
+      ],
       preferred_language: ["ar", "en"],
       submission_status: ["pending", "success", "failed"],
       user_role: ["contractor", "supplier_admin", "driver", "admin"],
