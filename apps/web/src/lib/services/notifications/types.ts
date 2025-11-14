@@ -85,7 +85,7 @@ export interface Notification {
   channel: NotificationChannel
   priority: NotificationPriority
   recipient: NotificationRecipient
-  data: Record<string, any>
+  data?: Record<string, any>
   scheduledFor?: Date
   expiresAt?: Date
   metadata?: Record<string, any>

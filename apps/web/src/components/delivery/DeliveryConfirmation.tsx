@@ -7,7 +7,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Camera, Key, Upload, CheckCircle } from 'lucide-react'
 

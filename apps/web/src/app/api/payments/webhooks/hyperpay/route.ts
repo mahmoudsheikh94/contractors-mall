@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Log webhook receipt
     const supabase = await createClient()
-    const { data: webhook, error: logError } = await supabase
+    const { data: webhook } = await (supabase as any)
       .from('payment_webhooks')
       .insert({
         provider: 'hyperpay',
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       console.error('Invalid webhook signature')
 
       if (webhookId) {
-        await supabase
+        await (supabase as any)
           .from('payment_webhooks')
           .update({
             status: 'failed',
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       console.error('Invalid webhook payload:', validatedData.error)
 
       if (webhookId) {
-        await supabase
+        await (supabase as any)
           .from('payment_webhooks')
           .update({
             status: 'failed',
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     // Update webhook log
     if (webhookId) {
-      await supabase
+      await (supabase as any)
         .from('payment_webhooks')
         .update({
           status: result.success ? 'processed' : 'failed',
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
     // Log error
     if (webhookId) {
       const supabase = await createClient()
-      await supabase
+      await (supabase as any)
         .from('payment_webhooks')
         .update({
           status: 'failed',
@@ -278,7 +278,7 @@ async function handleCaptureSuccess(payload: any) {
   escrowReleaseDate.setDate(escrowReleaseDate.getDate() + escrowDays)
 
   // Update transaction with escrow details
-  await supabase
+  await (supabase as any)
     .from('payment_transactions')
     .update({
       status: 'captured',
@@ -313,7 +313,7 @@ async function handleRefundSuccess(payload: any) {
   if (!originalTransactionId) return
 
   // Update refund request
-  await supabase
+  await (supabase as any)
     .from('refund_requests')
     .update({
       status: 'completed',
@@ -325,7 +325,7 @@ async function handleRefundSuccess(payload: any) {
     .eq('status', 'processing')
 
   // Update original transaction
-  const { data: transaction } = await supabase
+  const { data: transaction } = await (supabase as any)
     .from('payment_transactions')
     .select('amount, refunded_amount')
     .eq('id', originalTransactionId)
@@ -335,7 +335,7 @@ async function handleRefundSuccess(payload: any) {
     const totalRefunded = (transaction.refunded_amount || 0) + refundAmount
     const isFullRefund = totalRefunded >= transaction.amount
 
-    await supabase
+    await (supabase as any)
       .from('payment_transactions')
       .update({
         status: isFullRefund ? 'refunded' : 'partially_refunded',
@@ -363,7 +363,7 @@ async function handlePaymentFailure(payload: any) {
   if (!orderId) return
 
   // Update transaction status
-  await supabase
+  await (supabase as any)
     .from('payment_transactions')
     .update({
       status: 'failed',

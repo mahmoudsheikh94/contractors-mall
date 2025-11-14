@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, Filter, Download, Search, ChevronDown } from 'lucide-react'
+import { Download, Search, ChevronDown } from 'lucide-react'
 
 interface Transaction {
   id: string
@@ -67,7 +67,7 @@ export function TransactionHistory({
   async function loadTransactions() {
     try {
       const supabase = createClient()
-      let query = supabase
+      let query = (supabase as any)
         .from('payment_transactions')
         .select(`
           *,
@@ -103,7 +103,7 @@ export function TransactionHistory({
       if (error) throw error
 
       // Transform data
-      const formattedTransactions: Transaction[] = (data || []).map(tx => ({
+      const formattedTransactions: Transaction[] = (data || []).map((tx: any) => ({
         id: tx.id,
         orderId: tx.order_id,
         orderNumber: tx.order?.order_number || '',

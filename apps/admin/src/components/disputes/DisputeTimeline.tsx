@@ -41,7 +41,7 @@ export function DisputeTimeline({ disputeId }: DisputeTimelineProps) {
       const supabase = createClient()
 
       // Get dispute events
-      const { data: disputeEvents, error } = await supabase
+      const { data: disputeEvents, error } = await (supabase as any)
         .from('dispute_events')
         .select(`
           *,

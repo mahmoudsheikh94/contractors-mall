@@ -82,7 +82,7 @@ export function DisputeMessages({
       const supabase = createClient()
 
       // Get messages based on user role
-      let query = supabase
+      let query = (supabase as any)
         .from('dispute_messages')
         .select(`
           *,
@@ -119,7 +119,7 @@ export function DisputeMessages({
       const supabase = createClient()
 
       // Send message
-      const { error: messageError } = await supabase
+      const { error: messageError } = await (supabase as any)
         .from('dispute_messages')
         .insert({
           dispute_id: disputeId,
@@ -132,7 +132,7 @@ export function DisputeMessages({
       if (messageError) throw messageError
 
       // Log event
-      await supabase
+      await (supabase as any)
         .from('dispute_events')
         .insert({
           dispute_id: disputeId,

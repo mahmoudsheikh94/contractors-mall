@@ -11,8 +11,7 @@ import {
   PaymentProviderConfig,
   PaymentError,
   PaymentErrorCode,
-  PaymentStatus,
-  EscrowHold
+  PaymentStatus
 } from './types'
 import { HyperPayProvider } from './providers/hyperpay'
 import { MockPaymentProvider } from './mockPaymentProvider'
@@ -27,7 +26,7 @@ export class PaymentService implements IPaymentService {
 
   private constructor() {
     // Initialize with mock provider by default
-    this.provider = new MockPaymentProvider()
+    this.provider = new MockPaymentProvider() as unknown as IPaymentProvider
     this.providers.set('mock', this.provider)
   }
 
@@ -91,7 +90,7 @@ export class PaymentService implements IPaymentService {
     customer: PaymentCustomer
     saveCard?: boolean
   }): Promise<PaymentTransaction> {
-    const supabase = await createClient()
+    const supabase = (await createClient()) as any
 
     try {
       // Create payment intent
@@ -174,7 +173,7 @@ export class PaymentService implements IPaymentService {
     transactionId: string
     supplierId: string
   }): Promise<void> {
-    const supabase = await createClient()
+    const supabase = (await createClient()) as any
 
     try {
       // Get order details
@@ -194,8 +193,8 @@ export class PaymentService implements IPaymentService {
 
       // Calculate commission
       const commissionRate = 10 // 10% platform commission
-      const commissionAmount = Math.round(order.total_amount * commissionRate / 100)
-      const supplierAmount = order.total_amount - commissionAmount
+      const commissionAmount = Math.round((order as any).total_amount * commissionRate / 100)
+      const supplierAmount = (order as any).total_amount - commissionAmount
 
       // Release payment from escrow
       const result = await this.provider.releaseFromEscrow({
@@ -278,7 +277,7 @@ export class PaymentService implements IPaymentService {
     reason: string
     evidence?: any[]
   }): Promise<void> {
-    const supabase = await createClient()
+    const supabase = (await createClient()) as any
 
     try {
       // Create dispute record
@@ -352,7 +351,7 @@ export class PaymentService implements IPaymentService {
     failed: number
     errors: string[]
   }> {
-    const supabase = await createClient()
+    const supabase = (await createClient()) as any
     const errors: string[] = []
     let released = 0
     let failed = 0
@@ -398,7 +397,7 @@ export class PaymentService implements IPaymentService {
     failed: number
     errors: string[]
   }> {
-    const supabase = await createClient()
+    const supabase = (await createClient()) as any
     const errors: string[] = []
     let refunded = 0
     let failed = 0
@@ -497,7 +496,7 @@ export class PaymentService implements IPaymentService {
 
       if (result.transaction) {
         // Update transaction in database
-        const supabase = await createClient()
+        const supabase = (await createClient()) as any
 
         await (supabase as any)
           .from('payment_transactions')

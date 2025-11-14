@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check order status
-    if (order.status !== 'pending' && order.status !== 'payment_failed') {
+    // Check order status - allow pending or cancelled (for retry)
+    if (order.status !== 'pending' && order.status !== 'cancelled') {
       return NextResponse.json(
         { error: 'لا يمكن معالجة الدفع لهذا الطلب' },
         { status: 400 }
@@ -77,34 +77,25 @@ export async function POST(request: NextRequest) {
     // Initialize payment service
     await paymentService.initialize()
 
-    // Process payment based on method
-    let paymentMethodId = validatedData.paymentMethod
-
     // If new card, save it first if requested
-    if (validatedData.paymentMethod === 'new' && validatedData.cardData) {
-      if (validatedData.saveCard) {
-        // Save card to database
-        const { data: savedMethod, error: saveError } = await supabase
-          .from('payment_methods')
-          .insert({
-            customer_id: validatedData.customerId,
-            type: 'card',
-            last4: validatedData.cardData.number.slice(-4),
-            brand: detectCardBrand(validatedData.cardData.number),
-            holder_name: validatedData.cardData.holder,
-            expiry_month: validatedData.cardData.expiryMonth,
-            expiry_year: validatedData.cardData.expiryYear,
-            is_active: true,
-            is_default: false
-          })
-          .select()
-          .single()
+    if (validatedData.paymentMethod === 'new' && validatedData.cardData && validatedData.saveCard) {
+      // Save card to database
+      const { error: saveError } = await (supabase as any)
+        .from('payment_methods')
+        .insert({
+          customer_id: validatedData.customerId,
+          type: 'card',
+          last4: validatedData.cardData.number.slice(-4),
+          brand: detectCardBrand(validatedData.cardData.number),
+          holder_name: validatedData.cardData.holder,
+          expiry_month: validatedData.cardData.expiryMonth,
+          expiry_year: validatedData.cardData.expiryYear,
+          is_active: true,
+          is_default: false
+        })
 
-        if (saveError) {
-          console.error('Failed to save payment method:', saveError)
-        } else {
-          paymentMethodId = savedMethod.id
-        }
+      if (saveError) {
+        console.error('Failed to save payment method:', saveError)
       }
     }
 

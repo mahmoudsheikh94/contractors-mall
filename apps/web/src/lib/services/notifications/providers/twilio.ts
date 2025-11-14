@@ -134,7 +134,7 @@ export class TwilioProvider {
     try {
       const phoneNumber = await this.client.lookups.v2
         .phoneNumbers(phone)
-        .fetch({ fields: 'line_type_intelligence' })
+        .fetch({ fields: 'line_type_intelligence' }) as any
 
       return {
         valid: true,

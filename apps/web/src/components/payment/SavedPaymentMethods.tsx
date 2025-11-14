@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CreditCard, Check, Trash2, Plus } from 'lucide-react'
+import { CreditCard, Trash2, Plus } from 'lucide-react'
 
 interface SavedMethod {
   id: string
@@ -50,7 +50,7 @@ export function SavedPaymentMethods({
       const supabase = createClient()
 
       // Load saved payment methods
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('payment_methods')
         .select('*')
         .eq('customer_id', customerId)
@@ -61,7 +61,7 @@ export function SavedPaymentMethods({
       if (error) throw error
 
       // Transform data to SavedMethod format
-      const savedMethods: SavedMethod[] = (data || []).map(method => ({
+      const savedMethods: SavedMethod[] = (data || []).map((method: any) => ({
         id: method.id,
         type: method.type,
         last4: method.last4,
@@ -98,7 +98,7 @@ export function SavedPaymentMethods({
       const supabase = createClient()
 
       // Soft delete the payment method
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('payment_methods')
         .update({ is_active: false })
         .eq('id', methodId)
@@ -125,13 +125,13 @@ export function SavedPaymentMethods({
       const supabase = createClient()
 
       // Clear current default
-      await supabase
+      await (supabase as any)
         .from('payment_methods')
         .update({ is_default: false })
         .eq('customer_id', customerId)
 
       // Set new default
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('payment_methods')
         .update({ is_default: true })
         .eq('id', methodId)
@@ -161,19 +161,6 @@ export function SavedPaymentMethods({
         return <span className="text-blue-500 font-bold text-xs">AMEX</span>
       default:
         return <CreditCard className="w-4 h-4 text-gray-400" />
-    }
-  }
-
-  function getMethodTypeLabel(type: string) {
-    switch (type) {
-      case 'card':
-        return 'بطاقة ائتمان'
-      case 'bank':
-        return 'حساب بنكي'
-      case 'wallet':
-        return 'محفظة إلكترونية'
-      default:
-        return 'طريقة دفع'
     }
   }
 

@@ -74,7 +74,7 @@ export class SendGridProvider {
         }
       }
 
-      const [response] = await sgMail.send(msg)
+      const [response] = await sgMail.send(msg as any)
 
       return {
         notificationId: notification.id!,
@@ -144,7 +144,7 @@ export class SendGridProvider {
       }))
 
       try {
-        const [response] = await sgMail.send(messages)
+        const [response] = await sgMail.send(messages as any)
 
         batch.forEach(notification => {
           results.push({

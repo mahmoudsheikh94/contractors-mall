@@ -7,7 +7,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CreditCard, Lock, Calendar, User } from 'lucide-react'
+import { CreditCard, Lock, User } from 'lucide-react'
 
 interface CardInputProps {
   onCardValid: (cardData: CardData) => void

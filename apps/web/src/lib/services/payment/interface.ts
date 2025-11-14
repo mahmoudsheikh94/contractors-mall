@@ -11,7 +11,6 @@ import {
   CardToken,
   PaymentStatus,
   PaymentWebhookEvent,
-  RefundRequest,
   PaymentReceipt,
   ThreeDSecure,
   PaymentProviderConfig,

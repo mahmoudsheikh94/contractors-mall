@@ -48,7 +48,7 @@ export function DisputeEvidence({ disputeId, orderId, canUpload = true }: Disput
     try {
       const supabase = createClient()
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('dispute_evidence')
         .select(`
           *,
@@ -108,7 +108,7 @@ export function DisputeEvidence({ disputeId, orderId, canUpload = true }: Disput
           .getPublicUrl(fileName)
 
         // Save evidence record
-        const { data: evidenceData, error: evidenceError } = await supabase
+        const { data: evidenceData, error: evidenceError } = await (supabase as any)
           .from('dispute_evidence')
           .insert({
             dispute_id: disputeId,
@@ -126,7 +126,7 @@ export function DisputeEvidence({ disputeId, orderId, canUpload = true }: Disput
         if (evidenceError) throw evidenceError
 
         // Log event
-        await supabase
+        await (supabase as any)
           .from('dispute_events')
           .insert({
             dispute_id: disputeId,

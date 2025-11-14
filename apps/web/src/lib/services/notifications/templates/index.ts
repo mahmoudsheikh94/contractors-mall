@@ -375,7 +375,7 @@ export class TemplateRenderer {
     // Handle conditional blocks: {{#if condition}}...{{/if}}
     result = result.replace(
       /\{\{#if\s+([^}]+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
-      (match, condition, content) => {
+      (_match, condition, content) => {
         const value = this.getNestedValue(data, condition.trim())
         return value ? content : ''
       }
@@ -384,7 +384,7 @@ export class TemplateRenderer {
     // Handle each loops: {{#each items}}...{{/each}}
     result = result.replace(
       /\{\{#each\s+([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g,
-      (match, arrayKey, template) => {
+      (_match, arrayKey, template) => {
         const array = this.getNestedValue(data, arrayKey.trim())
         if (!Array.isArray(array)) return ''
 
@@ -392,9 +392,9 @@ export class TemplateRenderer {
           .map(item => {
             let itemResult = template
             // Replace item properties
-            itemResult = itemResult.replace(/\{\{([^}]+)\}\}/g, (m, key) => {
+            itemResult = itemResult.replace(/\{\{([^}]+)\}\}/g, (_m: string, key: string) => {
               const value = this.getNestedValue(item, key.trim())
-              return value !== undefined ? String(value) : m
+              return value !== undefined ? String(value) : _m
             })
             return itemResult
           })

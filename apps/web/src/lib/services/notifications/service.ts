@@ -366,7 +366,7 @@ export class NotificationService {
 
       // Store notification in database
       const supabase = await createClient()
-      const { data, error } = await supabase
+      const { error } = await (supabase as any)
         .from('notifications')
         .insert({
           id: notification.id,
@@ -426,14 +426,14 @@ export class NotificationService {
   private async getUserPreferences(userId: string): Promise<NotificationPreferences> {
     const supabase = await createClient()
 
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('notification_preferences')
       .select('*')
       .eq('user_id', userId)
       .single()
 
     // Return default preferences if none found
-    return data || {
+    return (data as any) || {
       userId,
       email: {
         enabled: true,
@@ -467,14 +467,14 @@ export class NotificationService {
   private async getSupplierPreferences(supplierId: string): Promise<NotificationPreferences> {
     const supabase = await createClient()
 
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('supplier_notification_preferences')
       .select('*')
       .eq('supplier_id', supplierId)
       .single()
 
     // Return default preferences if none found
-    return data || {
+    return (data as any) || {
       userId: supplierId,
       email: {
         enabled: true,

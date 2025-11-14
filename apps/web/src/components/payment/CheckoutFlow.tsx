@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CardInput, type CardData } from './CardInput'
 import { SavedPaymentMethods } from './SavedPaymentMethods'
 import { PaymentStatus } from './PaymentStatus'
-import { Shield, Info, ArrowRight, Lock, CheckCircle } from 'lucide-react'
+import { Shield, Info, Lock, CheckCircle } from 'lucide-react'
 
 interface CheckoutFlowProps {
   orderId: string
@@ -38,10 +38,10 @@ export function CheckoutFlow({
   orderNumber,
   amount,
   currency = 'JOD',
-  supplierId,
+  supplierId: _supplierId,
   supplierName,
   customerId,
-  customerName,
+  customerName: _customerName,
   customerEmail,
   customerPhone,
   deliveryAddress,
@@ -108,7 +108,7 @@ export function CheckoutFlow({
       await supabase
         .from('orders')
         .update({
-          status: 'payment_pending',
+          status: 'pending',
           payment_status: 'processing',
           updated_at: new Date().toISOString()
         })

@@ -160,7 +160,7 @@ export class NotificationQueue {
       case NotificationChannel.SMS:
         queue = this.smsQueue
         // SMS might need higher priority
-        jobOptions = { ...jobOptions, priority: notification.priority === 'critical' ? 1 : 10 }
+        jobOptions.priority = notification.priority === 'critical' ? 1 : 10
         break
       case NotificationChannel.PUSH:
         queue = this.pushQueue
@@ -231,7 +231,7 @@ export class NotificationQueue {
 
     try {
       // Update status to sending
-      await (supabase as any)
+      await supabase
         .from('notification_logs')
         .update({
           status: NotificationStatus.SENDING,
@@ -243,7 +243,7 @@ export class NotificationQueue {
       const result = await this.emailProvider.send(notification)
 
       // Update status to sent
-      await (supabase as any)
+      await supabase
         .from('notification_logs')
         .update({
           status: NotificationStatus.SENT,
@@ -258,12 +258,13 @@ export class NotificationQueue {
       console.log(`Email sent: ${notification.id} to ${notification.recipient.email}`)
     } catch (error: any) {
       // Update status to failed
-      await (supabase as any)
+      await supabase
         .from('notification_logs')
         .update({
           status: NotificationStatus.FAILED,
           failed_at: new Date().toISOString(),
-          error_message: error.message
+          error_message: error.message,
+          retry_count: supabase.raw('retry_count + 1')
         })
         .eq('notification_id', notification.id)
 
@@ -295,7 +296,7 @@ export class NotificationQueue {
       }
 
       // Update status to sending
-      await (supabase as any)
+      await supabase
         .from('notification_logs')
         .update({
           status: NotificationStatus.SENDING,
@@ -307,7 +308,7 @@ export class NotificationQueue {
       const result = await this.smsProvider.send(notification)
 
       // Update status to sent
-      await (supabase as any)
+      await supabase
         .from('notification_logs')
         .update({
           status: result.status,
@@ -322,12 +323,13 @@ export class NotificationQueue {
       console.log(`SMS sent: ${notification.id} to ${notification.recipient.phone}`)
     } catch (error: any) {
       // Update status to failed
-      await (supabase as any)
+      await supabase
         .from('notification_logs')
         .update({
           status: NotificationStatus.FAILED,
           failed_at: new Date().toISOString(),
-          error_message: error.message
+          error_message: error.message,
+          retry_count: supabase.raw('retry_count + 1')
         })
         .eq('notification_id', notification.id)
 
@@ -345,7 +347,7 @@ export class NotificationQueue {
     // Check if max retries reached
     if (job.attemptsMade >= (job.opts.attempts || 3)) {
       // Mark as permanently failed
-      await (supabase as any)
+      await supabase
         .from('notification_logs')
         .update({
           status: NotificationStatus.FAILED,
@@ -402,7 +404,7 @@ export class NotificationQueue {
   }
 
   // Check if current time is in quiet hours
-  private async isInQuietHours(_timezone: string): Promise<boolean> {
+  private async isInQuietHours(timezone: string): Promise<boolean> {
     // Simple implementation - would need proper timezone library
     const now = new Date()
     const hour = now.getHours()
@@ -410,7 +412,7 @@ export class NotificationQueue {
   }
 
   // Get next morning time for scheduling
-  private getNextMorningTime(_timezone: string): Date {
+  private getNextMorningTime(timezone: string): Date {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(8, 0, 0, 0) // 8 AM tomorrow

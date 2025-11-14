@@ -239,7 +239,7 @@ export class HyperPayProvider implements IPaymentProvider {
     })
   }
 
-  async cancelPaymentIntent(intentId: string): Promise<void> {
+  async cancelPaymentIntent(_intentId: string): Promise<void> {
     // HyperPay doesn't have a direct cancel API
     // Checkouts expire automatically after 30 minutes
     // We'll mark it as cancelled in our database
@@ -268,7 +268,7 @@ export class HyperPayProvider implements IPaymentProvider {
         },
         customer: {
           merchantCustomerId: params.customerId
-        }
+        } as any
       })
 
       const registration = response as any
@@ -331,7 +331,7 @@ export class HyperPayProvider implements IPaymentProvider {
     }
   }
 
-  async listCustomerCards(customerId: string): Promise<CardToken[]> {
+  async listCustomerCards(_customerId: string): Promise<CardToken[]> {
     // HyperPay doesn't have a direct API to list customer cards
     // This would need to be managed in our database
     return []
@@ -401,7 +401,7 @@ export class HyperPayProvider implements IPaymentProvider {
             required: true,
             version: '2.0',
             status: 'pending',
-            redirectUrl: payment.redirect?.url
+            redirectUrl: (payment as any).redirect?.url
           }
         }
       }
@@ -591,7 +591,7 @@ export class HyperPayProvider implements IPaymentProvider {
     }
   }
 
-  async listTransactions(params: {
+  async listTransactions(_params: {
     customerId?: string
     supplierId?: string
     status?: PaymentStatus
@@ -994,7 +994,7 @@ export class HyperPayProvider implements IPaymentProvider {
       description: payment.descriptor,
       metadata: payment.customParameters,
       customer: {
-        id: payment.customer?.merchantCustomerId || '',
+        id: (payment.customer as any)?.merchantCustomerId || '',
         email: payment.customer?.email || '',
         phone: payment.customer?.phone || '',
         name: `${payment.customer?.givenName || ''} ${payment.customer?.surname || ''}`.trim()
@@ -1017,7 +1017,7 @@ export class HyperPayProvider implements IPaymentProvider {
         authCode: payment.resultDetails?.clearingInstituteName
       } : undefined,
       customer: {
-        id: payment.customer?.merchantCustomerId || '',
+        id: (payment.customer as any)?.merchantCustomerId || '',
         email: payment.customer?.email || '',
         phone: payment.customer?.phone || '',
         name: `${payment.customer?.givenName || ''} ${payment.customer?.surname || ''}`.trim()
