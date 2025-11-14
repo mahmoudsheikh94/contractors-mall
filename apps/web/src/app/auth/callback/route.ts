@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { sendWelcomeEmail } from '@/lib/email/resend'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -91,6 +92,15 @@ export async function GET(request: Request) {
           if (!rpcError && rpcProfile) {
             // RPC succeeded, get the profile data
             const profile = Array.isArray(rpcProfile) ? rpcProfile[0] : rpcProfile
+
+            // Send welcome email for new profile
+            sendWelcomeEmail(
+              user.email || '',
+              profile.full_name || 'مستخدم جديد'
+            ).catch(err => {
+              console.error('Failed to send welcome email:', err)
+            })
+
             return redirectBasedOnRole(profile.role, origin)
           }
         }
@@ -102,9 +112,32 @@ export async function GET(request: Request) {
 
       // Profile created successfully
       if (newProfile) {
+        // Send welcome email (non-blocking) - only for new profiles
+        sendWelcomeEmail(
+          user.email || '',
+          newProfile.full_name || 'مستخدم جديد'
+        ).catch(err => {
+          console.error('Failed to send welcome email:', err)
+        })
+
         return redirectBasedOnRole(newProfile.role, origin)
       }
     } else {
+      // Profile exists - this is a returning user
+      // Check if this is their first callback after email verification
+      // by checking if they just confirmed their email (type=signup in query params)
+      const type = requestUrl.searchParams.get('type')
+
+      if (type === 'signup' || type === 'email') {
+        // This is the first callback after email verification
+        sendWelcomeEmail(
+          user.email || '',
+          profile.full_name || 'مستخدم'
+        ).catch(err => {
+          console.error('Failed to send welcome email:', err)
+        })
+      }
+
       // Profile exists, redirect based on role
       return redirectBasedOnRole(profile.role, origin)
     }

@@ -4,6 +4,7 @@ import { mockPaymentProvider } from '@/lib/services/payment/mockPaymentProvider'
 import { ApiErrors, handleApiError } from '@contractors-mall/shared'
 import { z } from 'zod'
 import type { CreateOrderResponse } from '@/types/order'
+import { sendOrderConfirmationEmail } from '@/lib/email/resend'
 
 /**
  * Zod validation schema for order creation
@@ -287,6 +288,25 @@ export async function POST(request: Request) {
       .from('orders')
       .update({ status: 'confirmed' })
       .eq('id', order.id)
+
+    // 8. Send order confirmation email (non-blocking)
+    sendOrderConfirmationEmail(
+      user.email || '',
+      orderNumber,
+      total,
+      {
+        items: body.items.map(item => ({
+          name: item.productName || item.productNameEn || 'Unknown Product',
+          quantity: item.quantity,
+          price: item.unitPrice
+        })),
+        deliveryFee: deliveryFee,
+        vehicle: vehicleEstimate.delivery_zone === 'zone_a' ? 'Zone A' : 'Zone B'
+      }
+    ).catch(err => {
+      console.error('Failed to send order confirmation email:', err)
+      // Don't fail the order if email fails
+    })
 
     // Return the created order and payment info
     const response: CreateOrderResponse = {
