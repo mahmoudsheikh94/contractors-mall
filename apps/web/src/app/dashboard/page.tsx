@@ -177,7 +177,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <div className="mt-5">
-                  <Link href="/map">
+                  <Link href="/suppliers">
                     <Button variant="outline" className="w-full">
                       عرض الخريطة
                     </Button>
