@@ -1642,6 +1642,60 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_registrations: {
+        Row: {
+          building: string | null
+          business_name: string
+          business_name_en: string | null
+          city: string
+          created_at: string
+          district: string
+          email: string | null
+          id: string
+          license_number: string
+          phone: string
+          street: string
+          tax_number: string | null
+          user_id: string
+          zone_a_radius: number
+          zone_b_radius: number
+        }
+        Insert: {
+          building?: string | null
+          business_name: string
+          business_name_en?: string | null
+          city: string
+          created_at?: string
+          district: string
+          email?: string | null
+          id?: string
+          license_number: string
+          phone: string
+          street: string
+          tax_number?: string | null
+          user_id: string
+          zone_a_radius?: number
+          zone_b_radius?: number
+        }
+        Update: {
+          building?: string | null
+          business_name?: string
+          business_name_en?: string | null
+          city?: string
+          created_at?: string
+          district?: string
+          email?: string | null
+          id?: string
+          license_number?: string
+          phone?: string
+          street?: string
+          tax_number?: string | null
+          user_id?: string
+          zone_a_radius?: number
+          zone_b_radius?: number
+        }
+        Relationships: []
+      }
       supplier_zone_fees: {
         Row: {
           base_fee_jod: number

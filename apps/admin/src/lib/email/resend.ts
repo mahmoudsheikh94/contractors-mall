@@ -119,3 +119,17 @@ export async function sendInvoiceReadyEmail(
     html,
   })
 }
+
+/**
+ * Send order status change email (placeholder)
+ * TODO: Implement email templates for order status changes
+ */
+export async function sendOrderStatusEmail(
+  email: string,
+  orderNumber: string,
+  status: string
+) {
+  // Placeholder implementation
+  console.log(`Order status email would be sent to ${email} for order ${orderNumber} with status ${status}`)
+  return { success: true }
+}
