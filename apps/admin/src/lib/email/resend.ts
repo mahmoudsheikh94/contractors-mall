@@ -127,9 +127,10 @@ export async function sendInvoiceReadyEmail(
 export async function sendOrderStatusEmail(
   email: string,
   orderNumber: string,
-  status: string
+  status: string,
+  statusMessage: string
 ) {
   // Placeholder implementation
-  console.log(`Order status email would be sent to ${email} for order ${orderNumber} with status ${status}`)
+  console.log(`Order status email would be sent to ${email} for order ${orderNumber} with status ${status}: ${statusMessage}`)
   return { success: true }
 }

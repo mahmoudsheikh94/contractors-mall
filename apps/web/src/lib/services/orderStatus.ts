@@ -146,8 +146,8 @@ export async function updateOrderStatus(
 
     let emailSent = false
 
-    if (shouldNotify && order.profiles?.email) {
-      const contractorEmail = (order.profiles as any).email
+    if (shouldNotify && Array.isArray(order.profiles) && order.profiles.length > 0 && order.profiles[0]?.email) {
+      const contractorEmail = order.profiles[0].email
 
       // Send email asynchronously without blocking the response
       sendOrderStatusEmail(
