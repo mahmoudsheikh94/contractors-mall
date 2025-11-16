@@ -38,6 +38,9 @@ export async function GET(request: Request) {
         // Don't fail the redirect - user is still authenticated
       }
 
+      // Supplier record will be created automatically by database trigger
+      // (see migration: 20250115000002_auto_create_supplier_on_signup.sql)
+
       // Redirect to supplier dashboard with success message
       return NextResponse.redirect(`${origin}/supplier?verified=true`)
     }

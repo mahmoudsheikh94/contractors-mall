@@ -51,41 +51,8 @@ export default function RegisterPage() {
       if (signupError) throw signupError
       if (!authData.user) throw new Error('فشل إنشاء الحساب')
 
-      // Wait briefly for trigger, then create profile manually if needed
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', authData.user.id)
-        .maybeSingle()
-
-      if (!existingProfile) {
-        // Trigger didn't work, create profile manually
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email: formData.email,
-            full_name: formData.fullName,
-            phone: formData.phone || null,
-            role: 'contractor',
-            email_verified: false,
-          })
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          throw new Error('فشل إنشاء ملف المستخدم')
-        }
-      }
-
-      // Send welcome email (don't block on it)
-      fetch('/api/auth/send-welcome-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, name: formData.fullName }),
-      }).catch((err) => console.error('Failed to send welcome email:', err))
-
+      // Profile will be created automatically by database trigger
+      // Welcome email will be sent after email verification
       setSuccess(true)
     } catch (err: any) {
       setError(err.message || 'حدث خطأ في التسجيل')

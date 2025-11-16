@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { ApiErrors, ApiError, ErrorCodes, handleApiError, OrderStatus } from '@contractors-mall/shared'
 import { z } from 'zod'
+import { updateOrderStatus } from '@/lib/services/orderStatus'
 
 /**
  * Zod validation schema for delivery confirmation
@@ -168,42 +169,18 @@ export async function POST(
         return NextResponse.json(error.toResponseObject(), { status: error.status })
       }
 
-      // 2. Update order status to delivered
-      // DIAGNOSTIC: Log auth context before update
-      console.log('[DIAGNOSTIC] Attempting order status update:', {
-        orderId,
-        orderNumber: order.order_number,
-        currentStatus: order.status,
-        targetStatus: 'delivered',
-        contractorId: order.contractor_id,
-        authenticatedUserId: user.id,
-        authContextMatch: order.contractor_id === user.id,
-      })
+      // 2. Update order status to delivered using centralized helper (sends email)
+      const statusUpdate = await updateOrderStatus(supabase, orderId, 'delivered')
 
-      const { data: orderUpdateData, error: orderUpdateError } = await supabase
-        .from('orders')
-        .update({
-          status: 'delivered',
-          updated_at: now,
-        })
-        .eq('id', orderId)
-        .select()
-
-      if (orderUpdateError) {
-        console.error('❌ ERROR updating order status:', {
-          error: orderUpdateError,
-          code: orderUpdateError.code,
-          message: orderUpdateError.message,
-          details: orderUpdateError.details,
-          hint: orderUpdateError.hint,
-        })
+      if (!statusUpdate.success) {
+        console.error('❌ ERROR updating order status:', statusUpdate.error)
 
         // CRITICAL: Order status update failed!
         // This means payment won't be released and order will be stuck
         // Return error to user instead of silently continuing
         const error = new ApiError(
           ErrorCodes.DATABASE_ERROR,
-          `Failed to update order status: ${orderUpdateError.message || 'Unknown error'}`,
+          `Failed to update order status: ${statusUpdate.error || 'Unknown error'}`,
           500,
           {
             messageAr: 'فشل تحديث حالة الطلب. يرجى الاتصال بالدعم.',
@@ -211,17 +188,13 @@ export async function POST(
               step: 'order_status_update',
               delivery_confirmed: true, // Delivery was confirmed successfully
               order_status_updated: false,
-              postgres_error_code: orderUpdateError.code,
-              postgres_error_message: orderUpdateError.message,
-              postgres_error_details: orderUpdateError.details,
-              postgres_error_hint: orderUpdateError.hint,
             }
           }
         )
         return NextResponse.json(error.toResponseObject(), { status: error.status })
       }
 
-      console.log('✅ Order status updated successfully:', orderUpdateData)
+      console.log('✅ Order status updated successfully to delivered, email sent:', statusUpdate.emailSent)
 
       // 3. Check if there are any active disputes
       const { data: dispute } = await supabase
@@ -257,23 +230,14 @@ export async function POST(
           paymentReleased = true
           console.log('✅ Payment released successfully for order:', orderId)
 
-          // 5. Update order status to completed
-          const { error: completionError } = await supabase
-            .from('orders')
-            .update({ status: 'completed', updated_at: now })
-            .eq('id', orderId)
+          // 5. Update order status to completed using centralized helper (sends email)
+          const completionUpdate = await updateOrderStatus(supabase, orderId, 'completed')
 
-          if (completionError) {
-            console.error('❌ Error updating order to completed:', {
-              orderId,
-              code: completionError.code,
-              message: completionError.message,
-              details: completionError.details,
-              hint: completionError.hint,
-            })
+          if (!completionUpdate.success) {
+            console.error('❌ Error updating order to completed:', completionUpdate.error)
             // Don't fail - order is still marked as delivered
           } else {
-            console.log('✅ Order status updated to completed:', orderId)
+            console.log('✅ Order status updated to completed, email sent:', completionUpdate.emailSent)
           }
         }
       }
@@ -339,14 +303,15 @@ export async function POST(
         return NextResponse.json(error.toResponseObject(), { status: error.status })
       }
 
-      // 2. Update order status to disputed
-      await supabase
-        .from('orders')
-        .update({
-          status: 'disputed' as any, // Cast required until migration applied
-          updated_at: now,
-        })
-        .eq('id', orderId)
+      // 2. Update order status to disputed using centralized helper (sends email)
+      const disputeStatusUpdate = await updateOrderStatus(supabase, orderId, 'disputed')
+
+      if (!disputeStatusUpdate.success) {
+        console.error('❌ Error updating order to disputed:', disputeStatusUpdate.error)
+        // Continue anyway - dispute was created successfully
+      } else {
+        console.log('✅ Order status updated to disputed, email sent:', disputeStatusUpdate.emailSent)
+      }
 
       // 3. Freeze payment (note: 'frozen' status may not exist in production yet)
       await supabase

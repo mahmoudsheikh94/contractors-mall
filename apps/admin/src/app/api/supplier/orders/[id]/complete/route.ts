@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { updateOrderStatus } from '@/lib/services/orderStatus'
 
 // Force dynamic rendering - this route uses cookies for auth
 export const dynamic = 'force-dynamic'
@@ -96,23 +97,17 @@ export async function POST(
       )
     }
 
-    // 6. Update order status to completed
+    // 6. Update order status to completed using centralized helper (sends email)
     const now = new Date().toISOString()
-    const { error: updateError } = await supabase
-      .from('orders')
-      .update({
-        status: 'completed',
-        updated_at: now,
-      })
-      .eq('id', orderId)
+    const statusUpdate = await updateOrderStatus(supabase, orderId, 'completed')
 
-    if (updateError) {
-      console.error('Error updating order to completed:', updateError)
+    if (!statusUpdate.success) {
+      console.error('Error updating order to completed:', statusUpdate.error)
       return NextResponse.json(
         {
           error: 'فشل تحديث حالة الطلب',
           error_en: 'Failed to update order status',
-          details: updateError.message,
+          details: statusUpdate.error,
         },
         { status: 500 }
       )

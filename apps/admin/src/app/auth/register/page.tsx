@@ -83,7 +83,7 @@ export default function RegisterPage() {
 
       // 1. Create user account
       // Profile will be auto-created by database trigger
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data: authData, error: authError} = await supabase.auth.signUp({
         email: emailToUse,
         password: formData.password,
         options: {
@@ -97,7 +97,12 @@ export default function RegisterPage() {
       })
 
       if (authError) {
-        setError(authError.message)
+        // Handle specific error cases with Arabic messages
+        if (authError.message.includes('already') || authError.message.includes('exists') || authError.message.includes('duplicate')) {
+          setError('البريد الإلكتروني مستخدم بالفعل. يرجى تسجيل الدخول أو استخدام بريد آخر.')
+        } else {
+          setError(authError.message)
+        }
         setLoading(false)
         return
       }
@@ -108,95 +113,36 @@ export default function RegisterPage() {
         return
       }
 
-      // Note: Try to wait for database trigger to create profile
-      // If trigger doesn't exist, manually create the profile
-      let profileExists = false
-      let retries = 0
-      const maxRetries = 5  // Reduced retries (2.5 seconds max)
-
-      while (!profileExists && retries < maxRetries) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', authData.user.id)
-          .maybeSingle()
-
-        if (profile) {
-          profileExists = true
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 500))
-          retries++
-        }
-      }
-
-      // If trigger didn't create profile, create it manually
-      if (!profileExists) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email: emailToUse,
-            full_name: formData.fullName,
-            phone: formData.phone,
-            role: 'supplier_admin',
-            email_verified: false,
-            email_verified_at: null,
-          })
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError)
-          setError('فشل إنشاء ملف المستخدم. يرجى الاتصال بالدعم.')
-          setLoading(false)
-          return
-        }
-      }
-
-      // 2. Create supplier record
-      // Combine address fields into single address string
-      const addressParts = [
-        formData.building,
-        formData.street,
-        formData.district,
-        formData.city
-      ].filter(Boolean) // Remove empty values
-      const fullAddress = addressParts.join(', ')
-
-      const { error: supplierError } = await supabase
-        .from('suppliers')
+      // 2. Store supplier registration data in temporary table
+      // This will be used by the trigger after email verification
+      const { error: regError } = await supabase
+        .from('supplier_registrations')
         .insert({
-          owner_id: authData.user.id,
+          user_id: authData.user.id,
           business_name: formData.businessName,
           business_name_en: formData.businessNameEn || formData.businessName,
           phone: formData.phone,
           email: formData.email,
-          // Business details
           license_number: formData.licenseNumber,
           tax_number: formData.taxNumber || null,
-          // Combined address for display
-          address: fullAddress,
-          // Detailed address fields for filtering/searching
           city: formData.city,
           district: formData.district,
           street: formData.street,
           building: formData.building || null,
-          // Default location to Amman center (user can update later via profile settings)
-          latitude: 31.9539,
-          longitude: 35.9106,
-          // Delivery zones
-          radius_km_zone_a: parseFloat(formData.zoneARadius),
-          radius_km_zone_b: parseFloat(formData.zoneBRadius),
-          is_verified: false, // Admin must verify
+          zone_a_radius: parseFloat(formData.zoneARadius),
+          zone_b_radius: parseFloat(formData.zoneBRadius),
         })
 
-      if (supplierError) {
-        console.error('Supplier creation error:', supplierError)
-        setError('فشل إنشاء بيانات المورّد')
-        setLoading(false)
-        return
+      if (regError) {
+        console.error('Error storing registration data:', regError)
+        // Don't fail the signup - user can complete profile later
       }
 
-      // Success - redirect to login with message
-      router.push('/auth/login?registered=true')
+      // Profile will be created automatically by database trigger
+      // Supplier record will be created after email verification from supplier_registrations table
+
+      // Success - show message about email verification
+      router.push('/auth/login?registered=true&verify_email=true')
     } catch (err) {
       console.error('Registration error:', err)
       setError('حدث خطأ غير متوقع')

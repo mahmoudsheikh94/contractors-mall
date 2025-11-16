@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { updateOrderStatus } from '@/lib/services/orderStatus'
 
 interface DisputeRequest {
   reason: string
@@ -106,21 +107,14 @@ export async function POST(
       )
     }
 
-    // Update order status to 'disputed'
-    // NOTE: 'disputed' status is not yet in production database.
-    // Will fail until migrations are applied to production.
-    // TODO: Run migration 20251113000000 in production to enable disputed status
-    const { error: orderUpdateError } = await (supabase
-      .from('orders')
-      .update as any)({
-        status: 'disputed' as any, // Cast required until database is updated
-        disputed_at: new Date().toISOString(),
-        dispute_reason: body.description,
-      })
-      .eq('order_id', orderId)
+    // Update order status to 'disputed' using centralized helper (sends email)
+    const statusUpdate = await updateOrderStatus(supabase, orderId, 'disputed', {
+      disputed_at: new Date().toISOString(),
+      dispute_reason: body.description,
+    })
 
-    if (orderUpdateError) {
-      console.error('Error updating order status:', orderUpdateError)
+    if (!statusUpdate.success) {
+      console.error('Error updating order status:', statusUpdate.error)
       return NextResponse.json(
         { error: 'فشل تحديث حالة الطلب' },
         { status: 500 }

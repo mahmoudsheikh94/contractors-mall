@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { updateOrderStatus } from '@/lib/services/orderStatus'
 
 /**
  * POST /api/supplier/orders/[id]/start-delivery
@@ -82,19 +83,13 @@ export async function POST(
     }
 
     // Start a Supabase transaction
-    // 1. Update order status to 'in_delivery'
-    const { error: orderUpdateError } = await supabase
-      .from('orders')
-      .update({
-        status: 'in_delivery',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', orderId)
+    // 1. Update order status to 'in_delivery' using centralized helper (sends email)
+    const statusUpdate = await updateOrderStatus(supabase, orderId, 'in_delivery')
 
-    if (orderUpdateError) {
-      console.error('Error updating order status:', orderUpdateError)
+    if (!statusUpdate.success) {
+      console.error('Error updating order status:', statusUpdate.error)
       return NextResponse.json(
-        { error: 'Failed to update order status' },
+        { error: statusUpdate.error || 'Failed to update order status' },
         { status: 500 }
       )
     }
@@ -142,8 +137,7 @@ export async function POST(
       // Don't fail the request, just log the error
     }
 
-    // 4. TODO: Send notification to contractor
-    // await NotificationService.notifyDeliveryStarted(orderId)
+    // 4. Email notification sent automatically by updateOrderStatus()
 
     return NextResponse.json({
       success: true,

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateJordanInvoice, type InvoiceType, type InvoiceCategory, type BuyerIdType } from '@/lib/invoicing/generator'
 import { trackAPIError } from '@/lib/monitoring'
+import { sendInvoiceReadyEmail } from '@/lib/email/resend'
 
 // Force dynamic rendering - this route uses cookies for auth
 export const dynamic = 'force-dynamic'
@@ -89,7 +90,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 6. Generate invoice
+    // 6. Get order details with contractor email
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        order_number,
+        contractor_id,
+        profiles!orders_contractor_id_fkey (
+          email
+        )
+      `)
+      .eq('id', body.orderId)
+      .single()
+
+    if (orderError || !order) {
+      return NextResponse.json(
+        { error: 'الطلب غير موجود (Order not found)' },
+        { status: 404 }
+      )
+    }
+
+    // 7. Generate invoice
     console.log('📄 Generating invoice:', {
       orderId: body.orderId,
       supplierId: supplier.id,
@@ -113,7 +135,27 @@ export async function POST(request: NextRequest) {
       user.id       // Auth user ID for created_by field
     )
 
-    // 7. Return success response
+    // 8. Send invoice ready email (non-blocking)
+    const contractorEmail = (order.profiles as any)?.email
+    if (contractorEmail) {
+      const invoiceUrl = `${process.env.NEXT_PUBLIC_ADMIN_URL}/api/invoices/${invoice.id}/pdf`
+
+      sendInvoiceReadyEmail(
+        contractorEmail,
+        order.order_number,
+        invoice.invoiceNumber,
+        invoiceUrl
+      )
+        .then(() => {
+          console.log(`✅ Invoice ready email sent for order ${order.order_number}`)
+        })
+        .catch(err => {
+          console.error(`❌ Failed to send invoice email for order ${order.order_number}:`, err)
+          // Don't fail the entire operation if email fails
+        })
+    }
+
+    // 9. Return success response
     return NextResponse.json({
       success: true,
       message: `تم إنشاء الفاتورة ${invoice.invoiceNumber} بنجاح (Invoice generated successfully)`,
